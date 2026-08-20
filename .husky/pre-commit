@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Guardrail: block commits that would publish the dev-only file: override
+# of @wolfgames/components. The override is added by `bun run use:local`
+# (in Lattice root) and must be cleared by `bun run use:remote` before
+# committing. Pushed code always pulls from GitHub Packages.
+
+# Only check when package.json is part of this commit
+if git diff --cached --name-only | grep -q '^package\.json$'; then
+  # Inspect the staged version of package.json
+  if git show :package.json | grep -qE '"@wolfgames/components"[[:space:]]*:[[:space:]]*"file:'; then
+    echo "✗ pre-commit: package.json declares a file: override for @wolfgames/components."
+    echo "  This dev-only override must NOT be committed."
+    echo "  Run 'bun run use:remote' (from Lattice root) before committing."
+    exit 1
+  fi
+fi
+
+# Block real asset-gen keys. Tooling reads ASSET_GEN_API_KEY from the
+# environment (shell or gitignored .env), so no key should ever appear in a
+# commit. Real keys are long alphanumeric strings after the wg_ag_ prefix;
+# doc mentions of the prefix are not.
+if git diff --cached -U0 | grep -E '^\+' | grep -qE 'wg_ag_[A-Za-z0-9]{8,}'; then
+  echo "✗ pre-commit: a real asset-gen key (wg_ag_...) is staged."
+  echo "  Tooling reads ASSET_GEN_API_KEY from your environment;"
+  echo "  keep real keys in ~/.zshrc or .env (gitignored), never in tracked files."
+  exit 1
+fi
+
+# Block unresolved merge conflict markers in staged content. These are never
+# intentional and silently break config files (e.g. .env parsing).
+if git diff --cached -U0 | grep -E '^\+' | grep -qE '^\+(<{7}|={7}|>{7})( |$)'; then
+  echo "✗ pre-commit: unresolved merge conflict markers are staged."
+  echo "  Resolve the conflict and remove the <<<<<<< / ======= / >>>>>>> lines."
+  exit 1
+fi
+
+# Asset pipeline guardrails: naming convention (public/assets + assets-src),
+# size budget for bundled media, no hardcoded CDN hosts in src/, and manifest
+# structure. See docs/recipes/asset-pipeline.md.
+bun run check:assets || exit 1
+bun run check:manifest || exit 1
