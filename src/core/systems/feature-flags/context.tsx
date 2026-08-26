@@ -84,10 +84,19 @@ export function FeatureFlagProvider(props: ParentProps) {
     if (firstKey && ph.getFeatureFlag(firstKey) !== undefined) {
       processFlags('immediate_check');
     }
+  } else {
+    // No PostHog, so nothing can ever resolve these flags — settle now instead
+    // of making the whole subtree wait out timeoutMs to learn that. Children
+    // render on defaults, which is what the timer would have given them
+    // anyway. Cost of not doing this: 2.0s of idle boot (ENG-4169).
+    setState('isReady', true);
+    isSettled = true;
   }
 
-  // Timeout fallback — unblock UI even if PostHog never loads
+  // Timeout fallback — for when PostHog is present but never answers.
   onMount(() => {
+    if (isSettled) return;
+
     const timeoutId = window.setTimeout(() => {
       if (!isSettled) {
         console.warn('[FeatureFlags] Timeout exceeded. Unblocking UI with current data.');
