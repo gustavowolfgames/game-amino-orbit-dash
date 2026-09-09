@@ -7,8 +7,12 @@ export interface FeatureFlagConfig<T extends object> {
   validators?: Partial<Record<keyof T, FlagValidator>>;
   /** localStorage key prefix for caching (e.g. "mygame_ff_"). Resolved from config if omitted. */
   storagePrefix?: string;
-  /** User ID for per-user cache keying */
-  userId: string;
+  /**
+   * User ID for per-user cache keying. A getter is supported for ids resolved
+   * after module load (e.g. the boot-resolved player id) — the provider
+   * evaluates it at mount, post-resolution.
+   */
+  userId: string | (() => string);
   /** How long to wait for PostHog before falling back to defaults/cache (ms) */
   timeoutMs?: number;
 }

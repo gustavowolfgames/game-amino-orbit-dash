@@ -24,7 +24,9 @@ export function FeatureFlagProvider(props: ParentProps) {
     );
   }
 
-  const { defaults, validators, userId, timeoutMs = 2000 } = config;
+  const { defaults, validators, userId: userIdSource, timeoutMs = 2000 } = config;
+  const userId =
+    typeof userIdSource === 'function' ? userIdSource() : userIdSource;
   const configState = useConfigState();
   const projectId = configState.service.get()?.projectId ?? 'unknown';
   const storagePrefix = config.storagePrefix ?? `${projectId}_ff_`;

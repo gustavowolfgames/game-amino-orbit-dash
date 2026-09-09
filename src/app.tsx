@@ -14,6 +14,7 @@ import {
   AssetProvider,
   CdnManifestProvider,
   FeatureFlagProvider,
+  getResolvedPlayerId,
   GlobalBoundary,
   initPauseKeyboard,
   PauseProvider,
@@ -39,36 +40,9 @@ import { EmbedHook } from '~/game/EmbedHook';
 import { createLoadingTracker } from '~/game/setup/loading-tracker';
 import { createSessionTracker } from '~/game/setup/session-tracker';
 import { AttractGate, EmbedProvider } from '~/integrations/embed';
-import { GAME_STORAGE_PREFIX } from '~/game/config/identity';
+import { VaultHostBridge } from '~/integrations/vault';
 
 const environment = parseEnvironment(import.meta.env.VITE_APP_ENV);
-
-/**
- * Stable per-device anonymous analytics id.
- *
- * `AnalyticsProvider` (from @wolfgames/components 2.x) falls back to
- * `new PlayerIdentityService()` with no config when no `userId` is supplied —
- * but @wolfgames/client 0.1.x's constructor requires a config with `.host`,
- * so that fallback throws at boot ("Cannot read properties of undefined
- * (reading 'host')"). Passing a `userId` skips that path. We persist a uuid so
- * analytics stays continuous per device; this reproduces what the broken
- * fallback intended (an anonymous uuid). Remove once components/client are
- * realigned upstream.
- */
-function getAnonUserId(): string {
-  const key = `${GAME_STORAGE_PREFIX}anon_uid`;
-  try {
-    const existing = localStorage.getItem(key);
-    if (existing) return existing;
-    const id = crypto.randomUUID();
-    localStorage.setItem(key, id);
-    return id;
-  } catch {
-    return 'anonymous';
-  }
-}
-
-const anonUserId = getAnonUserId();
 
 /** Reset progress and reload the page */
 const handleResetProgress = () => {
@@ -126,7 +100,7 @@ export default function App() {
   return (
     <EmbedProvider>
       <GameConfigProvider debug>
-        <AnalyticsProvider userId={anonUserId}>
+        <AnalyticsProvider userId={getResolvedPlayerId() ?? undefined}>
           <SessionTrackerBridge />
           <GlobalBoundary>
             <TuningProvider gameDefaults={GAME_DEFAULTS}>
@@ -159,6 +133,10 @@ export default function App() {
                               screenAssets: gameConfig.screenAssets,
                             }}
                           >
+                            {/* Generic Vault runtime; inert outside a Vault.
+                                Must stay inside ScreenProvider — reads
+                                useScreen() to hold `ready` until playable. */}
+                            <VaultHostBridge />
                             <AttractGate
                               hook={(engage) => <EmbedHook engage={engage} />}
                             >

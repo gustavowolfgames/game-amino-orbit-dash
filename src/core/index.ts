@@ -6,6 +6,7 @@ export * from './systems/errors';
 export * from './systems/pause';
 export * from './systems/audio';
 export * from './systems/tuning';
+export * from './systems/identity';
 
 // UI Components
 export { Button } from './ui/Button';
@@ -19,6 +20,7 @@ export {
   setStored,
   removeStored,
   createVersionedStore,
+  whenStoresReady,
   type VersionedStore,
   type VersionedStoreConfig,
 } from './utils/storage';

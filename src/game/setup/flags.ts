@@ -1,5 +1,5 @@
+import { getOrCreateLocalPlayerId, getResolvedPlayerId } from '~/core';
 import { registerFlagConfig } from '~/core/systems/feature-flags';
-import { getUserData } from './helper';
 
 // ============================================================================
 // GAME-SPECIFIC FLAG TYPES
@@ -47,10 +47,14 @@ const VALIDATORS: Partial<Record<keyof GameFeatureFlags, (v: unknown) => boolean
 // storagePrefix is resolved by FeatureFlagProvider from GameConfigProvider
 // ============================================================================
 
-const { uid } = getUserData();
-
 registerFlagConfig<GameFeatureFlags>({
   defaults: DEFAULT_FLAGS,
   validators: VALIDATORS,
-  userId: uid,
+  // Key the flag cache by the one resolved player id (shared with analytics and
+  // the save envelope), not a separate `uid`. A getter, because this registers
+  // at module load — before boot resolves the id; the provider evaluates it at
+  // mount, post-resolution, so `getResolvedPlayerId()` is set by then. The
+  // local-id fallback stays on the same `player_id` key for the rare case it is
+  // read before resolution.
+  userId: () => getResolvedPlayerId() ?? getOrCreateLocalPlayerId(),
 });
