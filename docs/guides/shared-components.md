@@ -2,7 +2,7 @@
 
 How to use shared building blocks from `@wolfgames/components`.
 
-> **Modules now live upstream.** Shared primitives, prefabs, and logic ship via the `@wolfgames/components` npm package — they are no longer in this repo's `src/modules/`. Import them as `@wolfgames/components/modules/<category>/<name>`. The full catalog is at `node_modules/@wolfgames/components/src/modules/INDEX.md`.
+> **Modules now live upstream.** Shared primitives, prefabs, and logic ship via the `@wolfgames/components` npm package — they are no longer in this repo's `src/modules/`. Import them as `@wolfgames/components/modules/<category>/<name>`. The full catalog is at `node_modules/@wolfgames/components/src/modules/catalog.json` (fallback: `INDEX.md` next to it).
 >
 > **To add or modify a shared module**, open a PR in [wolfgames/game-components](https://github.com/wolfgames/game-components), release a new version, and bump the dep here. For dev iteration without publishing, use the `VITE_COMPONENTS_LOCAL=1 VITE_COMPONENTS_SOURCE=1` toggles documented in [`.env.example`](../../.env.example).
 >
@@ -35,13 +35,19 @@ screen, background, popup, progress bar, timer, overlay, dialogue box, or
 character display starts with this check, and the task output states which
 modules were considered and why none fit before any new code.
 
-1. Read `node_modules/@wolfgames/components/src/modules/INDEX.md` — ~55
-   modules across primitives, prefabs, logic, and DOM shells.
-2. Read the matching module's `component.manifest.yml` (surface, import path,
-   locked props, token bindings) and `README.md`.
-3. If the `amino-component-discovery` skill / `game-components-discovery` MCP
-   is available in your harness, use its semantic search.
-4. Fallback: `grep -Ri "<keywords>" node_modules/@wolfgames/components/src/modules/`.
+1. Read `node_modules/@wolfgames/components/src/modules/catalog.json` — one
+   record per module (~80) with `surface`, `tags`, `oneLineDescription`,
+   `packageImport` and `readmePath`. Older packages only ship `INDEX.md`
+   next to it; read that instead.
+2. Read the closest matches' `README.md` (`readmePath`): usage, config
+   table, variants. Check `surface` against where the code will live.
+3. Fallback: `grep -Ri "<keywords>" node_modules/@wolfgames/components/src/modules/`,
+   or run the `amino-component-discovery` skill.
+
+A PreToolUse gate enforces this in Claude Code: the first write that adds a
+Pixi/DOM construction or a new screen under `src/game/` is blocked until the
+catalog has been read, or the code carries
+`// catalog: considered <id>, <id> — none fit: <reason>`.
 
 ### Where Does My Code Go?
 

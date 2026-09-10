@@ -413,7 +413,7 @@ the word "component": before creating or adding a HUD, button, menu, screen
 (start / loading / results / settings / win / lose), background, dialogue
 box, popup, progress bar, timer, overlay, character display, level/scene
 picker, tutorial hint, effect layer, or any other visual or logic element,
-check `node_modules/@wolfgames/components/src/modules/INDEX.md` (~55
+check `node_modules/@wolfgames/components/src/modules/catalog.json` (fallback `INDEX.md`; ~80
 modules). If a module is close, configure or wrap it in `src/game/`; don't
 fork it.
 

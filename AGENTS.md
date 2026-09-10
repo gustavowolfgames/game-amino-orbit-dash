@@ -84,8 +84,9 @@ Hard boundaries (full rules in
   button, menu, screen, background, popup, timer, or any other visual/logic
   element (the trigger is the element, not whether the file already exists),
   check the catalog at
-  `node_modules/@wolfgames/components/src/modules/INDEX.md` (or the
-  `amino-component-discovery` skill) and state which modules you considered
+  `node_modules/@wolfgames/components/src/modules/catalog.json` (fallback:
+  `INDEX.md` next to it on older packages, or the `amino-component-discovery`
+  skill) and state which modules you considered
   and why none fit. This is a required step, not a suggestion: if your
   output does not name the modules you considered, the element counts as
   unchecked. Guide:
@@ -160,7 +161,9 @@ Small fixes can skip this; everything else follows the loop:
 
 1. **Plan** — read the relevant code and `docs/GAME-DESIGN.md`; for larger
    features write the plan to `.agents/specs/<feature>.md` (copy
-   `.agents/specs/SPEC.template.md`). Before building new components, always use the `@wolfgames/components` discovery MCP tool (e.g. `search_components`) to find pre-existing ones.
+   `.agents/specs/SPEC.template.md`). Before building any visual element, read
+   `node_modules/@wolfgames/components/src/modules/catalog.json` (or run the
+   `amino-component-discovery` skill) and name the modules you considered.
 2. **Implement** against the spec, respecting the boundaries above.
 3. **Verify** — run the checks from the command table (at minimum:
    `typecheck`, `test:run`, and `test:e2e` for anything touching runtime).

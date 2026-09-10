@@ -58,6 +58,7 @@ assets/src/*
 .claude/rules/
 .claude/skills/
 .claude/commands/
+.claude/hooks/
 .claude/rules.md
 docs/cortex-inventory.md
 
