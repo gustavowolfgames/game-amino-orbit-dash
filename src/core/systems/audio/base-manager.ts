@@ -1,7 +1,7 @@
 import type { AudioLoader } from '../assets/loaders/audio';
+import { audioState } from './state';
 import type { SoundDefinition } from './types';
 import { getRandomSound } from './utils';
-import { audioState } from './state';
 
 /**
  * Base Audio Manager
@@ -46,6 +46,7 @@ export abstract class BaseAudioManager {
     this.stopMusic();
     const id = this.audioLoader.play(track.channel, track.sprite, {
       volume: track.volume ?? 0.6,
+      loop: track.loop,
     });
     this.currentMusicChannel = track.channel;
     this.currentMusicId = id;

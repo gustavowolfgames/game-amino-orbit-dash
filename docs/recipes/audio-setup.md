@@ -159,8 +159,8 @@ The scaffold provides these methods via `BaseAudioManager`:
 |--------|---------|
 | `playSound(sound)` | Play a single SoundDefinition |
 | `playRandomSound(sounds)` | Play random from array (variations) |
-| `startMusic(track, fadeIn?)` | Start music with optional fade (default 1000ms) |
-| `stopMusic(fadeOut?)` | Stop music with optional fade (default 500ms) |
+| `startMusic(track)` | Start a music track; loops when the track's `SoundDefinition` sets `loop: true`, otherwise plays once |
+| `stopMusic()` | Stop the current music track |
 | `isMusicPlaying()` | Check if music is currently playing |
 
 ## Register Audio Bundle
@@ -245,7 +245,7 @@ createEffect(() => {
 1. **Use audio sprites** - Reduces HTTP requests, improves loading
 2. **Provide variations** - 3-5 variations for frequent sounds prevents fatigue
 3. **Respect user settings** - Always check `audioState.musicEnabled()`
-4. **Fade music** - Use fadeIn/fadeOut for smooth transitions
+4. **Loop background music** - Set `loop: true` on the track's `SoundDefinition`; `startMusic()` honors it (omit for one-shot cues)
 5. **Set appropriate volumes** - Music ~0.5-0.6, SFX ~0.5-0.8
 6. **Test on mobile** - Ensure unlock flow works on iOS Safari
 

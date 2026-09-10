@@ -9,4 +9,6 @@ export interface SoundDefinition {
   sprite: string;
   /** Default volume 0-1 (optional, defaults to 1) */
   volume?: number;
+  /** When unset, the track plays once; set true for a looping background/ambient bed. */
+  loop?: boolean;
 }

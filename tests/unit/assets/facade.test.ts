@@ -57,7 +57,7 @@ vi.mock('@wolfgames/components/core', () => {
 });
 
 vi.mock('@wolfgames/components/howler', () => {
-  const mockHowl = { play: vi.fn(() => 1), volume: vi.fn() };
+  const mockHowl = { play: vi.fn(() => 1), volume: vi.fn(), loop: vi.fn() };
   const createHowlerLoader = vi.fn(() => ({
     init: vi.fn(),
     loadBundle: vi.fn(async () => {}),
@@ -132,6 +132,21 @@ describe('createCoordinatorFacade', () => {
   it('audio.play with volume option does not throw', () => {
     const result = facade.audio.play('sfx', 'click', { volume: 0.5 });
     expect(result).toBe(1);
+  });
+
+  it('audio.play with loop:true calls howl.loop(true, playId)', () => {
+    facade.audio.play('sfx', 'click', { loop: true });
+    expect(innerHowler()._mockHowl.loop).toHaveBeenCalledWith(true, 1);
+  });
+
+  it('audio.play with loop:false calls howl.loop(false, playId)', () => {
+    facade.audio.play('sfx', 'click', { loop: false });
+    expect(innerHowler()._mockHowl.loop).toHaveBeenCalledWith(false, 1);
+  });
+
+  it('audio.play without loop leaves howl.loop untouched (one-shot preserved)', () => {
+    facade.audio.play('sfx', 'click');
+    expect(innerHowler()._mockHowl.loop).not.toHaveBeenCalled();
   });
 
   it('audio.setMasterVolume does not throw', () => {
