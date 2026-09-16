@@ -256,17 +256,57 @@ If it's not ready, it's not in the build.
 
 ---
 
-## 16. One Renderer Per Game — No Mixing
+## 16. One Renderer Per Game — Unless You Opt Into Layered Mode
 
-Pick one renderer (Pixi, Phaser, or Three.js) and commit. Mixing renderers in the same game creates competing draw loops, duplicate canvas elements, and unsolvable z-ordering problems.
+By default, pick one renderer (Pixi, Phaser, or Three.js) and commit. Accidentally mixing renderers creates competing draw loops, duplicate canvas elements, and unsolvable z-ordering problems.
 
 | Don't | Why it breaks | Do instead |
 |---|---|---|
-| Import Phaser alongside Pixi | Two animation loops fighting for the same frame budget | Pick one. Pixi for 2D sprites, Phaser for 2D + physics, Three for 3D. |
-| Create a second `<canvas>` for custom drawing | Two GPU contexts = doubled memory, no shared textures | Use Pixi's `Graphics` API for custom shapes |
+| Import Phaser alongside Pixi by accident | Two animation loops fighting for the same frame budget | Pick one — or opt into layered mode deliberately (below). |
+| Create an ad-hoc second `<canvas>` for custom drawing | Two GPU contexts = doubled memory, no shared textures | Use Pixi's `Graphics` API for custom shapes |
 | Switch renderers mid-project | All visual code becomes throwaway | Commit at project kickoff, document in `config.ts` |
 
-The renderer is declared in `src/core/config.ts` (`engine: 'pixi'`). This is set once and never changed.
+The default renderer is declared in `src/core/config.ts` (`engine: 'pixi'`).
+
+### Sanctioned exception — layered rendering (`gameMode: 'layered'`)
+
+A game **may** deliberately opt into a second GPU context over a single
+container — either a full stack of render layers (e.g. a Three.js 3D layer over
+a Pixi 2D layer, or a Pixi layer over a DOM layer) or a bounded embedded 3D
+widget (e.g. a dice roller inside an otherwise-2D game) — but only under these
+invariants:
+
+- **Compose layers, don't hand-roll stacked `<canvas>` elements.** Each context
+  gets one absolutely-positioned container with explicit stacking order,
+  pointer-events, and strict reverse-order teardown (including an async-init
+  guard so a layer that is still mounting is still cleaned up). The reference
+  helper for this is `composeLayers` — it is **not shipped in the template**;
+  incubate it per-game under `src/game/<gamename>/` (per the `component-authoring`
+  rule) and promote it to `@wolfgames/components` once it has held its shape
+  across 2+ games. The canonical implementation and worked example live in the
+  design doc (see below).
+- **Every layer/widget projects the same ECS world.** ECS stays the single
+  source of truth; a layer is a read-only projection, never a second game-state
+  store. Two layers must never both write gameplay state. In particular, any
+  presentation physics in a 3D layer (a dice tumble, cloth, debris) is
+  choreographed to an outcome already decided in ECS via seeded RNG
+  (guardrail #9) — never read the gameplay result back out of the sim. Only one
+  *authoritative* physics engine per game.
+- Each context runs its own draw loop and holds its own WebGL context; budget
+  accordingly. The browser caps live WebGL contexts (~8–16 on desktop, fewer on
+  mobile) — prefer in-canvas layering (Pixi containers, a Three.js viewport
+  inside the existing canvas) and reach for a second real context only when the
+  engines genuinely differ. Justify it, and hold the mobile FPS targets in
+  [performance.md](performance.md). Avoid on mobile-first titles.
+- Only one layer owns pointer input for a given region (decorative upper layers
+  set pointer-events to `none`). Don't stack two interactive layers.
+
+See the layered-rendering design doc — [Layered rendering: bundle cost &
+composeLayers vs. embedded canvas](https://app.notion.com/p/3d74a3377199811c9b5fc4098c187fe0?pvs=204)
+— for the canonical `composeLayers` implementation, the worked layered/embedded
+examples, the layer-authoring do/don't table, and the bundle-cost analysis. If
+you are not explicitly building a layered game, guardrail #16's default still
+applies: one renderer.
 
 ---
 
@@ -418,7 +458,7 @@ Full workflow and the local-fallback rules:
 - [ ] Am I importing from `'react'`? **Use `'solid-js'`.**
 - [ ] Am I running `npm install`? **Use `bun`.**
 - [ ] Am I creating objects inside `tick()`? **Pre-allocate or pool.**
-- [ ] Am I importing a second renderer (Phaser + Pixi)? **Pick one.**
+- [ ] Am I importing a second renderer (Phaser + Pixi) *by accident*? **Pick one** — or opt into `gameMode: 'layered'` deliberately via `composeLayers` (guardrail #16).
 - [ ] Am I calling `canvas.getContext('2d')` directly? **Use Pixi's Graphics API.**
 - [ ] Am I destroying sprites before killing their tweens? **Tweens first, then destroy.**
 - [ ] Am I putting game state in signals or closures instead of ECS? **Write ECS via transactions; DOM reads ECS.**

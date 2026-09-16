@@ -9,10 +9,24 @@
  *   - setupStartScreen: (deps: StartScreenDeps) => StartScreenController
  *
  * Game Mode:
- *   - 'dom'  — DOM/CSS-only game. No GPU init needed, no scene or core bundles.
- *              Use this when generating games without sprite assets.
- *   - 'pixi' — PixiJS game. Requires initGpu(), expects core and scene bundles in
- *              the asset manifest. Use this when sprite/atlas assets are available.
+ *   - 'dom'     — DOM/CSS-only game. No GPU init needed, no scene or core bundles.
+ *                 Use this when generating games without sprite assets.
+ *   - 'pixi'    — PixiJS game. Requires initGpu(), expects core and scene bundles
+ *                 in the asset manifest. Use this when sprite/atlas assets are
+ *                 available.
+ *   - 'layered' — Opt-in: an extra GPU context over one container — either more
+ *                 than one stacked render layer (e.g. a Three.js 3D layer over a
+ *                 Pixi 2D layer, or a Pixi layer over a DOM layer) or a bounded
+ *                 embedded 3D widget (e.g. a dice roller). Every layer/widget is
+ *                 an independent read-only projection of the SAME ECS world; call
+ *                 `initGpu()` before mount for any GPU-based layer. This is the
+ *                 sanctioned exception to guardrail #16 (see
+ *                 `docs/standards/guardrails.md` Section 16) — the extra context
+ *                 must share ECS as the single source of truth, never a second
+ *                 game-state store. The `composeLayers` helper that implements
+ *                 the full-layer case is provided per-game (promoted to
+ *                 `@wolfgames/components` once proven), not shipped in the
+ *                 template.
  *
  * Pixi texture lifecycle:
  *   When calling coordinator.unloadBundle() for a scene-* bundle, ALL Pixi sprites
@@ -25,7 +39,7 @@ import type { AssetCoordinatorFacade } from '~/core/systems/assets';
 import type { ScaffoldTuning } from '~/core/systems/tuning/types';
 import type { GameTuningBase } from '~/core/systems/tuning/types';
 
-export type GameMode = 'dom' | 'pixi';
+export type GameMode = 'dom' | 'pixi' | 'layered';
 
 // ---------------------------------------------------------------------------
 // Game Controller (used by GameScreen.tsx)
@@ -51,6 +65,10 @@ export interface GameController {
   /**
    * Rendering mode. When 'dom', the scaffold skips GPU init and core-* bundle
    * loading. When 'pixi', the scaffold ensures GPU is initialised before mount.
+   * When 'layered', the controller owns an opt-in extra GPU context (a composed
+   * stack of layers or a bounded embedded 3D widget) over the container and is
+   * responsible for its own GPU init for any GPU-based layer — the sanctioned
+   * exception to guardrail #16 (see `docs/standards/guardrails.md` Section 16).
    * Defaults to 'dom' if omitted.
    */
   gameMode?: GameMode;
