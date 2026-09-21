@@ -47,7 +47,6 @@ Pure logic, no rendering. Exposed as factory functions that games configure with
 | Module | What it does |
 |--------|-------------|
 | level-completion | State machine: playing -> completing -> complete |
-| progress | Save/load progress backed by localStorage |
 | catalog | Ordered content catalog with navigation |
 | loader | Fetch + transform content pipeline |
 
@@ -122,7 +121,6 @@ Import any module as `@wolfgames/components/modules/<category>/<name>`. Example:
 
 ```ts
 import { SpriteButton } from '@wolfgames/components/modules/primitives/sprite-button';
-import { createProgressService } from '@wolfgames/components/modules/logic/progress';
 import { AvatarPopup } from '@wolfgames/components/modules/prefabs/avatar-popup';
 ```
 
