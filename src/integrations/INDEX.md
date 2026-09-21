@@ -1,6 +1,6 @@
 # Integrations
 
-Cross-cutting integrations that wire the game into a host environment. Distinct from `src/modules/` (game-internal building blocks).
+Cross-cutting integrations that wire the game into a host environment. Distinct from `@wolfgames/components` (reusable game-agnostic building blocks).
 
 | Integration | Purpose |
 |-------------|---------|
