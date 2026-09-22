@@ -134,10 +134,10 @@ are complete.
 
 Asset generation runs through the **wolf-game-kit** MCP server. Its config is
 **machine-local, not committed** — `.mcp.json` is gitignored and provisioned
-by the workspace setup / Nucleo Studio CLI; the server reads
-`ASSET_GEN_API_KEY` / `ASSET_GEN_HOST` from your environment
-([`.env.example`](.env.example) has the shape; pre-commit blocks any staged
-real key). Tools appear as `mcp__wolf-game-kit__*` (`create_asset_gen_batch`,
+by the workspace setup / Nucleo Studio CLI; the server reads a
+per-environment key (`PROD_ASSET_GEN_API_KEY`, or `QA_ASSET_GEN_API_KEY` for
+QA) from that file's `env` block or a shell export (README → MCP servers has
+the shape; pre-commit blocks any staged real key). Tools appear as `mcp__wolf-game-kit__*` (`create_asset_gen_batch`,
 `generate_sfx`, `generate_music`, `generate_vfx`, `pack_spritesheet`,
 `upload_asset`, …). The workflow and the rules for using them efficiently are
 in [`docs/recipes/asset-pipeline.md`](docs/recipes/asset-pipeline.md) — read

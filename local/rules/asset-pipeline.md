@@ -62,14 +62,20 @@ loop down:
 
 ## If the MCP tools are missing
 
-**If `mcp__wolf-game-kit__*` tools are absent or `ASSET_GEN_HOST` /
-`ASSET_GEN_API_KEY` are unset, generation is blocked. That is a setup problem
-to surface, not to code around.**
+**If `mcp__wolf-game-kit__*` tools are absent or the asset-gen key is unset,
+generation is blocked. That is a setup problem to surface, not to code
+around.**
 
 1. Tell the user plainly what is missing and how to fix it: MCP config is
    machine-local (provisioned by the workspace setup / Nucleo Studio CLI —
-   `.mcp.json` is gitignored); the env vars go in the environment per
-   `.env.example` (get a key via the setup guide linked in README).
+   `.mcp.json` is gitignored); the key goes in that file's `env` block as
+   `PROD_ASSET_GEN_API_KEY` (or `QA_ASSET_GEN_API_KEY` for QA), or as a shell
+   export — see README → MCP servers. `Invalid API key` is a different
+   failure: a key was sent and rejected, so it belongs to another environment
+   than the one the tools call — ask the user to run `wolf-dev auth asset-gen`,
+   which says which. That CLI is interactive-only; you cannot run it yourself. Do not
+   tell the user to put it in `.env`; that does not reliably reach the server,
+   and `.mcp.json` or the shell wins over it.
 2. Then wait for them — or use the local fallback above if they prefer.
    Do NOT substitute: no procedurally generated or code-drawn art or audio
    (no Pixi `Graphics` / Canvas stand-ins, no WebAudio/oscillator SFX, no

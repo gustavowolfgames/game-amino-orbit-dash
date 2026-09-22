@@ -55,10 +55,10 @@ Consequences:
 
 The wolf-game-kit MCP server (asset generation + CDN publish) is
 **machine-local, not committed**: `.mcp.json` is gitignored and provisioned
-by the workspace setup / Nucleo Studio CLI. The server reads
-`ASSET_GEN_API_KEY` / `ASSET_GEN_HOST` from your environment (shell exports
-or the gitignored project `.env` — see `.env.example`); pre-commit blocks any
-staged real `wg_ag_` key.
+by the workspace setup / Nucleo Studio CLI. The server reads a
+per-environment key (`PROD_ASSET_GEN_API_KEY`, or `QA_ASSET_GEN_API_KEY` for
+QA) from that file's `env` block or a shell export — see README → MCP
+servers; pre-commit blocks any staged real `wg_ag_` key.
 
 Keep the server key `wolf-game-kit`: skill `allowed-tools` frontmatter
 references tool names like `mcp__wolf-game-kit__*`, and a different key

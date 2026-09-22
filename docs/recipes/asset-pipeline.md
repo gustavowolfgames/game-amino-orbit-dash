@@ -45,8 +45,9 @@ wolf-game-kit MCP   →    assets/src/_staging/  →   bun run assets:publish   
 All generation goes through the `wolf-game-kit` MCP server (tools named
 `mcp__wolf-game-kit__*`). MCP config is machine-local — the workspace setup /
 Nucleo Studio CLI provisions it (`.mcp.json` is gitignored); the server reads
-`ASSET_GEN_API_KEY` / `ASSET_GEN_HOST` from your environment (see
-`.env.example`).
+a per-environment key (`PROD_ASSET_GEN_API_KEY`, or `QA_ASSET_GEN_API_KEY`
+for QA) from that file's `env` block or a shell export (see README → MCP
+servers).
 
 ### Discover first
 
@@ -154,8 +155,8 @@ bun run assets:publish -- --dry-run   # hash + rewrite only; writes <lockfile>.d
 bun run assets:verify             # HEAD every lockfile entry at the storage origin
 ```
 
-Authenticated session required: `bun wolf-dev auth login` (check with
-`bun wolf-dev auth check`). One command publishes everything under
+Authenticated session required: `wolf-dev auth login` (check with
+`wolf-dev auth check`). One command publishes everything under
 `assets/src/`: it content-hashes each file, rewrites JSON sidecar media refs
 to the hashed names, uploads with an immutable cache policy, HEAD-verifies
 every object at the storage origin, and only then writes
@@ -169,7 +170,7 @@ game's Nucleo `gameSlug`; if it's still the template placeholder `mygame`,
 stop and set the real id first ([newgame checklist](../factory/newgame.md),
 Step 1).
 
-The `upload_asset` MCP tool / `bun wolf-dev upload-asset` still exists for
+The `upload_asset` MCP tool / `wolf-dev upload-asset` still exists for
 one-off hosting of a single file, but it does not touch the lockfile — game
 art goes through `assets:publish`.
 
@@ -358,11 +359,14 @@ alongside `check:manifest`):
 - Ensure no half-pixel positions in sprite placement.
 
 ### Publish fails immediately
-- `wolf-dev CLI not found` → `bun add -d @wolfgames/dev` (needs ≥0.2.13 for
-  the `assets` command group).
-- Auth errors → `bun wolf-dev auth check`; sign in with
-  `bun wolf-dev auth login`. MCP generation errors are separate — those use
-  `ASSET_GEN_HOST` / `ASSET_GEN_API_KEY`.
+- `wolf-dev CLI not found` → `bun install -g @wolfgames/dev` (needs ≥0.2.15
+  for `assets release`). A local `bun add -d` only reaches `bun run` scripts,
+  not your shell.
+- Auth errors → `wolf-dev auth check`; sign in with
+  `wolf-dev auth login`. MCP generation errors are separate — those use
+  the asset-gen key, and `wolf-dev auth asset-gen` prints where calls land.
+  `Invalid API key` means the key belongs to a different environment than the
+  one you are signed into, not that it is missing.
 - `stored Cache-Control … expected immutable` → the target game-api predates
   the immutable-header support (game-api#30); the publish failed closed and
   the lockfile was not written.
