@@ -256,6 +256,13 @@ async function loadTexture(
   if (cache.has(textureName)) {
     return cache.get(textureName)!;
   }
+  // Empty name = use the built-in procedural radial-gradient particle texture
+  // (the former white-circle.png was a ~1MB raster of exactly this).
+  if (!textureName) {
+    const texture = createProceduralTexture();
+    cache.set(textureName, texture);
+    return texture;
+  }
   const path = basePath.replace(/\/?$/, "/") + textureName;
   try {
     const image = new Image();

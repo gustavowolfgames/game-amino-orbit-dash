@@ -190,7 +190,8 @@ export interface SpawnerData {
 }
 
 const DEFAULT_PARTICLE_CONFIG: ParticleConfig = {
-  textureName: "white-circle.png",
+  // Empty = use the built-in procedural radial-gradient texture (no asset load).
+  textureName: "",
   alphaStart: 1,
   alphaEnd: 0,
   sizeMode: "pixels",

@@ -56,7 +56,7 @@ const PACKED_PATTERNS: RegExp[] = [
   /^vfx-[a-z0-9_-]+\.json$/,
 ];
 
-// Subpath exceptions: under vfx/ allow simple-name files (e.g. effects/default.json, white-circle.png)
+// Subpath exceptions: under vfx/ allow simple-name files (e.g. effects/default.json, particle textures)
 const VFX_SUBPATH_BASENAME = /^[a-z0-9_-]+\.(json|png|jpg|jpeg|webp|gif|svg)$/;
 // Fonts in fonts/ subfolder (e.g. Baloo-Regular.woff2) - allow common font naming
 const FONTS_BASENAME = /^[a-zA-Z0-9_-]+\.(woff2?|ttf|otf)$/;

@@ -9,7 +9,7 @@
       "position": { "x": 0, "y": 0 },
       "visible": true,
       "config": {
-        "textureName": "white-circle.png",
+        "textureName": "",
         "alphaStart": 1,
         "alphaEnd": 0,
         "sizeMode": "pixels",
