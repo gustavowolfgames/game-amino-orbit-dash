@@ -40,12 +40,12 @@ edit the `<video src>` in `preview.html` if you move it.
 
 | phase | beat |
 |---|------|
-| appear      | strokes **draw in from the top** downward (stroke-dashoffset), big + splayed |
-| zoom-center | the splayed strokes **shrink + un-splay** into the compact `\I/`, screen-centred |
+| appear      | bars **draw in from the top** downward (~0.10s each), big + splayed, running off both screen edges |
+| zoom-center | the splayed bars **shrink + un-splay** into the compact `\I/`, screen-centred |
 | push-left   | the compact `\I/` **slides left**… |
-| reveal      | …while `olfGames` **slides right out from behind the strokes** — masked split, tail-first (`s → es → mes → ames → Games`), **not** a typewriter |
+| reveal      | …while `olfGames` **slides right out from behind the bars** — masked split, tail-first (`s → es → mes → ames → Games`), **not** a typewriter |
 | hold        | steady glowing lockup |
-| fade        | to black |
+| background  | an on-brand **spotlight/vignette fades in** behind the lockup — **the lockup stays up; nothing fades out** |
 
 Geometry is in **true video coordinates** (viewBox 1080×1920). Measured centre-line + width:
 
@@ -74,7 +74,8 @@ The SVG **loops** for review. The production component should play **once** (swa
 
 ## Tuning knobs
 
-- **Bar width** — the ±half-width baked into each polygon's `points` keyframes (big ~90, compact ~14). Widen/narrow both the big and compact keyframes to taste.
+- **Background** — `#bg` radial gradient (the default spotlight/vignette) that fades in at the end. Swap it for a real website graphic (drop in an `<image>` and point the end-fade at it), or retune the gradient stops. Its fade-in timing is the `<animate>` on the `fill="url(#bg)"` rect.
+- **Bar width** — the ±half-width baked into each polygon's `points` keyframes (big ~90, compact ~18). Widen/narrow both the big and compact keyframes to taste.
 - **Brand yellow** — `.bar` / `.word` `fill` (currently `#E9ED12`; peak bloom in the video is ~`#FCFC00`, which the glow approximates).
 - **Split distance** — the `mark` / `textSlide` `translateX` values (`-310` / `-360→0`).
 - **Duration** — the `dur` attribute (currently `3.8s`) on every `<animate>`/`<animateTransform>`; keep them equal so the timeline stays in sync. `keyTimes` are fractions of it.
