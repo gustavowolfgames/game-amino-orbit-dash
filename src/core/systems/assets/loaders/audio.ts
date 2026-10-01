@@ -4,12 +4,14 @@
  * Aligned with the scaffold facade's `audio` object so that
  * `coordinator.audio` satisfies this interface directly.
  *
- * Higher-level concerns (music loops, fade-in/out) are handled by
+ * Looping is applied by the facade via `PlayOptions.loop`; fades are handled by
  * BaseAudioManager, not the loader.
  */
 
 export interface PlayOptions {
   volume?: number;
+  /** Loop the sound. When unset, it plays once (Howler's default). */
+  loop?: boolean;
 }
 
 export interface AudioLoader {

@@ -46,11 +46,9 @@ describe("scaffold e2e workflow", () => {
     runIn(scaffoldDir, 'git config user.name "Test"');
 
     mkdirSync(path.join(scaffoldDir, "src/core/systems"), { recursive: true });
-    mkdirSync(path.join(scaffoldDir, "src/modules/primitives"), { recursive: true });
     mkdirSync(path.join(scaffoldDir, "src/game"), { recursive: true });
 
     writeFileSync(path.join(scaffoldDir, "src/core/index.ts"), 'export const version = "1.0.0";\n');
-    writeFileSync(path.join(scaffoldDir, "src/modules/primitives/button.ts"), "export const Button = {};\n");
     writeFileSync(path.join(scaffoldDir, "src/game/config.ts"), 'export const game = "scaffold";\n');
     writeFileSync(
       path.join(scaffoldDir, "package.json"),

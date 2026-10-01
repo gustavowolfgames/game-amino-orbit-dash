@@ -23,7 +23,7 @@ Modules are self-contained, game-agnostic pieces of functionality that can be sh
   DO NOT EDIT          SHARED LAYER            EDITABLE
 ```
 
-**Dependency flow**: `core --> modules --> game` (left to right). A module may import from `~/core/` but never from `~/game/`. Game code imports from both `~/core/` and `~/modules/`.
+**Dependency flow**: `core --> modules --> game` (left to right). A module may import from `~/core/` but never from game code. Game code imports from `~/core/` and from `@wolfgames/components`.
 
 ## Categories
 
@@ -47,7 +47,6 @@ Pure logic, no rendering. Exposed as factory functions that games configure with
 | Module | What it does |
 |--------|-------------|
 | level-completion | State machine: playing -> completing -> complete |
-| progress | Save/load progress backed by localStorage |
 | catalog | Ordered content catalog with navigation |
 | loader | Fetch + transform content pipeline |
 
@@ -87,9 +86,21 @@ Logic modules export a `create*` factory function that the game code calls with 
 
 ```typescript
 // Game code configures a logic module
-import { createProgressService } from '~/modules/logic/progress';
+import { createCatalogService } from '@wolfgames/components/modules/logic/catalog';
 
-const progress = createProgressService<MyProgress>({
+const catalog = createCatalogService<ChapterEntry>({
+  fetchIndex: () => fetch('/api/chapters').then((r) => r.json()),
+  fallbackEntries: [{ id: 'fallback', url: 'default.json' }],
+});
+await catalog.init();
+```
+
+Saved progress is not a module — use `createVersionedStore` from `~/core`:
+
+```typescript
+import { createVersionedStore } from '~/core';
+
+const progress = createVersionedStore<MyProgress>({
   key: 'mygame_progress',
   version: 1,
   defaults: { version: 1, score: 0, level: 1 },
@@ -110,41 +121,47 @@ Import any module as `@wolfgames/components/modules/<category>/<name>`. Example:
 
 ```ts
 import { SpriteButton } from '@wolfgames/components/modules/primitives/sprite-button';
-import { createProgressService } from '@wolfgames/components/modules/logic/progress';
 import { AvatarPopup } from '@wolfgames/components/modules/prefabs/avatar-popup';
 ```
 
 ## Factory Pattern Example
 
-The progress service demonstrates the factory pattern used by logic modules:
+The catalog service demonstrates the factory pattern used by logic modules —
+config in, a closure over private state out, no class and no rendering:
 
 ```typescript
-// src/modules/logic/progress/index.ts
+// src/modules/logic/catalog/index.ts
 
-export interface ProgressServiceConfig<T extends BaseProgress> {
-  key: string;           // localStorage key
-  version: number;       // schema version (bump to reset)
-  defaults: T;           // default progress state
-  validate?: (data: unknown) => boolean;
+export interface CatalogServiceConfig<T extends CatalogEntry> {
+  fetchIndex: () => Promise<T[]>;   // fetch the index of entries
+  fallbackEntries: T[];             // used if the fetch fails
 }
 
-export function createProgressService<T extends BaseProgress>(
-  config: ProgressServiceConfig<T>
-): ProgressService<T> {
-  const store = createVersionedStore<T>({
-    key: config.key,
-    version: config.version,
-    defaults: config.defaults,
-    validate: config.validate,
-  });
+export function createCatalogService<T extends CatalogEntry>(
+  config: CatalogServiceConfig<T>
+): CatalogService<T> {
+  let items: T[] = [];
+  let index = 0;
 
   return {
-    load: () => store.load(),
-    save: (data: T) => store.save(data),
-    clear: () => store.clear(),
+    async init() {
+      try {
+        items = await config.fetchIndex();
+      } catch {
+        items = config.fallbackEntries;
+      }
+      index = 0;
+    },
+    entries: () => items,
+    current: () => items[index] ?? null,
+    hasNext: () => index < items.length - 1,
+    // ...
   };
 }
 ```
+
+A factory takes only what the consumer must supply and keeps its state private.
+Note what is *not* here: no `localStorage`, no Pixi, no game imports.
 
 The game provides the generic type and configuration; the module provides the implementation.
 
@@ -211,13 +228,13 @@ The game imports only the renderer it needs:
 
 ```typescript
 // Pixi game (default)
-import { SpriteButton } from '~/modules/primitives/sprite-button';
+import { SpriteButton } from '@wolfgames/components/modules/primitives/sprite-button';
 
 // Phaser game
-import { PhaserSpriteButton } from '~/modules/primitives/sprite-button';
+import { PhaserSpriteButton } from '@wolfgames/components/modules/primitives/sprite-button';
 
 // Three.js game
-import { ThreeSpriteButton } from '~/modules/primitives/sprite-button';
+import { ThreeSpriteButton } from '@wolfgames/components/modules/primitives/sprite-button';
 ```
 
 All renderers share the same `defaults.ts` and `tuning.ts`, so behavior is consistent and tuning works regardless of engine.

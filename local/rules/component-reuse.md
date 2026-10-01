@@ -16,12 +16,12 @@ in the task, not a suggestion. ~55 tested modules cover most of the above;
 most "new component" tasks are a config-and-wrap job, not new code. The
 check, in order:
 
-1. Read the catalog: `node_modules/@wolfgames/components/src/modules/INDEX.md`.
-2. Read the closest matches' `component.manifest.yml` (surface:
-   pixi|dom|logic, import path, locked props, token bindings) and `README.md`.
-3. If the `amino-component-discovery` skill / `game-components-discovery` MCP
-   is available, use its semantic search instead of guessing.
-4. Fallback: `grep -Ri "<keywords>" node_modules/@wolfgames/components/src/modules/`.
+1. Read the catalog: `node_modules/@wolfgames/components/src/modules/catalog.json`
+   (fallback: `INDEX.md` next to it on older packages).
+2. Read the closest matches' `README.md` (`readmePath`); check `surface`
+   (pixi|dom|logic) against where the code will live.
+3. Fallback: `grep -Ri "<keywords>" node_modules/@wolfgames/components/src/modules/`,
+   or run the `amino-component-discovery` skill.
 
 **Evidence:** name the specific modules you considered (with catalog paths)
 and why none fit, in the task output, before the first Write/Edit for the
@@ -45,3 +45,6 @@ Rules of use:
   `src/game/screens/` (DOM); `src/core/ui/` is scaffold-only and off-limits.
 
 Full guide: `docs/guides/shared-components.md`.
+
+This local copy stays until `@wolfgames/cortex` ships `module-catalog.md` as
+always-apply; it is deleted in the same PR that bumps the dependency.

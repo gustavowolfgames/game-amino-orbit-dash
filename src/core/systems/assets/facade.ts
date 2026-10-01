@@ -49,7 +49,7 @@ export interface AssetCoordinatorFacade {
   unloadBundles(names: string[]): void;
   unloadScene(sceneName: string): void;
   audio: {
-    play(channel: string, sprite?: string, opts?: { volume?: number }): number;
+    play(channel: string, sprite?: string, opts?: { volume?: number; loop?: boolean }): number;
     stop(channel: string, id?: number): void;
     setMasterVolume(volume: number): void;
     unlock(): Promise<void>;
@@ -100,7 +100,9 @@ export function createCoordinatorFacade(manifest: Manifest): AssetCoordinatorFac
         const howl = howlerLoader.get(channel) as Howl | null;
         if (!howl) return -1;
         if (opts?.volume != null) howl.volume(opts.volume);
-        return howl.play(sprite);
+        const id = howl.play(sprite);
+        if (opts?.loop != null) howl.loop(opts.loop, id);
+        return id;
       },
       stop(channel, id) {
         howlerLoader.stop(channel, id);
