@@ -100,7 +100,7 @@ There is no `actions:` block — turn logic lives in plain typed functions (next
 
 ## Turn Functions — Turn Logic (both cadences)
 
-A turn function encapsulates one turn: read a snapshot, run pure rules, write results through transactions, return animation metadata. `applyTap` is the **shared turn resolver** — called directly by turn-based input, by `inputSystem` in real-time games, and by the agent surface.
+A turn function encapsulates one turn: read a snapshot, run pure rules, write results through transactions, return animation metadata. `applyTap` is the **shared turn resolver** — called directly by turn-based input, by `systemInput` in real-time games, and by the agent surface.
 
 ```typescript
 export function applyTap(db: GameDatabase, args: { col: number; row: number }) {
@@ -113,7 +113,7 @@ export function applyTap(db: GameDatabase, args: { col: number; row: number }) {
 }
 ```
 
-These are plain exported functions, **not** entries in the plugin's `actions:` block. The block is a valid `@adobe/data` pattern (an *inline*-defined action even types its own `db`), but a **shared** resolver called from the controller, `inputSystem`, and the agent surface types best as a plain export — the `actions:` generic is unconstrained, so `db.actions.executeTap(...)` gives external callers no argument/return typing. Transactions used inside the turn function stay fully typed. See `src/game/mygame/ecs/gamePlugin.ts`.
+These are plain exported functions, **not** entries in the plugin's `actions:` block. The block is a valid `@adobe/data` pattern (an *inline*-defined action even types its own `db`), but a **shared** resolver called from the controller, `systemInput`, and the agent surface types best as a plain export — the `actions:` generic is unconstrained, so `db.actions.executeTap(...)` gives external callers no argument/return typing. Transactions used inside the turn function stay fully typed. See `src/game/mygame/ecs/gamePlugin.ts`.
 
 The controller stays thin: call the turn function, then animate from the returned metadata (GSAP), then let observers repaint the HUD.
 
@@ -147,7 +147,7 @@ Opt in only when state changes **without** an event (velocity, orbit, physics). 
 | Piece | Role |
 |---|---|
 | `ecs/schedule.ts` — `stepWorld(db, dt)` | One tick: `advanceTime({dt})` then every system in `SYSTEM_ORDER`. |
-| `ecs/systems/` | Pure `db => void` systems + `SYSTEM_ORDER`. Ships `inputSystem`, `movementSystem`, `orbitSystem`. |
+| `ecs/systems/` | Pure `db => void` systems + `SYSTEM_ORDER`. Ships `systemInput`, `systemMovement`, `systemOrbit`. |
 | `engine/` — `createTickerEngine()` | The frame-clock seam (`EngineHandle`) over `gsap.ticker`. The sim never imports an engine; no raw `requestAnimationFrame`. |
 | `engine/fixedStep.ts` — `startFixedStepLoop` | The "Fix Your Timestep" accumulator: variable frame deltas → N steps of a **fixed** `dt`, spiral-of-death clamp, render `alpha`. |
 
@@ -156,7 +156,7 @@ const engine = createTickerEngine();
 const stop = startFixedStepLoop(engine, (dt) => stepWorld(db, dt));  // fixed dt in → stable, replayable
 ```
 
-**Input as intent.** A real-time game does not resolve a turn inside the pointer callback — it queues one: `db.transactions.submitIntent({ col, row })`. Next frame `inputSystem` drains `pendingTap` via `applyTap`, keeping input on the deterministic timeline. Turn-based games skip the queue and call `applyTap` directly.
+**Input as intent.** A real-time game does not resolve a turn inside the pointer callback — it queues one: `db.transactions.submitIntent({ col, row })`. Next frame `systemInput` drains `pendingTap` via `applyTap`, keeping input on the deterministic timeline. Turn-based games skip the queue and call `applyTap` directly.
 
 **External physics engines (matter.js, etc.)** plug in as one per-frame system, not a second source of truth: (1) push pending ECS→engine changes, (2) step with the fixed `dt` (`Matter.Engine.update(engine, FIXED_DT)`), (3) write body positions/angles back into ECS. Full detail in [`ecs/README.md`](../../src/game/mygame/ecs/README.md).
 
@@ -164,7 +164,7 @@ const stop = startFixedStepLoop(engine, (dt) => stepWorld(db, dt));  // fixed dt
 
 ### Writing from a system — observable vs hot-path
 
-Only **committed transactions notify observers** — direct `db.store` column writes do not. So anything the HUD/DOM must react to (score, lives, phase) goes through `db.transactions.*`; reserve direct in-place column writes (`col.set(i, …)`) for the hot per-row work (position/velocity integration) that runs on every entity every frame and has no observer. The template's `movementSystem`/`orbitSystem` integrate through transactions for clarity — drop to direct column writes only when a profiler says per-entity transaction overhead matters.
+Only **committed transactions notify observers** — direct `db.store` column writes do not. So anything the HUD/DOM must react to (score, lives, phase) goes through `db.transactions.*`; reserve direct in-place column writes (`col.set(i, …)`) for the hot per-row work (position/velocity integration) that runs on every entity every frame and has no observer. The template's `systemMovement`/`systemOrbit` integrate through transactions for clarity — drop to direct column writes only when a profiler says per-entity transaction overhead matters.
 
 ### Spawning/despawning inside a system — iterate tail→head
 
@@ -182,9 +182,9 @@ User tap                                     engine.onFrame(realDt)
   └─ applyTap(db, {col,row})                   └─ startFixedStepLoop → stepWorld(db, FIXED_DT)
        ├─ readStateFromEcs()  (snapshot)            ├─ advanceTime({dt})
        ├─ evaluateTap()       (pure rule)           └─ SYSTEM_ORDER:
-       ├─ db.transactions.*   (write)                    ├─ inputSystem   (drain pendingTap → applyTap)
-       └─ return metadata     (GSAP)                     ├─ movementSystem (integrate velocity)
-                                                         └─ orbitSystem    (integrate orbit)
+       ├─ db.transactions.*   (write)                    ├─ systemInput   (drain pendingTap → applyTap)
+       └─ return metadata     (GSAP)                     ├─ systemMovement (integrate velocity)
+                                                         └─ systemOrbit    (integrate orbit)
   ↓                                            ↓
 db.observe.resources.* → HUD / aria / DOM screens (read ECS; never a second write path)
 computed.* auto-update · setActiveDb(db) → Inspector (dev)

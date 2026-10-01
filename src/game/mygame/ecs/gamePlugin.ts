@@ -5,13 +5,13 @@
  * to end: two per-frame systems integrating bodies with no input, plus input on
  * the deterministic timeline.
  *
- *   • Orbiter — a collectible orb circling the centre (orbitSystem advances its
+ *   • Orbiter — a collectible orb circling the centre (systemOrbit advances its
  *     angle each fixed step; position is derived from angle + radius).
  *   • Mover   — an orb drifting with a velocity, bouncing off the design box
- *     walls (movementSystem). Spawned by taps; purely demonstrates spawn+move.
+ *     walls (systemMovement). Spawned by taps; purely demonstrates spawn+move.
  *
  * Tap to collect the nearest orbiter (input as intent → `pendingTaps` →
- * `inputSystem` drains next step). Every tap also spawns a mover, so a tap always
+ * `systemInput` drains next step). Every tap also spawns a mover, so a tap always
  * shows spawn+move even on a miss. Collect all orbiters to win.
  *
  * ECS is the **source of truth** (guardrail: game state lives in ECS, not
