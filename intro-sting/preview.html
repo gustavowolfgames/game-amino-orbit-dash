@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Wolf Games sting — SVG preview</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; background: #000; color: #ccc;
+    font: 13px/1.4 -apple-system, system-ui, sans-serif; }
+  .bar { position: fixed; top: 0; left: 0; right: 0; display: flex; gap: 12px;
+    align-items: center; padding: 8px 12px; background: rgba(20,20,20,.9);
+    border-bottom: 1px solid #222; z-index: 10; }
+  .bar button, .bar label { background: #1c1c1c; color: #ddd; border: 1px solid #333;
+    border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+  .bar .spacer { flex: 1; }
+  .stage { display: grid; grid-template-columns: 1fr; place-items: center;
+    height: 100%; padding-top: 44px; box-sizing: border-box; }
+  .stage.compare { grid-template-columns: 1fr 1fr; }
+  .pane { width: 100%; height: 100%; display: grid; place-items: center; position: relative; }
+  .pane > .cap { position: absolute; top: 8px; left: 10px; font-size: 11px;
+    letter-spacing: .08em; text-transform: uppercase; color: #666; }
+  /* portrait frame so the 9:16 sting is shown as it would be on device */
+  .frame { aspect-ratio: 9 / 16; height: min(92vh, 88vh); max-width: 100%;
+    background: #000; border: 1px solid #1a1a1a; overflow: hidden; }
+  .frame > * { width: 100%; height: 100%; display: block; }
+  video { object-fit: contain; background: #000; }
+  .hint { position: fixed; bottom: 8px; left: 12px; color: #555; font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <button id="replay">↻ Replay</button>
+    <label><input type="checkbox" id="cmp" checked/> Compare with source mp4</label>
+    <div class="spacer"></div>
+    <span style="color:#555">intro-sting/wolf-sting.svg</span>
+  </div>
+
+  <div class="stage compare" id="stage">
+    <div class="pane">
+      <div class="cap">SVG remake</div>
+      <div class="frame"><img id="svgImg" src="wolf-sting.svg" alt="Wolf Games sting"/></div>
+    </div>
+    <div class="pane" id="videoPane">
+      <div class="cap">source mp4</div>
+      <div class="frame">
+        <!-- source lives outside the repo; adjust if you move it -->
+        <video id="vid" src="file:///Users/dork/Downloads/WG_FINAL_glow%20(1).mp4"
+               muted loop autoplay playsinline controls></video>
+      </div>
+    </div>
+  </div>
+  <div class="hint">The SVG loops every 4s for review; the production component plays once. Replay re-triggers both.</div>
+
+<script>
+  // Load the SVG as an <img> — works from file:// (no CORS), and the SVG's own
+  // CSS keyframes still run. Replay re-points src with a cache-buster to restart.
+  const img = document.getElementById('svgImg');
+
+  document.getElementById('replay').onclick = () => {
+    img.src = 'wolf-sting.svg?t=' + Date.now();
+    const v = document.getElementById('vid');
+    if (v) { v.currentTime = 0; v.play().catch(() => {}); }
+  };
+
+  document.getElementById('cmp').onchange = (e) => {
+    document.getElementById('stage').classList.toggle('compare', e.target.checked);
+    document.getElementById('videoPane').hidden = !e.target.checked;
+    const v = document.getElementById('vid');
+    if (e.target.checked && v) v.play().catch(() => {});
+  };
+</script>
+</body>
+</html>
