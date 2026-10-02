@@ -175,6 +175,14 @@ export default defineConfig(({ command, mode }) => {
           : []),
         { find: '~', replacement: path.resolve(__dirname, 'src') },
       ],
+      // One pixi/gsap instance even when components resolves to a sibling
+      // checkout with its own node_modules — two copies means two tickers and
+      // instanceof mismatches across the package boundary. Same fix the
+      // component-workshop uses.
+      // @wolfgames/client too: components constructs the GameKIT from its own
+      // nested client copy, and that handler decides the DynamicData CDN path
+      // (release-suffixed entries need >= 0.1.52). One copy = the pinned version.
+      dedupe: ['pixi.js', 'gsap', '@wolfgames/client'],
     },
     optimizeDeps: {
       exclude: ['@wolfgames/components'],

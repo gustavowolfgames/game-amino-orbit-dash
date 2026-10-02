@@ -7,7 +7,7 @@
  *    assets/src/_staging/ (raw downloads) and markdown docs are skipped.
  * 2. Size budget — game media over 200KB must NOT live in public/assets/; it belongs
  *    in assets/src/ and on the CDN (docs/recipes/asset-pipeline.md). Exempt: fonts/,
- *    vfx/, proxy/, favicon*.
+ *    vfx/, proxy/, favicon*. Bundling only — `assets:verify` weighs what the CDN serves.
  * 3. No hardcoded CDN hosts — src/** must not contain media.<env>.wolf.games URLs.
  *    URLs resolve through CdnManifestProvider; no source file may know CDN hosts.
  *
@@ -243,7 +243,8 @@ function main(): void {
       console.error(`  public/assets/${relPath}  (${Math.round(bytes / 1024)}KB)`);
     }
     console.error(
-      "\nMove to assets/src/ and publish with `bun run assets:publish`.\n" +
+      "\nMove to assets/src/ and publish with `bun run assets:publish`, which encodes\n" +
+        "images on the way up — don't hand-compress to get under this line.\n" +
         "Exempt: fonts/, vfx/, proxy/, favicon*. See docs/recipes/asset-pipeline.md.\n"
     );
   }

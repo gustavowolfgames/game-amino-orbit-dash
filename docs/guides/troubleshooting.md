@@ -289,7 +289,7 @@ game.autoSizeToViewport(
 - Reduce particle counts
 - Use object pooling for frequently created/destroyed objects
 - Batch draw calls (use containers)
-- Reduce texture sizes
+- Reduce texture sizes — ship art at the size it's shown (`wolf-dev assets set <key> <file> --max <px>`, or `wolf-dev assets optimize --filter <glob> --max <px>` for art already shipped, with sprite sheets left out of the glob), never by hand-resizing a packed sheet
 
 ### Memory growing over time
 
