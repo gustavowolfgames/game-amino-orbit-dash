@@ -44,8 +44,9 @@ edit the `<video src>` in `preview.html` if you move it.
 | zoom-center | the splayed bars **shrink + un-splay** into the compact `\I/`, screen-centred |
 | push-left   | the compact `\I/` **slides left**… |
 | reveal      | …while `olfGames` **slides right out from behind the bars** — masked split, tail-first (`s → es → mes → ames → Games`), **not** a typewriter |
-| hold        | steady glowing lockup |
-| background  | an on-brand **spotlight/vignette fades in** behind the lockup — **the lockup stays up; nothing fades out** |
+| background  | after the wordmark assembles, an on-brand **background fades in** behind the lockup (default `#bg` gradient stand-in; swap for a generated brand **image**) |
+| drop + whiten | the whole **lockup drops to ~75% height (bottom 3/4)** and its fill turns **yellow → white**, leaving the dark brand art behind it — a clean loader end-state |
+| hold        | steady white lockup over the brand background — **nothing fades out** |
 
 Geometry is in **true video coordinates** (viewBox 1080×1920). Measured centre-line + width:
 
@@ -74,7 +75,9 @@ The SVG **loops** for review. The production component should play **once** (swa
 
 ## Tuning knobs
 
-- **Background** — `#bg` radial gradient (the default spotlight/vignette) that fades in at the end. Swap it for a real website graphic (drop in an `<image>` and point the end-fade at it), or retune the gradient stops. Its fade-in timing is the `<animate>` on the `fill="url(#bg)"` rect.
+- **Background** — `#bg` radial gradient (the default spotlight/vignette) that fades in after the wordmark assembles. **To use a generated brand image:** replace the `fill="url(#bg)"` rect with an `<image href="…" x="0" y="0" width="1080" height="1920" preserveAspectRatio="xMidYMid slice" opacity="0">` and move the fade-in `<animate>` onto it. Its fade-in timing is `keyTimes="0;0.63;0.75;1"`.
+- **White turn** — the lockup ends **white** (`#E9ED12 → #ffffff`). Driven by the `fill` presentation attribute on each `.bar` polygon and the `.word` text plus a per-element `<animate attributeName="fill">` (`keyTimes="0;0.78;0.92;1"`). Fills are attributes, **not** CSS, so the animation wins. Change the final value for a different end colour.
+- **Drop distance** — `#lockup` `translate` `0 0 → 0 480` moves the assembled lockup from screen-centre (~50%) down to ~75%. Raise/lower `480` to taste.
 - **Bar width** — the ±half-width baked into each polygon's `points` keyframes (big ~90, compact ~18). Widen/narrow both the big and compact keyframes to taste.
 - **Brand yellow** — `.bar` / `.word` `fill` (currently `#E9ED12`; peak bloom in the video is ~`#FCFC00`, which the glow approximates).
 - **Split distance** — the `mark` / `textSlide` `translateX` values (`-310` / `-360→0`).
@@ -91,21 +94,41 @@ The SVG **loops** for review. The production component should play **once** (swa
 
 ## Catalog decision
 
+The sting is a **ContentLoader capability**, not a parallel component. The
+`screen-content-loader` prefab in `@wolfgames/components` already owns the loading-phase
+lifecycle (progress bar, enter/exit animations, the `exitSignal` → `onExitComplete`
+handshake); the sting is a richer branded reveal that slots into that role.
+
 ```
-// catalog: considered interstitial (surface:dom, full-screen video/image interlude),
-// screen-content-loader (branded DOM loader), critical-flash (pixi light-line title reveal)
-// — none fit: this is a pre-renderer, hand-authored neon wordmark reveal that must run
-// before any game renderer and with real glow (filter), which the DOM candidates don't do
-// and the Pixi candidate can't (it needs Pixi up). Build new as an SVG spike; promote once approved.
+// catalog: considered screen-content-loader (ContentLoader — the branded DOM loader;
+// CHOSEN as the promotion target), interstitial, critical-flash — the sting is a
+// ContentLoader capability, not new. Incubated in-game per the component rules because
+// the design is still settling (brand font + the generated background image aren't final).
 ```
 
-## Promotion (after approval)
+## Status: wired in (ENG-4657)
 
-Incubate as a game-agnostic DOM module, then promote to `@wolfgames/components`:
+It is live in the template's loading phase:
 
-1. `src/game/<game>/modules/prefabs/intro-sting/` with the standard shape
-   (`index.ts`, `defaults.ts`, `tuning.ts`, a DOM renderer, `README.md`) — the SVG
-   becomes the renderer's markup; `defaults.ts` exposes color / duration / play-once.
-2. Mount it on the loading screen (`src/game/screens/LoadingScreen.tsx`) ahead of
-   `loadBoot()` / `loadTheme()`, or gate the first `goto('start')` behind its completion.
-3. Promote to `@wolfgames/components/modules/prefabs/intro-sting` once it has held shape.
+- **Component:** `src/game/screens/components/IntroSting.tsx` — imports this SVG via
+  `?raw`, converts it to play-once + `fill="freeze"`, reuses ContentLoader's exported
+  `LoaderBar`, and **mirrors ContentLoader's contract** (`progress` / `exitSignal` /
+  `onExitComplete`) so promotion is a fold-in, not a rewrite.
+- **Mount:** `src/game/screens/LoadingScreen.tsx` renders `<IntroSting>` in place of
+  `<ContentLoader>`, passing the same `progress` / `exitSignal={assetsReady}` /
+  `onExitComplete={goto}`. The sting owns the two-gate exit (plays through once **AND**
+  assets ready), then hands off.
+
+This SVG stays the single source of truth while the design settles.
+
+## Promotion target (when the design locks)
+
+Fold into `@wolfgames/components` ContentLoader rather than shipping a standalone prefab:
+
+1. Add a `heroContent` slot (arbitrary hero markup) and/or a `brand-sting` enter variant
+   to `screen-content-loader`; move this SVG into that module as its markup.
+2. Delete `IntroSting.tsx`; `LoadingScreen` goes back to `<ContentLoader>` with the sting
+   variant/slot. The prop contract is already identical, so this is a swap.
+
+Blocked on the design locking first: the **brand font** (not the Arial stand-in) and the
+**generated background image** (`wolf-dev auth login` → asset-gen).
