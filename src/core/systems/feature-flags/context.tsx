@@ -28,8 +28,10 @@ export function FeatureFlagProvider(props: ParentProps) {
   const userId =
     typeof userIdSource === 'function' ? userIdSource() : userIdSource;
   const configState = useConfigState();
-  const projectId = configState.service.get()?.projectId ?? 'unknown';
-  const storagePrefix = config.storagePrefix ?? `${projectId}_ff_`;
+  // @wolfgames/client 0.1.47 renamed the config service's `projectId` to
+  // `gameSlug` (same bare slug value).
+  const gameSlug = configState.service.get()?.gameSlug ?? 'unknown';
+  const storagePrefix = config.storagePrefix ?? `${gameSlug}_ff_`;
   const cached = loadFlagCache(storagePrefix, userId, defaults, validators);
   const analytics = useAnalyticsService();
   const ph = analytics.getPosthog();
