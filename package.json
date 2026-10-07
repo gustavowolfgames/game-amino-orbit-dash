@@ -2,7 +2,6 @@
   "name": "template-amino-ecs-pure",
   "type": "module",
   "scripts": {
-    "predev": "bun run cortex:setup",
     "dev": "vite",
     "build": "vite build",
     "build:frozen": "VITE_IS_FROZEN=true vite build --base=./",
@@ -25,13 +24,12 @@
     "check:manifest": "bun run scripts/check-manifest.ts",
     "typecheck": "tsc --noEmit",
     "lint:unused": "knip",
-    "cortex:setup": "node node_modules/@wolfgames/cortex/scripts/setup.mjs",
-    "cortex:refresh": "bun update @wolfgames/cortex",
-    "postinstall": "node node_modules/@wolfgames/cortex/scripts/setup.mjs",
     "prepare": "husky",
     "use:local": "../../scripts/use-local.sh",
     "use:remote": "../../scripts/use-remote.sh",
-    "status": "../../scripts/status.sh"
+    "status": "../../scripts/status.sh",
+    "typecheck:baseline": "node scripts/typecheck-baseline.mjs",
+    "check:agent": "bun run check:assets && bun run check:manifest"
   },
   "cortex": {
     "profile": "default"

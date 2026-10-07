@@ -1,0 +1,29 @@
+---
+name: game-controller
+description: Keep setupGame a thin Pixi bridge. Use when editing gameController.ts, adding a screen transition, or about to put drawing, rules, or VFX into the controller.
+---
+
+# Game controller
+
+`setupGame` in `src/game/mygame/screens/gameController.ts` returns the contract in `src/game/mygame-contract.ts`. The contract is `init`, `destroy`, `ariaText`, and an optional `gameMode`. It defaults to `'dom'`, so a Pixi game sets `gameMode: 'pixi'`. `GameScreen` calls `init`.
+
+The controller may do four things.
+
+1. Call `getGameWorld()`.
+2. Start Pixi's async `init` and mount `app.canvas` when it resolves. `init` in the contract returns `void`. The Pixi calls are `.agents/skills/pixi-gameplay/SKILL.md`.
+3. Start `startFixedStepLoop`. The cadence is `.agents/recipes/ecs.md`.
+4. Call `deps.goto` when the phase is terminal.
+
+Drawing, hit tests, HUD text, pops, and VFX go in sibling modules next to the controller. Input calls a transaction such as `submitFire`. The render function copies ECS into display objects. It does not score, spawn rules, or pick the next level.
+
+This file already builds the scene, the HUD, input, and pops. Do not add another responsibility to it. The same file in game-amino-sort grew to thousands of lines with audio, blur, atlas packing, image cards, and a Solid store. Do not copy it.
+
+`scripts/check-agent-surface.mjs` fails when this file grows past `CONTROLLER_MAX_LINES`. Move the new function into a sibling module. Do not raise the cap.
+
+Screen ids are `loading`, `start`, `game`, and `results` (`src/core/systems/screens/types.ts`). There is no `game_over`. End of play is `deps.goto?.('results')`. Home is `deps.goto?.('start')`. `deps.goto` is typed `(screen: string) => void`, so a wrong id compiles and fails at runtime. Do not construct a second `Application` for the results screen.
+
+Load a level with `deps.coordinator.loadBundle`. Unload the old level with `deps.coordinator.unloadBundle` only after its sprites are destroyed.
+
+The controller owns one canvas, `app.canvas`, inside the container `init` receives. Do not touch its context or its style. Pixi's `init` is async, so `destroy` can arrive first. Guard async work with a `destroyed` flag and chain teardown on the init promise, as the sample does.
+
+In-scene motion is `gsap` on a display object. Kill it in `destroy` before `app.destroy`.

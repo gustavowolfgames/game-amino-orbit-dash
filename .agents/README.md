@@ -1,21 +1,20 @@
 # .agents/
 
-Tool-agnostic agent assets — readable by any harness (Zed, Claude Code,
-Codex, Gemini, …). This directory holds **both** hand-written tracked content
-and cortex-generated content, so mind the split:
+Hand-written agent notes. Nothing here is generated on install, and agents do not load this directory up front.
 
-- **Hand-written, tracked in git** — `context/` and `specs/` (below). Edit
-  these freely.
-- **Generated, gitignored** — `rules/`, `skills/`, and `commands/` are
-  symlinked from `@wolfgames/cortex` on every `bun install`. Never hand-edit;
-  changes are wiped on the next install.
+- `recipes/` holds what `AGENTS.md` opens, one file per task. Each has When, Do, Verify, and Example.
+- `skills/` holds the longer Pixi and controller guidance the recipes point at.
+- `specs/` is where a large feature plan goes. Copy `specs/SPEC.template.md` to `specs/<feature>.md`.
+- `decisions.tsv` logs each structural change to this repo with its evidence.
 
-- `context/` — durable context. One topic per file, absolute dates, prune
-  stale notes. Start with `engineering-principles.md`.
-- `specs/` — plans for non-trivial features. Copy `SPEC.template.md` to
-  `<feature>.md`, fill it in during planning, execute against it in a fresh
-  session.
+## Harnesses
 
-Designer-facing context does NOT live here — it lives in
-[`docs/GAME-DESIGN.md`](../docs/GAME-DESIGN.md) where non-technical
-collaborators can find and edit it.
+`AGENTS.md` is the instruction file. `CLAUDE.md` tells Claude Code to read it. `GEMINI.md` is a symlink to it. `src/game/AGENTS.md` adds the game-folder rules.
+
+`.claude/settings.json` sets permissions only. It denies edits to `src/core/` and reads of real env files.
+
+This repo does not install Cortex. The gitignored rules, commands, and skills folders under .agents and .claude were Cortex output. Do not recreate them or add a `postinstall` that writes rules. Project instructions belong in a recipe.
+
+## Keeping it slim
+
+`bun run check:agent` enforces the shape of this directory, `AGENTS.md`, and the docs: size caps, routing, cited paths that must exist, and the Cortex ban. The caps and the full list of checks live at the top of `scripts/check-agent-surface.mjs`. Change a rule there, not in a doc. `bun run typecheck:baseline` guards the inherited type errors in `scripts/typecheck-baseline.txt`.
