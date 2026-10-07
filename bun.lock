@@ -7,7 +7,7 @@
       "dependencies": {
         "@adobe/data": "^0.9.73",
         "@sentry/solid": "^10.63.0",
-        "@wolfgames/client": "^0.1.37",
+        "@wolfgames/client": "^0.1.52",
         "@wolfgames/components": "^2.4.2",
         "@wolfgames/cortex": "^0.5.0",
         "arktype": "^2.2.2",
@@ -387,7 +387,7 @@
 
     "@webgpu/types": ["@webgpu/types@0.1.71", "", {}, "sha512-mMy8/ODcKhab808co15eW+yN+HgXoQxRQHTiBV9Mrvl1r0ufnid7YOcI+gi4eUWSWl9ezD6TW2KXccrL8HCh2A=="],
 
-    "@wolfgames/client": ["@wolfgames/client@0.1.46", "https://npm.pkg.github.com/download/@wolfgames/client/0.1.46/f38b905779ddf40c57d5d8f48adcce82e0a3aa91", { "dependencies": { "@sentry/browser": "^10.38.0", "@wolfgames/shared": "^0.6.19", "arktype": "^2.1.29", "jose": "^6.2.3", "uuid": "^13.0.0" }, "peerDependencies": { "posthog-js": "^1.0.0" } }, "sha512-Z3SEYPDh1F431Xy7ovMqBzj8AaZh/VsoDoPZVfUCztLVxlxJ2FB4OsMY2xP/pyzCrVv4knLaJtIYs5deTNtXBA=="],
+    "@wolfgames/client": ["@wolfgames/client@0.1.62", "https://npm.pkg.github.com/download/@wolfgames/client/0.1.62/e3939de43251d2e513eed4849b7a8d703e3ca9b2", { "dependencies": { "@sentry/browser": "^10.38.0", "@wolfgames/shared": "^0.7.0", "arktype": "^2.1.29", "jose": "^6.2.3", "uuid": "^13.0.0" }, "peerDependencies": { "posthog-js": "^1.0.0" } }, "sha512-zyPs4zm79Z1BtthVWxy0b7+cF+2/7hcPoRdZDd8oXoFRbU94Im68yY29jqH9CI+iIvkDZ7nyNVq3TPqLlTA9YQ=="],
 
     "@wolfgames/components": ["@wolfgames/components@2.4.3", "https://npm.pkg.github.com/download/@wolfgames/components/2.4.3/48f4d85722c93ed545ad601cfa6a5bbfa6874504", { "dependencies": { "@wolfgames/client": "^0.1.40", "@wolfgames/tokens": "^0.1.0", "arktype": "^2.1.29", "chalk": "^5.6.2" }, "peerDependencies": { "@wolfgames/vfx": "^0.3.0", "gsap": "^3.14.0", "howler": "^2.2.0", "pixi.js": "^8.0.0", "solid-js": "^1.8.0", "tweakpane": "^4.0.0" } }, "sha512-gqItQnLfCmZhUt03sikGQnAmXlxx3U9myEGXed9A8e4mA5rxscahNOcD3Bc50qeuEvZ46xjSaLdZbadpW21DjQ=="],
 
@@ -696,6 +696,10 @@
     "@tailwindcss/oxide-wasm32-wasi/@tybys/wasm-util": ["@tybys/wasm-util@0.10.3", "", { "dependencies": { "tslib": "^2.4.0" }, "bundled": true }, "sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg=="],
 
     "@tailwindcss/oxide-wasm32-wasi/tslib": ["tslib@2.8.1", "", { "bundled": true }, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
+
+    "@wolfgames/client/@wolfgames/shared": ["@wolfgames/shared@0.7.2", "https://npm.pkg.github.com/download/@wolfgames/shared/0.7.2/c804ad360c95f691cb5e77b0c9dfbf81b6883d20", { "dependencies": { "arktype": "^2.1.29", "uuid": "^13.0.0" } }, "sha512-TvUP+pDpIo8jYO17ATAFcKVuf3j0iZl0wpu6j6zRnbClCONq6Brd5/YRk0TceAx17xsYowSwMEp5PH8EQz+ESQ=="],
+
+    "@wolfgames/components/@wolfgames/client": ["@wolfgames/client@0.1.46", "https://npm.pkg.github.com/download/@wolfgames/client/0.1.46/f38b905779ddf40c57d5d8f48adcce82e0a3aa91", { "dependencies": { "@sentry/browser": "^10.38.0", "@wolfgames/shared": "^0.6.19", "arktype": "^2.1.29", "jose": "^6.2.3", "uuid": "^13.0.0" }, "peerDependencies": { "posthog-js": "^1.0.0" } }, "sha512-Z3SEYPDh1F431Xy7ovMqBzj8AaZh/VsoDoPZVfUCztLVxlxJ2FB4OsMY2xP/pyzCrVv4knLaJtIYs5deTNtXBA=="],
 
     "@wolfgames/cortex/yaml": ["yaml@2.6.1", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-7r0XPzioN/Q9kXBro/XPnA6kznR73DHq+GXh5ON7ZozRO6aMjbmiBuKste2wslTFkC5d1dw0GooOCepZXJ2SAg=="],
 
