@@ -22,6 +22,7 @@ import { SpriteButton } from '@wolfgames/components/modules/primitives/sprite-bu
 import { MOTION_PRESETS } from '@wolfgames/components/modules/logic/motion-presets';
 import { createPixiBackdrop } from '../../screens/PixiBackdrop';
 import { loadStartTextures } from '../render/textures';
+import { exposePixiApp } from '~/core/dev/pixiDevtools';
 import type { PixiLoader } from '~/core/systems/assets';
 import type {
   StartScreenDeps,
@@ -44,6 +45,7 @@ const BUTTON_SIZE = 150;
 
 export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): StartScreenController => {
   let app:           Application       | null = null;
+  let releasePixiApp: (() => void)     | null = null;
   let bg:            DynamicBackground | null = null;
   let logo:          SpriteLogoTitle   | null = null;
   let playBtn:       SpriteButton      | null = null;
@@ -92,7 +94,8 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
           autoDensity:     true,
         });
         if (!app) return;
-        
+        releasePixiApp = exposePixiApp(app);
+
         const backdrop = createPixiBackdrop({
           app,
           container,
@@ -190,7 +193,9 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
       playBtn?.destroy(); playBtn = null;
       bg?.destroy();      bg      = null;
       root?.destroy({ children: true }); root = null;
-      
+
+      releasePixiApp?.();
+      releasePixiApp = null;
       if (app) {
         if (app.canvas && app.canvas.parentNode) {
           app.canvas.parentNode.removeChild(app.canvas);
