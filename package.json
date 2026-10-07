@@ -23,6 +23,7 @@
     "assets:verify": "wolf-dev assets verify --budget",
     "check:assets": "bun run scripts/check-asset-naming.ts",
     "check:manifest": "bun run scripts/check-manifest.ts",
+    "decompose:content": "bun run scripts/decompose-content.ts",
     "typecheck": "tsc --noEmit",
     "lint:unused": "knip",
     "cortex:setup": "node node_modules/@wolfgames/cortex/scripts/setup.mjs",

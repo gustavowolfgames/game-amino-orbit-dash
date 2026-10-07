@@ -39,7 +39,7 @@ export default function GameScreen() {
   onCleanup(() => controller.destroy());
 
   return (
-    <div class="fixed inset-0 bg-black">
+    <div class="fixed inset-0" style={{ background: 'var(--brand-ground)' }}>
       {/* Engine canvas container */}
       <div
         ref={containerRef}

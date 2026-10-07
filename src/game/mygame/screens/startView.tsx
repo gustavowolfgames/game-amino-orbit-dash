@@ -20,6 +20,8 @@ import { DynamicBackground } from '@wolfgames/components/modules/primitives/dyna
 import { SpriteLogoTitle } from '@wolfgames/components/modules/primitives/sprite-logo-title';
 import { SpriteButton } from '@wolfgames/components/modules/primitives/sprite-button';
 import { MOTION_PRESETS } from '@wolfgames/components/modules/logic/motion-presets';
+import { getTheme } from '~/game/brand';
+import { whenContentSettled } from '~/game/setup/content';
 import { createPixiBackdrop } from '../../screens/PixiBackdrop';
 import { loadStartTextures } from '../render/textures';
 import type { PixiLoader } from '~/core/systems/assets';
@@ -51,7 +53,7 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
   let cleanupResize: (() => void)      | null = null;
 
   return {
-    backgroundColor: '#0d1117',
+    backgroundColor: getTheme().ground,
 
     init(container: HTMLDivElement) {
       let loading = false;
@@ -64,6 +66,8 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
             deps.unlockAudio();
             await deps.loadCore();
             try { await deps.loadAudio(); } catch { /* audio optional */ }
+            // A Vault edition selected while the title was up: play it, not the boot pack.
+            await whenContentSettled();
             deps.analytics.trackGameStart({ start_source: 'play_button', is_returning_player: false });
             deps.goto('game');
           },

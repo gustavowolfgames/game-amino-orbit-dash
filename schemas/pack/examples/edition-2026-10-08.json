@@ -1,0 +1,8 @@
+{
+  "id": "edition-2026-10-08",
+  "game": "",
+  "levels": [
+    { "orbiterCount": 3, "seed": 11, "orbitSpeed": 1.4, "orbitRadius": 200 },
+    { "orbiterCount": 12, "seed": 12, "orbitSpeed": -0.6, "orbitRadius": 340 }
+  ]
+}

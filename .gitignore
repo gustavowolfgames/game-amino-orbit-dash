@@ -71,3 +71,6 @@ docs/cortex-inventory.md
 
 # Local Pyxis index (16MB, machine-local — never commit)
 .pyxis/
+
+# decompose:content output — regenerate from schemas/pack/examples, never commit
+local/content-packs/
