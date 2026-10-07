@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Wolf Games brand sting - renderer-agnostic SVG reproduction of WG_FINAL_glow.mp4.
-  Pure SVG + SMIL. No JS, no Pixi/Phaser/Three.
+  Wolf Games brand sting - renderer-agnostic SVG reproduction of WG_FINAL_glow.mp4,
+  extended into a LOADER end-state. Pure SVG + SMIL. No JS, no Pixi/Phaser/Three.
 
   Motion is TRANSFERRED FROM THE SOURCE: stroke endpoints AND widths were measured
   per frame (connected-component analysis of the bright core, 30fps, viewBox 1080x1920)
@@ -26,29 +26,34 @@
       ~y66 top / ~y1848 bottom, i.e. essentially edge-to-edge. They shrink into the
       compact band y900..1017
     - draw order: left, then right, then mid; each drawn top->down (bottom edge descends)
-    - push-left = translateX -310 (compact centre ~538 -> held centre ~228)
-    - glow is strong during draw/splay, then settles lighter on the hold (animated)
+    - push-left = translateX -310 (compact centre ~538 -> held centre ~228); "olfGames"
+      slides out from behind the mark to spell the wordmark, roughly screen-centred
 
-  Timeline @ 3.8s (30fps source): draw 0.40-0.87s | big hold ->1.17 |
-    shrink->1.80 | push-left + masked reveal ->2.37 | hold ->3.0 | background
-    spotlight fades IN ->3.6 (lockup stays up; nothing fades out).
-  Loops for review; production plays once.
+  LOADER END-STATE:
+    - the brand loading image + black backdrop are DOM layers (IntroSting.tsx), behind
+      this transparent SVG; they fade in there as the wordmark finishes assembling.
+    - the whole LOCKUP (mark + wordmark) DROPS and SHRINKS to a small PUBLISHER FOOTER
+      near the bottom, and the fill turns yellow -> WHITE - clearing centre-stage for
+      the game title (also DOM, brought in by IntroSting). Nothing fades out.
+    - .bar / .word fills are presentation ATTRIBUTES (not CSS) so SMIL can drive the
+      yellow->white; a CSS `fill` rule would beat the animation.
+    - the reveal clip (#seam) is full-height so the lockup stays visible after the drop.
 
-  TUNING: #bg gradient (default background; swap for a real graphic) ; .bar fill ;
-    glow stdDeviation / feFuncA slope ; translateX values ;
-    polygon `points` keyframes (centre x,y pairs +/- half-width).
+  Timeline @ 3.8s (30fps source): draw 0.40-0.87s | big hold ->1.17 | shrink->1.80 |
+    push-left + masked reveal ->2.37 | DOM bg fades in ~2.4-2.9 | lockup drops +
+    SHRINKS to footer + whitens 2.96-3.50 | game title in ~3.1-3.7 | hold ->3.8.
+    Loops for review; production plays once.
+
+  TUNING: fill attrs + fill <animate> (brand yellow + the ->white turn) ; #lockup drop
+    translate (0 0 -> 313 1281) + scale (1 -> 0.42) = the publisher-footer settle ;
+    glow stdDeviation / feFuncA slope ; translateX values ; polygon `points` keyframes.
+    Background + game title are DOM (IntroSting.tsx), not in this SVG.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"
      preserveAspectRatio="xMidYMid meet" width="100%" height="100%">
   <defs>
-    <!-- default background: on-brand spotlight/vignette — warm near-black lifting behind
-         the lockup, falling to pure black at the edges. Fades in at the end (the wordmark
-         does NOT fade out). Swap this gradient for a real website graphic/image when ready. -->
-    <radialGradient id="bg" cx="50%" cy="54%" r="72%">
-      <stop offset="0%"   stop-color="#19190f"/>
-      <stop offset="52%"  stop-color="#0b0b09"/>
-      <stop offset="100%" stop-color="#000000"/>
-    </radialGradient>
+    <!-- The loading background is a DOM <img> layer in IntroSting.tsx
+         (public/assets/bg-loader.webp), behind this transparent SVG. -->
 
     <!-- glow: STRONG during the draw/splay, settles lighter on the compact hold
          (measured: halo ~1.5x core while splayed, drops once the mark shrinks) -->
@@ -69,9 +74,10 @@
       </feMerge>
     </filter>
 
-    <!-- reveal seam: text shows only to the RIGHT of this rect; it rides left with the mark -->
+    <!-- reveal seam: text shows only to the RIGHT of this rect; it rides left with the
+         mark. Full-height so the lockup is never vertically clipped after it drops. -->
     <clipPath id="seam" clipPathUnits="userSpaceOnUse">
-      <rect x="606" y="760" width="1300" height="480">
+      <rect x="606" y="0" width="1300" height="1920">
         <animateTransform attributeName="transform" type="translate" dur="3.8s"
           repeatCount="indefinite" calcMode="spline"
           values="0 0;0 0;-310 0;-310 0" keyTimes="0;0.5;0.624;1"
@@ -80,77 +86,98 @@
     </clipPath>
 
     <style>
-      .bg  { fill: #000; }
-      .bar { fill: #E9ED12; }
-      .word{ fill: #E9ED12; font-family: Arial, Helvetica, sans-serif;
+      /* NOTE: no `fill` on .bar/.word - those fills are presentation ATTRIBUTES so SMIL
+         can animate them yellow -> white; a CSS rule would override the animation. */
+      .word{ font-family: Arial, Helvetica, sans-serif;
              font-weight: 500; font-size: 152px; }
     </style>
   </defs>
 
   <g id="stage">
-    <!-- base: always-black. The lockup stays up — nothing fades out. -->
-    <rect class="bg" x="0" y="0" width="1080" height="1920"/>
-
-    <!-- background spotlight fades IN at the end (3.0-3.6s), behind the lockup -->
-    <rect x="0" y="0" width="1080" height="1920" fill="url(#bg)" opacity="0">
-      <animate attributeName="opacity" dur="3.8s" repeatCount="indefinite"
-        values="0;0;1;1" keyTimes="0;0.789;0.947;1"/>
-    </rect>
-
+    <!-- Transparent SVG: the black backdrop and the brand loading image are DOM
+         layers in IntroSting.tsx, behind this. Only the lockup is drawn here. -->
     <g filter="url(#glow)">
-      <!-- the \I/ mark: three filled parallelograms; points keyed from the source.
-           points order per keyframe: topLeft topRight bottomRight bottomLeft -->
-      <g id="mark">
+      <!-- lockup = the \I/ mark + the "olfGames" wordmark. Once assembled it DROPS to
+           ~75% height (bottom 3/4) and the fill turns yellow -> white. -->
+      <g id="lockup">
+        <!-- LOADER SETTLE: as the lockup finishes assembling it DROPS and SHRINKS into a
+             small publisher footer near the bottom, clearing centre-stage for the game
+             title (DOM, in IntroSting). The scale pivots on the assembled lockup centre
+             (~540,975): translate target is tx=bx-s*cx, ty=by-s*cy for a shrunk centre
+             of (540,1690) at s=0.42 -> (313,1281). Two animateTransforms compose as
+             translate * scale (scale applied first), so the group shrinks toward its own
+             centre then lands at the footer position. Tune s + the translate together. -->
         <animateTransform attributeName="transform" type="translate" dur="3.8s"
           repeatCount="indefinite" calcMode="spline"
-          values="0 0;0 0;-310 0;-310 0" keyTimes="0;0.5;0.624;1"
-          keySplines="0 0 1 1;0.4 0 0.1 1;0 0 1 1"/>
+          values="0 0;0 0;313 1281;313 1281" keyTimes="0;0.78;0.92;1"
+          keySplines="0 0 1 1;0.45 0 0.1 1;0 0 1 1"/>
+        <animateTransform attributeName="transform" type="scale" additive="sum" dur="3.8s"
+          repeatCount="indefinite" calcMode="spline"
+          values="1;1;0.42;0.42" keyTimes="0;0.78;0.92;1"
+          keySplines="0 0 1 1;0.45 0 0.1 1;0 0 1 1"/>
 
-        <!-- LEFT  \  (draws 0.40-0.50s)  width 96 -> 18 ; splayed runs off-screen (clipped) -->
-        <polygon class="bar">
-          <animate attributeName="points" dur="3.8s" repeatCount="indefinite"
-            keyTimes="0;0.105;0.132;0.307;0.474;1"
-            values="-66,-40 30,-40 30,-40 -66,-40;
-                    -66,-40 30,-40 30,-40 -66,-40;
-                    -66,-40 30,-40 577,1960 481,1960;
-                    -66,-40 30,-40 577,1960 481,1960;
-                    463,900 481,900 510,1017 492,1017;
-                    463,900 481,900 510,1017 492,1017"/>
-        </polygon>
-
-        <!-- RIGHT  /  (draws 0.60-0.70s)  width 93 -> 18 ; splayed runs off-screen (clipped) -->
-        <polygon class="bar">
-          <animate attributeName="points" dur="3.8s" repeatCount="indefinite"
-            keyTimes="0;0.158;0.184;0.307;0.474;1"
-            values="1049,-40 1143,-40 1143,-40 1049,-40;
-                    1049,-40 1143,-40 1143,-40 1049,-40;
-                    1049,-40 1143,-40 611,1960 517,1960;
-                    1049,-40 1143,-40 611,1960 517,1960;
-                    594,900 612,900 583,1017 565,1017;
-                    594,900 612,900 583,1017 565,1017"/>
-        </polygon>
-
-        <!-- MID  I  (draws 0.767-0.867s)  width 90 -> 18 ; splayed runs off-screen (clipped) -->
-        <polygon class="bar">
-          <animate attributeName="points" dur="3.8s" repeatCount="indefinite"
-            keyTimes="0;0.202;0.228;0.307;0.474;1"
-            values="496,-40 586,-40 586,-40 496,-40;
-                    496,-40 586,-40 586,-40 496,-40;
-                    496,-40 586,-40 581,1960 491,1960;
-                    496,-40 586,-40 581,1960 491,1960;
-                    529,900 547,900 547,1017 529,1017;
-                    529,900 547,900 547,1017 529,1017"/>
-        </polygon>
-      </g>
-
-      <!-- "olfGames": clipped to the right of the seam; slides right from behind the mark -->
-      <g clip-path="url(#seam)">
-        <g id="textSlide">
+        <!-- the \I/ mark: three filled parallelograms; points keyed from the source.
+             points order per keyframe: topLeft topRight bottomRight bottomLeft -->
+        <g id="mark">
           <animateTransform attributeName="transform" type="translate" dur="3.8s"
             repeatCount="indefinite" calcMode="spline"
-            values="-360 0;-360 0;0 0;0 0" keyTimes="0;0.5;0.624;1"
+            values="0 0;0 0;-310 0;-310 0" keyTimes="0;0.5;0.624;1"
             keySplines="0 0 1 1;0.4 0 0.1 1;0 0 1 1"/>
-          <text class="word" x="300" y="1014">olfGames</text>
+
+          <!-- LEFT  \  (draws 0.40-0.50s)  width 96 -> 18 ; splayed runs off-screen (clipped) -->
+          <polygon class="bar" fill="#E9ED12">
+            <animate attributeName="points" dur="3.8s" repeatCount="indefinite"
+              keyTimes="0;0.105;0.132;0.307;0.474;1"
+              values="-66,-40 30,-40 30,-40 -66,-40;
+                      -66,-40 30,-40 30,-40 -66,-40;
+                      -66,-40 30,-40 577,1960 481,1960;
+                      -66,-40 30,-40 577,1960 481,1960;
+                      463,900 481,900 510,1017 492,1017;
+                      463,900 481,900 510,1017 492,1017"/>
+            <animate attributeName="fill" dur="3.8s" repeatCount="indefinite"
+              values="#E9ED12;#E9ED12;#ffffff;#ffffff" keyTimes="0;0.78;0.92;1"/>
+          </polygon>
+
+          <!-- RIGHT  /  (draws 0.60-0.70s)  width 93 -> 18 ; splayed runs off-screen (clipped) -->
+          <polygon class="bar" fill="#E9ED12">
+            <animate attributeName="points" dur="3.8s" repeatCount="indefinite"
+              keyTimes="0;0.158;0.184;0.307;0.474;1"
+              values="1049,-40 1143,-40 1143,-40 1049,-40;
+                      1049,-40 1143,-40 1143,-40 1049,-40;
+                      1049,-40 1143,-40 611,1960 517,1960;
+                      1049,-40 1143,-40 611,1960 517,1960;
+                      594,900 612,900 583,1017 565,1017;
+                      594,900 612,900 583,1017 565,1017"/>
+            <animate attributeName="fill" dur="3.8s" repeatCount="indefinite"
+              values="#E9ED12;#E9ED12;#ffffff;#ffffff" keyTimes="0;0.78;0.92;1"/>
+          </polygon>
+
+          <!-- MID  I  (draws 0.767-0.867s)  width 90 -> 18 ; splayed runs off-screen (clipped) -->
+          <polygon class="bar" fill="#E9ED12">
+            <animate attributeName="points" dur="3.8s" repeatCount="indefinite"
+              keyTimes="0;0.202;0.228;0.307;0.474;1"
+              values="496,-40 586,-40 586,-40 496,-40;
+                      496,-40 586,-40 586,-40 496,-40;
+                      496,-40 586,-40 581,1960 491,1960;
+                      496,-40 586,-40 581,1960 491,1960;
+                      529,900 547,900 547,1017 529,1017;
+                      529,900 547,900 547,1017 529,1017"/>
+            <animate attributeName="fill" dur="3.8s" repeatCount="indefinite"
+              values="#E9ED12;#E9ED12;#ffffff;#ffffff" keyTimes="0;0.78;0.92;1"/>
+          </polygon>
+        </g>
+
+        <!-- "olfGames": clipped to the right of the seam; slides right from behind the mark -->
+        <g clip-path="url(#seam)">
+          <g id="textSlide">
+            <animateTransform attributeName="transform" type="translate" dur="3.8s"
+              repeatCount="indefinite" calcMode="spline"
+              values="-360 0;-360 0;0 0;0 0" keyTimes="0;0.5;0.624;1"
+              keySplines="0 0 1 1;0.4 0 0.1 1;0 0 1 1"/>
+            <text class="word" fill="#E9ED12" x="300" y="1014">olfGames<animate
+              attributeName="fill" dur="3.8s" repeatCount="indefinite"
+              values="#E9ED12;#E9ED12;#ffffff;#ffffff" keyTimes="0;0.78;0.92;1"/></text>
+          </g>
         </g>
       </g>
     </g>
