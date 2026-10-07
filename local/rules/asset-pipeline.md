@@ -16,29 +16,60 @@ tuning/VFX config JSON, and the boot chrome the template already ships
 Full guide: `docs/recipes/asset-pipeline.md`.
 
 1. **Generate** — all generation goes through the wolf-game-kit MCP
-   (`mcp__wolf-game-kit__*`). Discover first (`list_style_presets`,
+   (`mcp__wolf-game-kit__*`). Check `search_assets` first — art made for this
+   game in the prod UI or an earlier session is adopted with `assets_set`, not
+   regenerated. Then discover (`list_style_presets`,
    `list_process_templates`; never hardcode preset ids; pass
    `styleContext.imageRole` with any preset). Many assets = ONE
    `create_asset_gen_batch` with N `kind:"pipeline"` items, then poll
    `get_asset_gen_status {batchId, projectId}` until `isTerminal`. Transparent
-   sprites ONLY via the `transparent-raster` process template — never magenta
-   plates, never `chroma_key`. Audio via `generate_sfx` / `generate_music` /
+   sprites ONLY via the `transparent-raster` process template, and an existing
+   sheet is cut out with `sheet-cutout` — never magenta plates, never
+   `chroma_key`. Audio via `generate_sfx` / `generate_music` /
    `generate_tts` + the audio-sprite process templates. VFX via `generate_vfx`.
 2. **Stage** — download results into `assets/src/_staging/`, rename per
-   `docs/guides/naming-convention.md`, compress (webp for images, ~100–150KB
-   backgrounds, ~150KB per music track), move approved files up into
-   `assets/src/`. Pixi-loaded atlas JSON goes under `assets/src/json-data/`;
+   `docs/guides/naming-convention.md`, move approved files up into
+   `assets/src/`. Do NOT pre-compress: publish encodes images on the way up,
+   and a file you squashed first gets squashed twice. The one time to shrink
+   a file yourself is when it is over 8 MiB, since those skip the encoder.
+   Packed PNG sheets go in as they are too — publish finds each one through
+   its atlas JSON and encodes it lossless at full size instead of the usual
+   way (`wolf-dev` 0.2.57 or later); a sheet you
+   `assets set` from a local file needs `--role atlas`, since `set` never
+   reads the JSON. Pixi-loaded atlas JSON goes under `assets/src/json-data/`;
    DOM atlases and audio-sprite JSON stay at the top level (`assets/README.md`
    has the rule).
 3. **Publish** — `bun run assets:publish` (CLI) or the `assets_publish` MCP
-   tool: hashes everything in `assets/src/`, rewrites sidecar refs, uploads
-   immutable, verifies at the storage origin, then writes the lockfile and
-   regenerates `assets/registry.ts` — commit both. Assets land under the
-   `projectId` from `wolf-game-kit.json` — it must equal the game's Nucleo
-   `gameSlug`; if it's still the placeholder `mygame`, stop and set the real
-   id first (`docs/factory/newgame.md`, Step 1). Never build project-local
+   tool: encodes images to optimized delivery files, hashes everything
+   in `assets/src/`, rewrites sidecar refs, uploads immutable, verifies at the
+   storage origin, then writes the lockfile and regenerates
+   `assets/registry.ts` — commit both. Assets land under the
+   `gameSlug` from `wolf-game-kit.json`, which is the CDN namespace
+   `games/<gameSlug>/` and must equal the game's Nucleo slug; if it's still
+   the placeholder `mygame`, stop and set the real one first
+   (`docs/factory/newgame.md`, Step 1). The `projectId` argument on the
+   asset-gen tools defaults to that same slug — pass it only to reach another
+   project's assets. Never build project-local
    publish scripts — the shared contract lives in `wolf-dev`.
-4. **Load** — register bundles in `src/game/asset-manifest.ts` with lockfile
+4. **Size** — art is optimized on publish; nothing to do in the normal case.
+   **Never regenerate art to recover resolution** — the `assets_pull` MCP
+   tool with `original: true` (CLI `wolf-dev assets pull --original`) writes
+   back each file's original where asset-gen kept one; publish keeps none, so
+   keep your own copy. Line art, UI and text must ask for a lossless encode —
+   `role: "ui-text"` on the asset-gen tool that makes it, or `assets_set` with
+   `role: "ui-text"` (`assets set --role ui-text`) for a file from disk;
+   nothing infers it. Pass `role: "ui-text"` to `assets_set` when adopting
+   asset-gen line art too. The lockfile records what `assets_set` was given,
+   so later publishes and `assets_optimize` keep it (`wolf-dev` 0.2.59 or
+   later). `optimize: false`
+   (`--no-optimize`) ships art as authored; `max` (`--max <px>`) on
+   `assets_set` caps a local file to a known display size; for art asset-gen
+   made, use `optimize_image` with `maxDimension` on its original instead.
+   `assets_verify` with `budget: true` (`bun run assets:verify`) fails on
+   anything over its role's byte budget. The numbers live only in game-sdk's
+   `packages/dev/src/modules/assets/budgets.ts`; how a key's name picks its
+   role is in `docs/recipes/asset-pipeline.md`.
+5. **Load** — register bundles in `src/game/asset-manifest.ts` with lockfile
    keys as `src` values (paths relative to `assets/src/`). CdnManifestProvider
    resolves them at boot; never scatter `media.<env>.wolf.games` URLs through
    `src/` (`check:assets` enforces this).
@@ -87,5 +118,6 @@ around.**
    placeholders are a guardrail violation (`docs/standards/guardrails.md`).
 
 Validate: `bun run check:assets` and `bun run check:manifest` (also run by
-pre-commit). After a publish, `bun run assets:verify` confirms every lockfile
-entry exists at the storage origin.
+pre-commit). After a publish, `assets_verify` with `budget: true`
+(`bun run assets:verify`) confirms every lockfile entry exists at the storage
+origin and is within its role's byte budget.

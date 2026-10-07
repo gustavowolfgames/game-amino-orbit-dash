@@ -9,10 +9,10 @@
  * framerate-independent; the renderer paints the latest ECS state each frame.
  *
  * The loop:
- *   • A ring of collectible orbs circles the centre (orbitSystem).
- *   • Drifting orbs bounce off the design-box walls (movementSystem).
+ *   • A ring of collectible orbs circles the centre (systemOrbit).
+ *   • Drifting orbs bounce off the design-box walls (systemMovement).
  *   • A tap collects the nearest orb within reach and spawns a mover (input as
- *     intent → `submitTap`; `inputSystem` drains it next step).
+ *     intent → `submitTap`; `systemInput` drains it next step).
  *   • Collect every orb → win → hand off to the results screen.
  *
  * Rendering: a fixed design box (DESIGN_W×DESIGN_H) scaled to fit the viewport

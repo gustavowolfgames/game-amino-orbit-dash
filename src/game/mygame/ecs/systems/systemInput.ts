@@ -1,5 +1,5 @@
 /**
- * inputSystem — drain queued taps and resolve them.
+ * systemInput — drain queued taps and resolve them.
  *
  * Order:  1 of 3 (first — the mover it spawns is integrated later this same step
  *         by the movement system)
@@ -16,7 +16,7 @@ import { COLLECT_RADIUS } from '../../demo/config';
 import type { GameDatabase } from '../gamePlugin';
 import { readOrbiters } from '../readStateFromEcs';
 
-export function inputSystem(db: GameDatabase): void {
+export function systemInput(db: GameDatabase): void {
   const queued = db.resources.pendingTaps;
   if (queued.length === 0) return;
   // Snapshot then clear before resolving — a tap never re-reads its own trigger.

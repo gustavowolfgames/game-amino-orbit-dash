@@ -6,13 +6,13 @@ Inspector-visible, agent-drivable, and headlessly testable. This is a
 pure-ECS architecture end to end so a new game can replace the rules without
 rewiring the plumbing:
 
-- **Orbiter** — a collectible orb circling the centre. `orbitSystem` advances its
+- **Orbiter** — a collectible orb circling the centre. `systemOrbit` advances its
   angle each fixed step; its position is derived from angle + ring radius.
 - **Mover** — an orb drifting with a velocity, bouncing off the design-box walls
-  (`movementSystem`). A tap spawns one, so a tap always shows spawn + move.
+  (`systemMovement`). A tap spawns one, so a tap always shows spawn + move.
 
 Tap to collect the nearest orbiter within reach (input as intent → `pendingTaps`
-→ `inputSystem` drains it next step). Collect every orbiter to win. Because the
+→ `systemInput` drains it next step). Collect every orbiter to win. Because the
 orbiters and movers advance **every frame with no input**, this is a
 **real-time** game: it runs the per-frame schedule, not the turn-based path.
 
@@ -20,7 +20,7 @@ orbiters and movers advance **every frame with no input**, this is a
  REAL-TIME (this game)
  engine.onFrame(realDt) → startFixedStepLoop → stepWorld(db, FIXED_DT)
                                                  │  advanceTime({dt}); run SYSTEM_ORDER
-   pointer → submitTap({x,y})   ───────────────▶│  (inputSystem drains pendingTaps → spawn + collect)
+   pointer → submitTap({x,y})   ───────────────▶│  (systemInput drains pendingTaps → spawn + collect)
                 ┌────────────────── @adobe/data ECS database ──────────────────┐
  pure systems   │  resources:  level · score · phase · remaining · elapsedMs   │
  (systems/*)    │              frameDeltaMs · rng · pendingTaps                 │
@@ -45,7 +45,7 @@ no signals "clipboard" — ECS is the single source of truth.
 The orbiters and movers advance continuously, so the engine clock drives
 `stepWorld(db, dt)` each frame: it injects `dt` (`advanceTime`) then runs
 `SYSTEM_ORDER`. Input is modelled as **intent** — the renderer queues a
-`pendingTaps` entry (`submitTap`) that `inputSystem` drains next step and
+`pendingTaps` entry (`submitTap`) that `systemInput` drains next step and
 resolves (spawn a mover + collect the nearest orbiter), keeping input on the
 deterministic timeline.
 
@@ -78,7 +78,7 @@ from `CENTER + (cos, sin)·orbitRadius`. Position is always a pure function of
 
 ## Tap → spawn + collect
 
-A tap enqueues a `pendingTaps` intent. Next step `inputSystem` drains the queue
+A tap enqueues a `pendingTaps` intent. Next step `systemInput` drains the queue
 and, per tap: (1) `spawnMoverSeeded` spawns a mover flying off from the tap point
 (direction + colour drawn from the seeded `rng`, oldest recycled past
 `MAX_MOVERS`), then (2) collects the nearest orbiter within `COLLECT_RADIUS` via
@@ -93,15 +93,15 @@ per-frame integration + wall bounce and never affect the win state.
 | `gamePlugin.ts` | The data model: components, resources, archetypes, computed, all transactions + `createGameWorld()`. |
 | `readStateFromEcs.ts` | Structural adapter: `readOrbiters`, `readMovers`, and `readStateFromEcs` (full `GameSnapshot`) for systems, the renderer, and tests. |
 | `schedule.ts` | `stepWorld(db, dt)` — the per-frame tick: inject `dt` via `advanceTime`, then run every system in `SYSTEM_ORDER`. |
-| `systems/` | Per-frame systems (`db => void`) + `SYSTEM_ORDER`: `inputSystem` → `movementSystem` → `orbitSystem`. |
+| `systems/` | Per-frame systems (`db => void`) + `SYSTEM_ORDER`: `systemInput` → `systemMovement` → `systemOrbit`. |
 | `../demo/` | Pure, framework-free sim constants (`config.ts`: design box, orb geometry, palette) and the seeded LCG (`rng.ts`). No Pixi. |
 | `../engine/` | The engine seam: `EngineHandle` (`onFrame`/`destroy`), `createTickerEngine()` (gsap.ticker clock), and `startFixedStepLoop` / `planFixedSteps` (`fixedStep.ts`). Swap the clock for a Pixi/Three/Phaser one without touching the sim. |
 | `../world.ts` | `getGameWorld()` — the app-scoped world singleton (owns `setActiveDb`). Screens and the controller read it; they never create/destroy it. |
 | `agentPlugin.ts` | `gameAgentPlugin` + `createGameAgentWorld()` — an `AgenticService` exposing states (phase, score, remaining, orbiters) + the conditional `tap`/`start` actions for bots/tests/MCP. |
 
 > `SYSTEM_ORDER` is a flat list — the simplest correct ordering, and all this
-> game needs. Order is contract: `inputSystem` runs first so the mover it spawns
-> is integrated by `movementSystem` the same step. Plugin property order is
+> game needs. Order is contract: `systemInput` runs first so the mover it spawns
+> is integrated by `systemMovement` the same step. Plugin property order is
 > runtime-enforced (wrong order throws): `extends` → `services` → `components` →
 > `resources` → `archetypes` → `computed` → `transactions` → `actions` →
 > `systems`.
@@ -118,7 +118,7 @@ per-frame integration + wall bounce and never affect the win state.
   `pendingTaps`), and direction/colour draws come from a seeded LCG held in the
   `rng` resource — so `stepWorld(db, FIXED_DT)` replays exactly.
 - **Input as intent.** The renderer enqueues a `pendingTaps` entry (`submitTap`)
-  rather than resolving directly; `inputSystem` drains it next step.
+  rather than resolving directly; `systemInput` drains it next step.
 - **Engine-agnostic sim.** The simulation never imports an engine. The clock
   enters through the `EngineHandle` seam (`engine/`); swap `createTickerEngine`
   for a Pixi/Three/Phaser clock without touching ECS. No raw

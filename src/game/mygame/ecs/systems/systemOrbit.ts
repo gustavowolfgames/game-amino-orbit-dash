@@ -1,5 +1,5 @@
 /**
- * orbitSystem — advance the orbiter ring (the per-frame path).
+ * systemOrbit — advance the orbiter ring (the per-frame path).
  *
  * Order:  3 of 3 (after movers integrate; a second, independent per-frame system)
  * Reads:  resources.frameDeltaMs, every Orbiter's angle/orbitSpeed/orbitRadius
@@ -10,7 +10,7 @@
 
 import type { GameDatabase } from '../gamePlugin';
 
-export function orbitSystem(db: GameDatabase): void {
+export function systemOrbit(db: GameDatabase): void {
   const dtSec = db.resources.frameDeltaMs / 1000;
   if (dtSec <= 0) return;
   db.transactions.advanceOrbiters({ dtSec });

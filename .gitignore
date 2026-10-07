@@ -68,3 +68,6 @@ docs/cortex-inventory.md
 # Cache
 .cache
 .eslintcache
+
+# Local Pyxis index (16MB, machine-local — never commit)
+.pyxis/

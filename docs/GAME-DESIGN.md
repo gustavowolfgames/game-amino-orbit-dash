@@ -37,9 +37,9 @@ Ring emptied  →  you win  →  hand off to the results screen
 It is intentionally trivial. Its job is to demonstrate, in the least code
 possible, every seam a real game needs:
 
-- **Two per-frame systems with no input** (`orbitSystem`, `movementSystem`) —
+- **Two per-frame systems with no input** (`systemOrbit`, `systemMovement`) —
   proving the real-time schedule and fixed-timestep loop.
-- **Input as intent** — a tap queues `pendingTaps`; `inputSystem` drains it on the
+- **Input as intent** — a tap queues `pendingTaps`; `systemInput` drains it on the
   next fixed step. Input lives on the deterministic timeline, never off it.
 - **Seeded determinism** — mover direction and colour come from an LCG in the
   `rng` resource; no `Math.random` / `Date.now`. The same seed + taps replay

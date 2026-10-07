@@ -11,8 +11,8 @@ committed record of what's published and a gitignored working area:
   publish. Committed. `CdnManifestProvider` bakes it in as the synchronous
   boot seed, so the game renders even if manifest fetches fail.
 - `src/` — **gitignored working copy, empty by default.** Drop hand-authored
-  files here (or fetch current art with `assets pull`, once it ships), then
-  `bun run assets:publish`. Raw asset-gen downloads can stage in
+  files here (or fetch current art with `wolf-dev assets pull --original`),
+  then `bun run assets:publish`. Raw asset-gen downloads can stage in
   `src/_staging/` before being renamed to convention.
 
 ## Layout rules inside `src/`

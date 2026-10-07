@@ -8,7 +8,7 @@
  * `db.services.agent.execute(action, input)` to drive the game headlessly.
  *
  * `tap` follows the game's "input as intent" rule: it queues a tap via
- * `submitTap`, which the per-frame `inputSystem` drains on the next `stepWorld`.
+ * `submitTap`, which the per-frame `systemInput` drains on the next `stepWorld`.
  * A headless driver taps, then pumps fixed steps to resolve it — exactly what the
  * live loop does.
  *
