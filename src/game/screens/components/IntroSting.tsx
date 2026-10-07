@@ -43,8 +43,9 @@ const TITLE_IN_SEC = 3.1;
 const EXIT_SEC = 0.3;
 
 /** Generated Wolf Games brand loading art (public/assets/bg-loader.webp), styled from
- *  the wolfgames.net hero. Served from the local-fallback `public/assets/` path. */
-const BG_SRC = '/assets/bg-loader.webp';
+ *  the wolfgames.net hero. Served from the local-fallback `public/assets/` path, prefixed
+ *  with the Vite base so frozen builds (`--base=./`) resolve it off the domain root too. */
+const BG_SRC = `${import.meta.env.BASE_URL}assets/bg-loader.webp`;
 
 // The sandbox SVG loops for review (repeatCount="indefinite"). For the loader we play it
 // through exactly ONCE and hold the final frame — convert every animation to a single
