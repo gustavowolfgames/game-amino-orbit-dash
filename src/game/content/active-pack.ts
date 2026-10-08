@@ -16,10 +16,11 @@
  * level index, the score) lives in ECS.
  */
 
+import { packLevels } from './content-pack';
 import { BUNDLED_PACK, parseLevel, type ResolvedLevel } from './level';
 
 export interface ActivePack {
-  /** The pack's id (`pack.id`), recorded on analytics and in the Inspector. */
+  /** The Content Pack key, recorded on analytics and in the Inspector. */
   readonly id: string;
   /** Playable levels, in play order. Never empty. */
   readonly levels: readonly ResolvedLevel[];
@@ -31,7 +32,7 @@ export interface ActivePack {
 
 const bundled: ActivePack = {
   id: BUNDLED_PACK.id,
-  levels: BUNDLED_PACK.levels.map((l) => parseLevel(l) as ResolvedLevel),
+  levels: packLevels(BUNDLED_PACK).map((l) => parseLevel(l) as ResolvedLevel),
   source: 'bundled',
   contentId: null,
 };

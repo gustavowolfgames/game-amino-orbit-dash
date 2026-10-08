@@ -2,15 +2,15 @@
 // `nucleo game deploy <slug> --release-name <release>` registers every schema listed here
 // (`wolf-game-kit.json` → `schemasDir`). See docs/recipes/game-packs.md.
 import type { DynamicDataRegistryEntry } from '@wolfgames/shared';
+import { blocksSchema } from './blocks';
 import { brandSchema } from './brand';
 import { catalogSchema } from './catalog';
-import { levelSchema } from './level';
-import { packSchema } from './pack';
+import { levelsSchema } from './levels';
 
 /**
  * Two concerns, kept apart so one build serves many partner looks and many dated editions:
  *
- *   content — `pack` (ordered level keys for one edition) + `level` (one opaque level each)
+ *   content — `blocks` (a run of levels: its play order and level keys) + `levels` (one level each)
  *   brand   — `brand` (a partner sheet: colours, type, link), layered over the build's own
  *   schedule — `catalog` (pack key → `YYYY-MM-DD`), read by the manager's Daily Editions harvest
  *
@@ -20,12 +20,12 @@ import { packSchema } from './pack';
  * (`brand/theme`) is a single `getEntry`.
  */
 export const registry = {
-  pack: {
-    schema: packSchema,
+  blocks: {
+    schema: blocksSchema,
     bundleSyncEnabled: false as const,
   },
-  level: {
-    schema: levelSchema,
+  levels: {
+    schema: levelsSchema,
     bundleSyncEnabled: false as const,
   },
   brand: {

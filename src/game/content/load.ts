@@ -6,13 +6,13 @@
  * `./active-pack`; from then on the game reads levels synchronously through `levelAt`.
  *
  * It NEVER throws. GameSDK missing, network down, no pack bound, a key the bundle cannot
- * resolve, a pack for another game, no playable level — every one of those leaves the pack in
+ * resolve, a malformed block, no playable level — every one of those leaves the pack in
  * play untouched, which at boot is the bundled pack. The game always boots playable.
  */
 
-import { GAME_SLUG } from '~/game/config/identity';
 import { type ActivePack, seedActivePack } from './active-pack';
 import { assemblePack } from './assemble';
+import { packLevels } from './content-pack';
 import { dynamicClient, isPackNotFound, type KitLike } from './dynamic-client';
 import { DEFAULT_PACK_KEY, parseLevel, type ResolvedLevel } from './level';
 
@@ -43,7 +43,7 @@ export async function loadActivePack(
   let assembled: ReturnType<typeof assemblePack>;
   try {
     const client = await dynamicClient(gameKit);
-    assembled = assemblePack(await client.getPack(packKey), GAME_SLUG);
+    assembled = assemblePack(await client.getPack(packKey));
   } catch (err) {
     // No pack under the default key is every ordinary boot with nothing published — not worth
     // a line. No pack under a key someone typed or a Vault sent is.
@@ -58,13 +58,15 @@ export async function loadActivePack(
   }
 
   const levels: ResolvedLevel[] = [];
-  assembled.levels.forEach((raw, i) => {
-    const level = parseLevel(raw);
-    if (level) levels.push(level);
-    else console.warn(`[content] pack "${assembled.id}" level ${i + 1} is not playable here — dropped.`);
-  });
+  for (const block of assembled.blocks) {
+    block.levels.forEach((raw, i) => {
+      const level = parseLevel(raw);
+      if (level) levels.push(level);
+      else console.warn(`[content] pack "${assembled.id}" block "${block.id}" level ${i + 1} is not playable here — dropped.`);
+    });
+  }
   if (levels.length === 0) {
-    if (assembled.levels.length > 0) {
+    if (packLevels(assembled).length > 0) {
       console.warn(`[content] pack "${assembled.id}" has no playable level — ${fallback}.`);
     }
     return null;

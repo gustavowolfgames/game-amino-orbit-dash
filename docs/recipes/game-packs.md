@@ -7,7 +7,7 @@ daily editions, and any number of partner reskins.
 ```
 build (ships with)                         Game Manager (publish, no redeploy)
 ──────────────────                         ────────────────────────────────────
-schemas/pack/examples/default.json   ◀──── pack + level entries  → Content Pack "<key>"
+src/game/content/packs/default.json  ◀──── blocks + levels entries → Content Pack "<key>"
 src/game/brand/defaults.ts (Wolf)    ◀──── brand entry "theme"  (or one inside a Content Pack)
                                      ◀──── catalog/<slug>        (pack key → YYYY-MM-DD, dailies)
 ```
@@ -21,18 +21,26 @@ Capped at 4 s (`CONTENT_BUDGET_MS`); a late arrival still applies.
 
 | Schema | Holds | Read by the game as |
 |--------|-------|---------------------|
-| `pack` | `{ id, game, levels: ["<level key>", …] }` — one edition, levels in play order | `getPack(<key>)` → `src/game/content/load.ts` |
-| `level` | `{ "level": <your level> }` — opaque here; the game parses it | `src/game/content/level.ts` (`LevelConfigDef`) |
+| `blocks` | `{ id, name, order, levels: ["<level key>", …] }` — a run of levels: blocks play by `order`, levels in list order | `getPack(<key>)` → `src/game/content/assemble.ts` |
+| `levels` | One level, keyed `<block id>-<n>` — the game's own shape | `src/game/content/level.ts` (`parseLevel`) |
 | `brand` | A partner sheet: grounds, accents, roles, fonts, link | `src/game/brand/load.ts` → theme (CSS vars + Pixi) |
 | `catalog` | `{ "<pack key>": "YYYY-MM-DD" }` — the Daily Editions schedule | answered to the manager's harvest (Vault only) |
+
+There is no `pack` schema: the Content Pack (the server's GamePack) only points at entries and
+carries no order, so the order lives on the parent — `blocks` — as in The Stacks
+(`game-amino-sort`, `blocks` / `levels` / `cards` / `narrative`). Keeping it on the parent is what
+lets one level sit at a different position in two editions. Shared values for a run of levels
+(a name, later a theme or art style) go on the block, not on every level.
 
 Content and brand are separate on purpose: any edition can wear any partner's look.
 **Changing a schema needs a new `version` + a redeploy; changing an entry needs neither.**
 
 ## What a fork changes
 
-- **Its level shape:** edit `LevelConfigDef` in `src/game/content/level.ts` and the bundled pack
-  `schemas/pack/examples/default.json`. The gameplay reads `levelAt(n)` (`src/game/content`).
+- **Its level shape:** edit `LevelsDef` in `schemas/levels/schema.ts` (bump its `version`), the
+  defaults in `src/game/content/level.ts`, and the bundled pack `src/game/content/packs/default.json`.
+  Content with more than one part per level (cards, narrative) gets a sibling schema keyed like
+  `levels` and a line in `assemble.ts`. The gameplay reads `levelAt(n)` (`src/game/content`).
 - **Its default look:** edit `BUILD_SHEET` in `src/game/brand/defaults.ts`. Draw with
   `getTheme()` (Pixi) or the `--brand-*` / `--font-*` CSS variables (DOM).
 - **Its identity:** `gameSlug` in `wolf-game-kit.json`, `GAME_SLUG` in `src/game/config/identity.ts`
@@ -58,16 +66,17 @@ reported success and registered nothing.) Daily Editions need the release named 
 
 ### 1. Create entries
 
-Author a pack (start from `schemas/pack/examples/`), then split it into entries:
+Author a pack (start from `src/game/content/packs/`), then split it into entries:
 
 ```bash
-bun run decompose:content schemas/pack/examples/edition-2026-10-08.json local/content-packs/edition-2026-10-08
-wolf-dev schema data batch-create --schema-key pack  --release-name main --batch local/content-packs/edition-2026-10-08/pack.batch.json --yes
-wolf-dev schema data batch-create --schema-key level --release-name main --batch local/content-packs/edition-2026-10-08/level.batch.json --yes
+bun run decompose:content src/game/content/packs/edition-2026-10-08.json local/content-packs/edition-2026-10-08
+wolf-dev schema data batch-create --schema-key blocks --release-name main --batch local/content-packs/edition-2026-10-08/blocks.batch.json --yes
+wolf-dev schema data batch-create --schema-key levels --release-name main --batch local/content-packs/edition-2026-10-08/levels.batch.json --yes
 ```
 
-The script refuses a level the game cannot play and proves the round trip first. Entry keys are
-shared by every pack on a release — give each edition a fresh `id`.
+The script checks every entry against its schema and proves the round trip first. Entry keys
+are shared by every pack on a release — give each block a fresh `id` (level keys derive from it),
+and never rename a key a pack already points at.
 
 For a partner look, create a `brand` entry from a sheet (`schemas/brand/examples/us-weekly.json`,
 `law-and-crime.json`) — under the key **`theme`** to reskin the whole deployment, or any other key
@@ -90,7 +99,7 @@ keyed `default` replaces the bundled levels for every plain launch.
 curl -g -s "https://nucleo.media.qa.wolf.games/dynamic-data/<slug>/packs/edition-2026-10-08[@main].json" | head -c 300
 ```
 
-It should list `pack` and `level` (and `brand`, if bound). **If it 404s after `entries set`,**
+It should list `blocks` and `levels` (and `brand`, if bound). **If it 404s after `entries set`,**
 `schema data update` any entry it points at with unchanged data — the bundle is only rebuilt on
 an entry change (known Manager quirk, QA 2026-09-29). Then open the QA build with
 `?wolfPack=edition-2026-10-08`: the HUD shows its level count; the console stays silent on
@@ -114,7 +123,8 @@ Known hazard: an active Vault experiment whose PostHog flag does not exist freez
 - `bun run dev` plays the bundled pack in the Wolf brand — nothing to publish.
 - To read published data from a dev server, set `VITE_GAME_KIT_PROJECT_ID=<slug>` and
   `VITE_RELEASE_NAME=main` in `.env` (a deployed build reads its release from `_release.json`),
-  then open `?wolfPack=<key>`.
+  restart the dev server (`VITE_*` is baked in at start), then open `?wolfPack=<key>`. Without
+  the release the bundle URL 404s and the game silently plays the bundled pack.
 - A frozen build (`bun run build:frozen`) never touches Dynamic Data.
 
 ## Pack model, mapped
@@ -124,7 +134,7 @@ live shape the Manager serves today:
 
 | Notion pack type | Here |
 |------------------|------|
-| Content | `pack` + `level` entries, bound as a Content Pack |
+| Content | `blocks` + `levels` entries, bound as a Content Pack |
 | Theme / Brand | `brand` entry (`theme` for the deployment, or bound into a Content Pack) |
 | Config | not yet — mechanics constants stay in `src/game/mygame/demo/config.ts` |
 | Schedule (not a pack) | `catalog` entry, harvested by the manager |

@@ -47,7 +47,7 @@ export function isPackNotFound(err: unknown): boolean {
  * Every schema an embedding admin frame (the Game Manager preview) may serve instead of the CDN.
  * One client serves the whole registry, so this is the union of what all readers want.
  */
-const INTERCEPTED: (keyof typeof registry)[] = ['pack', 'level', 'brand'];
+const INTERCEPTED: (keyof typeof registry)[] = ['blocks', 'levels', 'brand'];
 
 const clients = new WeakMap<object, Promise<EntryClient>>();
 

@@ -1,10 +1,11 @@
 /**
  * Content seam — which levels the game plays, from a Content Pack or the build.
  *
- *   level.ts           what one level is for this game (the fork-owned parser) + the bundled pack
+ *   content-pack.ts    the authored pack shape (blocks of levels) — `packs/*.json`
+ *   level.ts           defaults for one level (shape: `schemas/levels`) + the bundled pack
  *   active-pack.ts     the pack in play; `levelAt(n)` is how gameplay reads a level
  *   load.ts            resolve the pack key (`?wolfPack=` > Vault `contentId` > default) and fetch
- *   assemble.ts        bundle ⇄ authored pack (also used by `bun run decompose:content`)
+ *   assemble.ts        bundle (`blocks` + `levels`) ⇄ authored pack (also `decompose:content`)
  *   catalog.ts         the Daily Editions schedule answered to the manager's harvest (Vault only)
  *   dynamic-client.ts  the one shared Dynamic Data client
  *
@@ -19,7 +20,8 @@ export {
   onActivePackChange,
   seedActivePack,
 } from './active-pack';
-export { assemblePack, decomposePack, levelKey, packIsForGame } from './assemble';
+export { assemblePack, decomposePack, levelKey } from './assemble';
+export { type AssembledPack, type ContentPack, ContentPackDef, packLevels } from './content-pack';
 export { loadCatalog, toEditions } from './catalog';
 export { dynamicClient, isPackNotFound, type KitLike } from './dynamic-client';
 export {

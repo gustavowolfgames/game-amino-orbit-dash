@@ -16,6 +16,7 @@ import {
   LEVEL_DEFAULTS,
   levelAt,
   loadActivePack,
+  packLevels,
   loadCatalog,
   resolvePackKey,
   seedActivePack,
@@ -32,9 +33,9 @@ function fakeKit(getPack: (key: string) => Promise<PackBundle>): KitLike {
 
 const packNotFound = () => Object.assign(new Error('no pack'), { code: 'PACK_NOT_FOUND' });
 
-/** A published pack as the CDN serves it. */
-const bundleOf = (id: string, levels: unknown[], game = '') =>
-  decomposePack({ id, game, levels: levels as never });
+/** A published one-block pack as the CDN serves it. */
+const bundleOf = (id: string, levels: unknown[]) =>
+  decomposePack({ id, blocks: [{ id, name: id, levels: levels as never }] });
 
 afterEach(() => {
   seedActivePack(null);
@@ -54,31 +55,40 @@ describe('resolvePackKey', () => {
 describe('assemble / decompose', () => {
   it('round-trips an authored pack through the entries a publish creates', () => {
     const bundle = decomposePack(BUNDLED_PACK);
-    expect(Object.keys(bundle.schemas.level?.entries ?? {})).toEqual(['default-1', 'default-2', 'default-3']);
-    expect(assemblePack(bundle, GAME_SLUG)).toEqual(BUNDLED_PACK);
+    expect(Object.keys(bundle.schemas.blocks?.entries ?? {})).toEqual(['orbits']);
+    expect(Object.keys(bundle.schemas.levels?.entries ?? {})).toEqual(['orbits-1', 'orbits-2', 'orbits-3']);
+    expect(assemblePack(bundle)).toEqual(BUNDLED_PACK);
   });
 
-  it('prefers the pack scoped to this game over an unscoped one', () => {
-    const ours = bundleOf('ours', [{ orbiterCount: 2 }], GAME_SLUG);
-    const any = bundleOf('any', [{ orbiterCount: 9 }]);
-    const merged: PackBundle = {
-      packKey: 'k',
-      schemas: {
-        pack: { entries: { ...any.schemas.pack?.entries, ...ours.schemas.pack?.entries } },
-        level: { entries: { ...any.schemas.level?.entries, ...ours.schemas.level?.entries } },
-      },
-    };
-    expect(assemblePack(merged, GAME_SLUG)).toMatchObject({ id: 'ours' });
+  it('plays blocks by `order`, whatever order the bundle lists them in', () => {
+    const bundle = decomposePack({
+      id: 'p',
+      blocks: [
+        { id: 'a', name: 'A', levels: [{ orbiterCount: 1 }] },
+        { id: 'b', name: 'B', levels: [{ orbiterCount: 2 }, { orbiterCount: 3 }] },
+      ],
+    });
+    const { a, b } = bundle.schemas.blocks?.entries as Record<string, object>;
+    bundle.schemas.blocks = { entries: { b: { ...b, order: 1 }, a: { ...a, order: 2 } } };
+    const out = assemblePack(bundle);
+    expect(typeof out === 'string' ? out : packLevels(out)).toEqual([
+      { orbiterCount: 2 },
+      { orbiterCount: 3 },
+      { orbiterCount: 1 },
+    ]);
   });
 
   it('refuses a pack whose level key is missing from the bundle', () => {
     const bundle = bundleOf('p', [{ orbiterCount: 2 }]);
-    delete bundle.schemas.level?.entries['p-1'];
-    expect(assemblePack(bundle, GAME_SLUG)).toMatch(/level "p-1" is not in the bundle/);
+    delete bundle.schemas.levels?.entries['p-1'];
+    expect(assemblePack(bundle)).toMatch(/level "p-1" of block "p" is not in the bundle/);
   });
 
-  it('refuses a pack addressed only to another game', () => {
-    expect(assemblePack(bundleOf('p', [{ orbiterCount: 2 }], 'othergame'), GAME_SLUG)).toMatch(/none for/);
+  it('refuses a pack with no block, or a malformed one', () => {
+    expect(assemblePack({ packKey: 'p', schemas: {} })).toMatch(/no block entry/);
+    const bundle = bundleOf('p', [{ orbiterCount: 2 }]);
+    bundle.schemas.blocks = { entries: { p: { id: 'p', levels: ['p-1'] } } };
+    expect(assemblePack(bundle)).toMatch(/block "p" is not a block entry/);
   });
 });
 

@@ -9,17 +9,28 @@ import { expect, type Page, test } from '@playwright/test';
  */
 
 const SCHEMAS = path.resolve(import.meta.dirname, '../../schemas');
+const PACKS = path.resolve(import.meta.dirname, '../../src/game/content/packs');
 const json = (p: string) => JSON.parse(readFileSync(path.join(SCHEMAS, p), 'utf8'));
 
-/** A Content Pack bundle as the CDN serves it: `pack` + `level` entries, optionally a `brand`. */
+type AuthoredPack = { id: string; blocks: { id: string; name: string; levels: unknown[] }[] };
+
+/** A Content Pack bundle as the CDN serves it: `blocks` + `levels` entries, optionally a `brand`. */
 function packBundle(packFile: string, brandFile?: string) {
-  const pack = json(`pack/examples/${packFile}`) as { id: string; game: string; levels: unknown[] };
-  const keys = pack.levels.map((_, i) => `${pack.id}-${i + 1}`);
+  const pack = JSON.parse(readFileSync(path.join(PACKS, packFile), 'utf8')) as AuthoredPack;
+  const blocks: Record<string, object> = {};
+  const levels: Record<string, unknown> = {};
+  pack.blocks.forEach((block, i) => {
+    const keys = block.levels.map((_, n) => `${block.id}-${n + 1}`);
+    blocks[block.id] = { id: block.id, name: block.name, order: i + 1, levels: keys };
+    keys.forEach((k, n) => {
+      levels[k] = block.levels[n];
+    });
+  });
   return {
     packKey: pack.id,
     schemas: {
-      pack: { version: 1, entries: { [pack.id]: { id: pack.id, game: pack.game, levels: keys } } },
-      level: { version: 1, entries: Object.fromEntries(keys.map((k, i) => [k, { level: pack.levels[i] }])) },
+      blocks: { version: 1, entries: blocks },
+      levels: { version: 1, entries: levels },
       ...(brandFile ? { brand: { version: 1, entries: { theme: json(`brand/examples/${brandFile}`) } } } : {}),
     },
   };
@@ -91,7 +102,7 @@ test.describe('game packs', () => {
 
   test('a broken pack falls back to the bundled one and still plays', async ({ page }) => {
     const broken = packBundle('edition-2026-10-08.json');
-    delete (broken.schemas.level.entries as Record<string, unknown>)['edition-2026-10-08-1'];
+    delete (broken.schemas.levels.entries as Record<string, unknown>)['edition-2026-10-08-1'];
     await serveDynamicData(page, { 'edition-2026-10-08': broken });
     expect(await playingLine(page, '&wolfPack=edition-2026-10-08')).toMatch(/^Level 1 of 3\./);
   });
