@@ -238,7 +238,9 @@ export function Inspector(props: InspectorProps) {
                 {(res) => (
                   <div style={s.fieldRow}>
                     <span style={s.fieldLabel}>{res.name}</span>
-                    <span style={s.fieldValue}>{String(res.value)}</span>
+                    <span style={s.fieldValue}>
+                      {typeof res.value === 'object' ? JSON.stringify(res.value) : String(res.value)}
+                    </span>
                   </div>
                 )}
               </For>

@@ -1,8 +1,10 @@
 /**
  * CDN-first manifest resolution: published srcs become
  * `<bucket>/<content-hashed-name>` paths and cdnBase becomes the client's
- * base; srcs absent from the lockfile (bundled boot chrome) pass through and
- * resolve via the loaders' localBase fallback.
+ * base; srcs absent from the lockfile (bundled boot chrome) carry localBase as
+ * their own base, so no loader ever asks the CDN for a file only the bundle has.
+ * An asset that already declares a base is left alone entirely — that is a
+ * deliberate statement about where the file lives, and it outranks both.
  *
  * Kept free of solid-js/JSX so tests can exercise it under plain Node.
  */
@@ -40,7 +42,15 @@ export function resolveManifestWithClient(manifest: Manifest, client: AssetResol
     bundles: manifest.bundles.map((bundle) => ({
       ...bundle,
       assets: bundle.assets.map((asset) => {
-        if (!client.has(asset.src)) return asset;
+        // An authored base opts the asset out of resolution: rewriting the src
+        // under it would name a hash that only the wolf bucket serves.
+        if (asset.base !== undefined) return asset;
+        // Unpublished: pin it to the bundled copy. Published srcs stay
+        // unannotated, so they keep following cdnBase when the environment
+        // resolver or a frozen build rewrites it.
+        if (!client.has(asset.src)) {
+          return manifest.localBase ? { ...asset, base: manifest.localBase } : asset;
+        }
         const split = splitAssetUrl(client.url(asset.src));
         return split ? { ...asset, src: split.rel } : asset;
       }),

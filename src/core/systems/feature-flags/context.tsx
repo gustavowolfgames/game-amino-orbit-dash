@@ -24,9 +24,11 @@ export function FeatureFlagProvider(props: ParentProps) {
     );
   }
 
-  const { defaults, validators, userId: userIdSource, timeoutMs = 2000 } = config;
+  const { defaults, validators, timeoutMs = 2000 } = config;
+  // Evaluated once at mount, which the boot gate guarantees runs after player-id
+  // resolution — so a getter here reads the resolved id, not a boot-time null.
   const userId =
-    typeof userIdSource === 'function' ? userIdSource() : userIdSource;
+    typeof config.userId === 'function' ? config.userId() : config.userId;
   const configState = useConfigState();
   // @wolfgames/client 0.1.47 renamed the config service's `projectId` to
   // `gameSlug` (same bare slug value).

@@ -1,5 +1,5 @@
+import type { BaseAnalyticsService } from '@wolfgames/components/core';
 import { useAnalyticsService } from '@wolfgames/components/solid';
-import type { GameAnalyticsService } from './analytics-service';
 import {
   audioSettingChangedSchema,
   errorCapturedSchema,
@@ -24,13 +24,11 @@ export interface GameTracking {
   trackStartScreenSkipped: (
     params: typeof startScreenSkippedSchema.infer,
   ) => void;
-  service: GameAnalyticsService;
+  service: BaseAnalyticsService;
 }
 
 export function useGameTracking(): GameTracking {
-  // useAnalyticsService returns the bare AnalyticsService type, which erases
-  // the `base` param registration — see GameAnalyticsService.
-  const service = useAnalyticsService() as GameAnalyticsService;
+  const service = useAnalyticsService();
 
   return {
     trackGameStart: service.createTracker(

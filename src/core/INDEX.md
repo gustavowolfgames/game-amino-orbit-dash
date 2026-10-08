@@ -26,6 +26,7 @@ Framework shell — providers, hooks, systems, dev tools. No deps on `modules/` 
 | VFX particle runtime | systems/vfx/particleRuntime.ts | |
 | VFX types (ParticleConfig, SpawnerData) | systems/vfx/types.ts | |
 | Asset manifest & game data context | systems/manifest/context.tsx | `useManifest()` |
+| Player identity (stable player id singleton) | systems/identity/ (see its README.md) | `resolvePlayerId()`, `getResolvedPlayerId()` |
 
 ## Config
 
@@ -52,7 +53,7 @@ Framework shell — providers, hooks, systems, dev tools. No deps on `modules/` 
 |--------|------|
 | localStorage helpers (get/set/remove) | utils/storage.ts |
 | Versioned store (createVersionedStore) | utils/storage.ts |
-| Settings menu (gear icon, audio controls) | utils/SettingsMenu/SettingsMenu.tsx |
+| Settings menu (gear, audio controls, placement) | `@wolfgames/components` → `prefabs/settings-menu-dom` (DOM) / `prefabs/settings-menu` (in-canvas) |
 
 ## Integrations
 

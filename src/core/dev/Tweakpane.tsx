@@ -1,12 +1,13 @@
 import { onMount, onCleanup, createSignal } from 'solid-js';
 import type { Pane } from 'tweakpane';
+import { isDevToggleKey } from './toggleKey';
 
 const [isOpen, setIsOpen] = createSignal(false);
 
 // Global keyboard listener for backtick toggle
 if (typeof window !== 'undefined') {
   window.addEventListener('keydown', (e) => {
-    if (e.key === '`') {
+    if (isDevToggleKey(e)) {
       e.preventDefault();
       setIsOpen((prev) => !prev);
     }

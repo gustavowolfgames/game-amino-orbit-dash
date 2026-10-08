@@ -41,8 +41,8 @@ export const GAME_DEFAULTS: GameTuning = {
     skipStartScreen: false,
   },
   screens: {
-    startBackgroundColor: '#141821',
-    loadingBackgroundColor: '#141821',
+    startBackgroundColor: '#BCE083',
+    loadingBackgroundColor: '#BCE083',
   },
   startScreen: {
     logoMotion:   'breathe', // scale pulse only — no tilt/sway

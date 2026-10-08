@@ -14,7 +14,6 @@ export { Logo } from './ui/Logo';
 export { PauseOverlay } from './ui/PauseOverlay';
 
 // Utils
-export { default as SettingsMenu } from './utils/SettingsMenu';
 export {
   getStored,
   setStored,

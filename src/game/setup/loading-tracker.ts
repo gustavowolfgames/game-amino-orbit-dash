@@ -1,5 +1,8 @@
-import type { LoadingState, Signal } from '@wolfgames/components/core';
-import type { GameAnalyticsService } from './analytics-service';
+import type {
+  BaseAnalyticsService,
+  LoadingState,
+  Signal,
+} from '@wolfgames/components/core';
 import {
   loadingAbandonSchema,
   loadingCompleteSchema,
@@ -13,7 +16,7 @@ import {
  * Returns an unsubscribe function.
  */
 export function createLoadingTracker(
-  service: GameAnalyticsService,
+  service: BaseAnalyticsService,
   loadingStateSignal: Signal<LoadingState>,
 ): () => void {
   const trackLoadingStart = service.createTracker(
