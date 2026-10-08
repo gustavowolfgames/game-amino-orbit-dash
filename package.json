@@ -29,7 +29,10 @@
     "use:remote": "../../scripts/use-remote.sh",
     "status": "../../scripts/status.sh",
     "typecheck:baseline": "node scripts/typecheck-baseline.mjs",
-    "check:agent": "node scripts/check-agent-surface.mjs && bun run check:assets && bun run check:manifest"
+    "check:agent": "node scripts/check-agent-surface.mjs && bun run check:assets && bun run check:manifest",
+    "agent:surface": "node scripts/agent-surface.mjs",
+    "postinstall": "node scripts/agent-surface.mjs",
+    "predev": "node scripts/agent-surface.mjs"
   },
   "cortex": {
     "profile": "default"
@@ -67,5 +70,10 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "agentSurface": {
+    "recipes": true,
+    "cortex": false,
+    "systems": false
   }
 }

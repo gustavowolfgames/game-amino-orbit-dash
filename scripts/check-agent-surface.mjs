@@ -6,7 +6,7 @@
 //   2. The orb sample is replaced, not left beside the new game: once a new game
 //      exists, no file may still carry the sample's names.
 //   3. A new game's controller stays thin (CONTROLLER_MAX_LINES).
-//   4. Cortex setup is off postinstall/predev, so installs never write rules.
+//   4. The agent surface matches its toggles (package.json "agentSurface").
 //   5. Every repo path the router, recipes and skills cite exists (or is a path the
 //      recipes tell you to create).
 //
@@ -94,11 +94,18 @@ if (newGame) {
   }
 }
 
-// 4. Cortex stays off the install path.
+// 4. The agent surface matches its toggles (package.json "agentSurface", applied by
+//    scripts/agent-surface.mjs on postinstall/predev). Cortex never runs directly.
 const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
+const surface = { recipes: true, cortex: false, systems: false, ...(pkg.agentSurface ?? {}) };
 for (const k of ['postinstall', 'predev']) {
-  if ((pkg.scripts?.[k] ?? '').includes('cortex')) fail(`package.json ${k} runs cortex setup — remove it`);
+  const cmd = pkg.scripts?.[k] ?? '';
+  if (cmd.includes('cortex')) fail(`package.json ${k} runs cortex setup directly — use scripts/agent-surface.mjs`);
 }
+const claudeMd = existsSync(path.join(root, 'CLAUDE.md')) ? readFileSync(path.join(root, 'CLAUDE.md'), 'utf8') : '';
+if (surface.recipes !== claudeMd.includes('@AGENTS.md')) fail('CLAUDE.md does not match agentSurface.recipes — run bun run agent:surface');
+if (surface.cortex !== claudeMd.includes('@.claude/rules.md')) fail('CLAUDE.md does not match agentSurface.cortex — run bun run agent:surface');
+if (!surface.cortex && existsSync(path.join(root, '.claude/rules.md'))) fail('cortex is off but .claude/rules.md exists — run bun run agent:surface');
 
 // 5. Cited paths exist.
 const docs = [path.join(root, 'AGENTS.md')].filter((f) => existsSync(f));
