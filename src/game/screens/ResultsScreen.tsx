@@ -19,7 +19,10 @@ export function ResultsScreen() {
   };
 
   return (
-    <div class="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 to-black px-6">
+    // Fully-DOM screen: `design-box-span` so it fills the frame rather than the
+    // canvas, and `pointer-events-auto` to take its events back — GameShell passes
+    // them through for the sake of the gameplay screen's canvas.
+    <div class="design-box-span pointer-events-auto flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 to-black px-6">
       <h1 class="text-3xl font-bold text-white mb-2">
         Game Over
       </h1>
