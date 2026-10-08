@@ -77,6 +77,7 @@ Framework shell — providers, hooks, systems, dev tools. No deps on `modules/` 
 | Full tuning editor panel | dev/TuningPanel.tsx |
 | Tuning ↔ pane bindings | dev/bindings.ts |
 | Tuning registry (track tuned params) | dev/tuningRegistry.ts |
+| Pixi DevTools hook (`globalThis.__PIXI_APP__`, off in prod) | dev/pixiDevtools.ts → `exposePixiApp(app)` |
 | GSAP easing picker | dev/EasingPicker.ts |
 | Dev environment checks | dev/env.ts |
 

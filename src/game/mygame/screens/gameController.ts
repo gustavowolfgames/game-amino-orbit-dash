@@ -45,6 +45,7 @@ import type { GameDatabase, GamePhase } from '../ecs/gamePlugin';
 import { readMovers, readOrbiters } from '../ecs/readStateFromEcs';
 import { stepWorld } from '../ecs/schedule';
 import { getGameWorld } from '../world';
+import { exposePixiApp } from '~/core/dev/pixiDevtools';
 
 // ── Palette / layout ───────────────────────────────────────────────────────
 /** Letterbox fill behind the background (neutral dark). */
@@ -70,6 +71,7 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
   const [ariaText, setAriaText] = createSignal('Loading…');
 
   let app: Application | null = null;
+  let releasePixiApp: (() => void) | null = null;
   let db: GameDatabase | null = null;
   let textures: GameTextures | null = null;
   let engine: EngineHandle | null = null;
@@ -343,6 +345,7 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
         })
         .then(async () => {
           if (destroyed || !db) return;
+          releasePixiApp = exposePixiApp(application);
           container.appendChild(application.canvas as HTMLCanvasElement);
           application.stage.eventMode = 'static';
 
@@ -387,6 +390,8 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
       if (banner) gsap.killTweensOf(banner);
 
       const teardown = () => {
+        releasePixiApp?.();
+        releasePixiApp = null;
         app?.destroy(true, { children: true });
         app = null;
         root = moverLayer = orbiterLayer = null;
