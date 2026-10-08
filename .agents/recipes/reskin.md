@@ -15,7 +15,7 @@ To add a partner skin:
 3. Validate it against `schemas/brand.ts` at boot. See `examples/brand.example.json` for a filled reference.
 4. Reference the brand id from the content pack (`schemas/pack.ts` has a `brand: Brand` field — see `examples/pack.example.json`).
 
-Settings chrome goes in `SETTINGS_THEME` inside `src/game/settingsTheme.ts`. An empty object keeps the catalog default.
+Settings chrome is themed through the catalog `options-menu` module's config, passed from the screen that wraps it. Leaving the config empty keeps the catalog default.
 
 Gameplay skin is read from the active pack's `brand` field. The content pack carries the brand with it, so publishing a new pack to a partner is a single DynamicData change. Adding a skin edits the brand JSON, the pack, and the CDN assets. It does not edit systems.
 
@@ -33,4 +33,4 @@ Run `bun run typecheck:baseline`. If the pack schema rejects an unknown theme id
 
 ## Example
 
-`src/game/settingsTheme.ts` is the settings skin in this repo. The Stacks map to copy for level art is `BLOCK_THEMES` in that game's levels themes file. Do not copy its Solid store.
+The Stacks map to copy for level art is `BLOCK_THEMES` in that game's levels themes file. Do not copy its Solid store.

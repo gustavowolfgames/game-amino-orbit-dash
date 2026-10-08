@@ -1,3 +1,3 @@
-Read `AGENTS.md`. It is the router. Open the one recipe it names for this task.
+@AGENTS.md
 
-If the task changes what the game is, update `docs/GAME-DESIGN.md` in the same change.
+`AGENTS.md` (imported above) is the router. Open the one recipe it names for the task. If the task changes what the game is, update `docs/GAME-DESIGN.md` in the same change.

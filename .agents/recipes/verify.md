@@ -20,7 +20,7 @@ Paste the command and the exit status. Do not say the tests passed unless you ra
 
 In dev, the backtick key toggles the ECS Inspector. What it shows is not proof of ECS state. Proof is the unit test or a value read from `getGameWorld()`.
 
-`bun run amino:drift` reports local changes to scaffold paths. `bun run amino:verify` runs the typecheck baseline, lint, and build after `amino:sync`. Its lint step fails on Biome errors inherited from template-amino, and its build step runs `nucleo`, which needs an interactive terminal. Run them when you touched scaffold sync, not for an ordinary feature.
+`bun run amino:drift` reports local changes to scaffold paths. `bun run amino:verify` runs the typecheck baseline, lint, and build after `amino:sync`. Its lint step fails on Biome errors inherited from template-amino. Run them when you touched scaffold sync, not for an ordinary feature.
 
 ## Verify
 
@@ -28,4 +28,4 @@ In dev, the backtick key toggles the ECS Inspector. What it shows is not proof o
 
 ## Example
 
-The agent check is `scripts/check-agent-surface.mjs`. The baseline check is `scripts/typecheck-baseline.mjs`.
+The agent check is `scripts/check-agent-surface.mjs` (DOM in game code, orb-sample leftovers, controller size). The baseline check is `scripts/typecheck-baseline.mjs`.

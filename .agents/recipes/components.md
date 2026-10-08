@@ -26,7 +26,7 @@ A screen root uses the `design-box-span` class. GameShell passes pointer events 
 
 The full rules are section 9 of `node_modules/@wolfgames/components/docs/standards/components.md`. Code comments that cite docs/standards/components.md mean that file.
 
-Settings and pause UI wrap the catalog settings menu. Put tokens in `src/game/settingsTheme.ts`.
+Settings and pause UI wrap the catalog `options-menu` module from a screen in `src/game/screens/`. Do not build a menu in `src/core/ui/`; that is scaffold.
 
 ### SolidJS mechanics (shells only — game state lives in ECS, per `ecs.md`)
 
@@ -34,7 +34,7 @@ The shells use SolidJS. The rules in order of how often they break things:
 
 - Access props as properties: `props.score`. Do not destructure: `({ score })` loses reactivity.
 - Use `createSignal` not `useState`. Use `createEffect` not `useEffect`. Use `createMemo` for a derived value.
-- Read ECS state through the bridge in `src/game/mygame/state.ts`. Never write game state into a signal — the bridge is the one-way propagator (ECS → signal → screen).
+- Read ECS state straight from the world: `getGameWorld().resources.score`, or subscribe to a resource observable for reactivity. Never write game state into a signal; ECS is the single source of truth and the screen only reads it.
 - For complex nested shell-only state (level config, screen-local UI toggles), use `createStore` from `solid-js/store`. Not ECS.
 - There is no React entry in `@wolfgames/components`. If you reach for `useState` or JSX destructuring, you are in the wrong framework.
 
@@ -44,4 +44,4 @@ The task output names the catalog modules you opened. `bun run typecheck:baselin
 
 ## Example
 
-`src/game/screens/components/GameSettingsMenu.tsx` wraps the catalog `settings-menu-dom` and records the catalog check in its header. `src/app.tsx` mounts `GameShell` from the package. `src/game/settingsTheme.ts` starts empty, so the catalog default is the Wolf settings bar.
+`src/game/screens/LoadingScreen.tsx` shows the `design-box-span` root and `pointer-events-auto`. `src/game/screens/ResultsScreen.tsx` reads the final score from `getGameWorld()`. `src/app.tsx` mounts `GameShell` from the package.

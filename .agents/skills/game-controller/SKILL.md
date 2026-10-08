@@ -16,9 +16,11 @@ The controller may do four things.
 
 Drawing, hit tests, HUD text, pops, and VFX go in sibling modules next to the controller. Input calls a transaction such as `submitFire`. The render function copies ECS into display objects. It does not score, spawn rules, or pick the next level.
 
-This file already builds the scene, the HUD, input, and pops. Do not add another responsibility to it. The same file in game-amino-sort grew to thousands of lines with audio, blur, atlas packing, image cards, and a Solid store. Do not copy it.
+In the orb sample this file builds the scene, the HUD, input, and pops in about 530 lines. When you replace the sample, write the new controller thin from the start and put the views in sibling modules. The same file in game-amino-sort grew to thousands of lines with audio, blur, atlas packing, image cards, and a Solid store. Do not copy it.
 
-`scripts/check-agent-surface.mjs` fails when this file grows past `CONTROLLER_MAX_LINES`. Move the new function into a sibling module. Do not raise the cap.
+`scripts/check-agent-surface.mjs` fails when a new game's `gameController.ts` grows past `CONTROLLER_MAX_LINES` (400). Move the new function into a sibling module. Do not raise the cap.
+
+Keyboard listeners do not belong here. The controller exposes an input method (`input('left')`), and a Solid screen hook in `src/game/screens/` calls it. See `.agents/recipes/guardrails.md`.
 
 Screen ids are `loading`, `start`, `game`, and `results` (`src/core/systems/screens/types.ts`). There is no `game_over`. End of play is `deps.goto?.('results')`. Home is `deps.goto?.('start')`. `deps.goto` is typed `(screen: string) => void`, so a wrong id compiles and fails at runtime. Do not construct a second `Application` for the results screen.
 

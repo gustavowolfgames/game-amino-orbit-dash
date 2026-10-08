@@ -28,4 +28,4 @@ A unit test loads the bundled pack, runs validation, and reads one field through
 
 ## Example
 
-The access rule is `getActivePack()`, once it exists. Until then the nearest in-repo pattern for "one object the game reads" is `src/game/settingsTheme.ts`, and that file is only the settings skin.
+The access rule is `getActivePack()`, once it exists. Until then, read the bundled default pack through one module (for example `src/game/mygame/defaultPack.ts`, which you create) rather than importing the JSON from several places.

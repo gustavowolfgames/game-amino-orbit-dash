@@ -18,4 +18,4 @@ The new pixels use `pixi.js` imports from the skill. `bun run check:agent` passe
 
 ## Example
 
-`setupGame` mounts the app in `src/game/mygame/screens/gameController.ts`. New scene layout uses `DESIGN_CANVAS` through `DesignLayer`, per the skill. The sample's own box in `src/game/mygame/bubble/config.ts` predates that.
+`setupGame` mounts the app in `src/game/mygame/screens/gameController.ts`. New scene layout uses `DESIGN_CANVAS` through `DesignLayer`, per the skill. The sample's own box (`DESIGN_W` by `DESIGN_H` in `src/game/mygame/demo/config.ts`) predates that.
