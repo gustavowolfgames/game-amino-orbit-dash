@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# bun-installed CLIs (nucleo) live here; template-amino parity.
+export PATH="$HOME/.bun/bin:$PATH"
 # Guardrail: block commits that would publish the dev-only file: override
 # of @wolfgames/components. The override is added by `bun run use:local`
 # (in Lattice root) and must be cleared by `bun run use:remote` before
@@ -39,3 +41,9 @@ fi
 # structure. See docs/recipes/asset-pipeline.md.
 bun run check:assets || exit 1
 bun run check:manifest || exit 1
+
+# template-amino's nucleo commit hooks (game checks). nucleo is a global CLI, so
+# skip it where it isn't installed instead of blocking the commit.
+if command -v nucleo >/dev/null 2>&1; then
+  nucleo game commit-hooks run
+fi

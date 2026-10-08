@@ -71,3 +71,7 @@ docs/cortex-inventory.md
 
 # Local Pyxis index (16MB, machine-local — never commit)
 .pyxis/
+
+# `wolf-dev assets hydrate` output: build input for a frozen bundle, pulled
+# from the CDN on demand.
+public/assets/cdn/
