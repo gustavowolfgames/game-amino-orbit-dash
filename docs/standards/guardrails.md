@@ -391,7 +391,7 @@ raw timing primitives into the deterministic path.
 | Put a turn-based game (tap / match / trivia / card) on a frame loop | Wastes battery, invites per-frame allocation, adds nondeterminism for no gain | Resolve the turn synchronously on input via `applyTap(db, {col,row})`; observers repaint. **No scheduler.** This is the template default. |
 | Feed raw frame deltas to `stepWorld` | Continuous integration (velocity, orbit, physics) is only stable and replayable at a constant step | Accumulate real time and spend it in fixed steps via `startFixedStepLoop(engine, dt => stepWorld(db, dt))` (`engine/fixedStep.ts`) |
 | `requestAnimationFrame` / `setInterval` to drive the sim | Bypasses the engine seam and GSAP pause; can't be stepped headlessly | Go through the `EngineHandle` seam (`createTickerEngine()`); no raw rAF in game code |
-| Resolve a turn inside the pointer callback in a real-time game | Input lands off the deterministic timeline | Queue it: `db.transactions.submitIntent({col,row})`; `inputSystem` drains it next frame via `applyTap` |
+| Resolve a turn inside the pointer callback in a real-time game | Input lands off the deterministic timeline | Queue it: `db.transactions.submitIntent({col,row})`; `systemInput` drains it next frame via `applyTap` |
 | Let an external physics engine hold its own authoritative state | Two sources of truth drift | Bridge it as ONE per-frame system: push ECS→engine, step with the fixed `dt`, write bodies back into ECS |
 | `Math.random()` / `Date.now()` inside a transaction, turn function, or system | Breaks replay and headless tests | `dt` and input arrive as injected resources (`frameDeltaMs`, `pendingTap`); seeds passed as args |
 
@@ -413,7 +413,7 @@ the word "component": before creating or adding a HUD, button, menu, screen
 (start / loading / results / settings / win / lose), background, dialogue
 box, popup, progress bar, timer, overlay, character display, level/scene
 picker, tutorial hint, effect layer, or any other visual or logic element,
-check `node_modules/@wolfgames/components/src/modules/INDEX.md` (~55
+check `node_modules/@wolfgames/components/src/modules/catalog.json` (fallback `INDEX.md`; ~80
 modules). If a module is close, configure or wrap it in `src/game/`; don't
 fork it.
 
@@ -435,7 +435,7 @@ first visit.
 | Ship PNGs/MP3s from `public/assets/` | Bundled into every build, no CDN cache, repo bloat | Generate via wolf-game-kit MCP → stage in `assets/src/` → `bun run assets:publish` |
 | Hardcode `media.qa.wolf.games/...` URLs in `src/` | Env-locked (QA URLs in prod), bypasses the manifest/loader and preloading | Register in `asset-manifest.ts` with lockfile keys; CdnManifestProvider resolves hosts |
 | Reference asset-gen result `cdnUrl`s at runtime | Opaque, unmanaged provenance URLs | Download, stage, publish through the pipeline |
-| Draw "temporary" art or synthesize audio in code because asset gen isn't set up | Hides a setup problem behind placeholder quality that ships (see #15) | Tell the user what's missing (MCP config, `ASSET_GEN_HOST`/`ASSET_GEN_API_KEY`) and wait, or use the documented local fallback; placeholders only with their explicit OK, flagged for replacement |
+| Draw "temporary" art or synthesize audio in code because asset gen isn't set up | Hides a setup problem behind placeholder quality that ships (see #15) | Tell the user what's missing (MCP config, and the key for the environment they are signed into — `PROD_ASSET_GEN_API_KEY` or `QA_ASSET_GEN_API_KEY`) and wait, or use the documented local fallback; placeholders only with their explicit OK, flagged for replacement |
 
 Committed exceptions: fonts, favicon, tuning/VFX config JSON, the boot chrome
 the template already ships (existing files only — adding a new "proxy"

@@ -86,17 +86,36 @@ copies (copies won't pick up cortex updates).
 Asset generation runs through the **wolf-game-kit MCP** — it lets agents
 generate sprites, audio, music, and VFX directly, and publish them to the
 CDN. Its config is machine-local (`.mcp.json` stays gitignored) and is
-provisioned by the workspace setup / Nucleo Studio CLI. Two env vars
-activate it (same pattern as `NODE_AUTH_TOKEN` above):
+provisioned by the workspace setup / Nucleo Studio CLI. One key activates
+it, in the server's `env` block:
 
-```bash
-export ASSET_GEN_API_KEY="wg_ag_..."
-export ASSET_GEN_HOST="https://asset-gen.qa.wolf.games"
+```json
+{
+  "mcpServers": {
+    "wolf-game-kit": {
+      "command": "bunx",
+      "args": ["-p", "@wolfgames/dev@latest", "wolf-dev-mcp"],
+      "env": { "PROD_ASSET_GEN_API_KEY": "wg_ag_..." }
+    }
+  }
+}
 ```
 
-Or put the same two lines in the project `.env` (gitignored). No keys live
-in committed files — pre-commit blocks real keys. Getting a key:
-[MCP Setup Guide (wolf-game-kit)](https://app.notion.com/p/wolfgames/MCP-Setup-Guide-wolf-game-kit-3794a337719981d59746e77c92843153).
+`bunx` fetches the server on demand. A bare `wolf-dev-mcp` command only works
+if you installed `@wolfgames/dev` globally — without it the server never
+starts and no wolf-game-kit tools appear at all.
+
+Keys belong to one environment and the name says which. The tools call
+whichever environment you are signed into with `wolf-dev`, so a QA key sent
+to Production comes back `Invalid API key` — mint the key from the app you
+work against ([production](https://asset-gen.wolf.games/),
+[QA](https://asset-gen.qa.wolf.games/)) and name it to match.
+`wolf-dev auth asset-gen` prints where calls will land.
+
+A shell `export` works too. The project `.env` does not reliably reach the
+MCP server, and a value in `.mcp.json` or your shell wins over it either
+way. No keys live in committed files — pre-commit blocks real keys. Full
+setup: [Asset-Gen MCP Setup](https://app.notion.com/p/wolfgames/Asset-Gen-MCP-Setup-30d4a337719980248e1ed1c5419f11cc).
 
 Add other servers (e.g. Playwright for E2E debugging) to your local
 `.mcp.json` the same way.

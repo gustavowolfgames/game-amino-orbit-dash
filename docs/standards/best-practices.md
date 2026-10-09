@@ -100,9 +100,9 @@ src/
 
 Game media is **generated via the wolf-game-kit MCP and served from the CDN
 by default** — see [asset-pipeline.md](../recipes/asset-pipeline.md) for the
-full generate → stage → publish → load workflow. Compressed sources are
-staged in `assets/src/` (gitignored) and published with
-`bun run assets:publish` — the committed record is the lockfile
+full generate → stage → publish → load workflow. Stage the best version you
+have in `assets/src/` (gitignored) and publish with `bun run assets:publish`,
+which compresses images on the way up — the committed record is the lockfile
 (`assets/asset-manifest.cdn.json`) + `assets/registry.ts`. Game media is
 never committed to `public/assets/`.
 

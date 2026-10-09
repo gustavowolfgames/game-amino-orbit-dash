@@ -4,14 +4,15 @@ import { Environment, parseEnvironment } from '@wolfgames/client';
 import { resolveVaultHostOrigin } from './tokenBridge';
 
 /**
- * Local has no dedicated backend, so it shares the dev host.
+ * Local has no dedicated backend, so it shares the dev host. Production has no
+ * env segment: `player-data.production.wolf.games` has no TLS listener.
  *
  * Duplicates the platform's `env*HostMap` pattern
  * (`@wolfgames/shared/modules/config/env-hosts`), which has no
  * `envPlayerDataHostMap` yet; this will likely move there and become an import.
  */
 const HOST_BY_ENVIRONMENT: Record<Environment, string> = {
-  [Environment.Production]: 'player-data.production.wolf.games',
+  [Environment.Production]: 'player-data.wolf.games',
   [Environment.Staging]: 'player-data.staging.wolf.games',
   [Environment.QA]: 'player-data.qa.wolf.games',
   [Environment.Development]: 'player-data.dev.wolf.games',

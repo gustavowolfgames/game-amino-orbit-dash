@@ -5,13 +5,13 @@
  * to end: two per-frame systems integrating bodies with no input, plus input on
  * the deterministic timeline.
  *
- *   • Orbiter — a collectible orb circling the centre (orbitSystem advances its
+ *   • Orbiter — a collectible orb circling the centre (systemOrbit advances its
  *     angle each fixed step; position is derived from angle + radius).
  *   • Mover   — an orb drifting with a velocity, bouncing off the design box
- *     walls (movementSystem). Spawned by taps; purely demonstrates spawn+move.
+ *     walls (systemMovement). Spawned by taps; purely demonstrates spawn+move.
  *
  * Tap to collect the nearest orbiter (input as intent → `pendingTaps` →
- * `inputSystem` drains next step). Every tap also spawns a mover, so a tap always
+ * `systemInput` drains next step). Every tap also spawns a mover, so a tap always
  * shows spawn+move even on a miss. Collect all orbiters to win.
  *
  * ECS is the **source of truth** (guardrail: game state lives in ECS, not
@@ -34,7 +34,6 @@
 import { Database, type Entity, F32, I32, Observe, Vec2 } from '~/core/systems/ecs';
 import {
   CENTER,
-  COLORS,
   DESIGN_H,
   DESIGN_W,
   MAX_MOVERS,
@@ -42,6 +41,7 @@ import {
   ORB_RADIUS,
   ORBIT_RADIUS,
   ORBIT_SPEED,
+  PALETTE_SIZE,
   POINTS_PER_COLLECT,
 } from '../demo/config';
 import { nextAngle, nextRng, rngFloat } from '../demo/rng';
@@ -64,7 +64,7 @@ function orbiterPos(angle: number, radius: number): [number, number] {
 
 export const gamePlugin = Database.Plugin.create({
   components: {
-    /** Colour index into the palette (see demo/config COLORS). Both kinds. */
+    /** Colour index (0…PALETTE_SIZE-1); the renderer maps it to a theme colour. Both kinds. */
     color: I32.schema,
     /** Design-space anchor the renderer reads. Both kinds. */
     position: Vec2.schema,
@@ -80,8 +80,10 @@ export const gamePlugin = Database.Plugin.create({
     spriteKey: { type: 'string', default: '' } as const,
   },
   resources: {
-    /** Current level index (0-based). Kept for parity with the template flow. */
+    /** Current level index (0-based) into the active Content Pack (src/game/content). */
     level: { default: 0 as number },
+    /** Id of the Content Pack the current run's level came from ('' before the first run). */
+    packId: { default: '' as string },
     score: { default: 0 as number },
     phase: { default: 'idle' as GamePhase },
     /** Orbiters left to collect (win when it hits 0). */
@@ -114,15 +116,37 @@ export const gamePlugin = Database.Plugin.create({
   transactions: {
     /**
      * Start a run: clear the board, seed the RNG, and ring the centre with
-     * `orbiterCount` evenly-spaced collectible orbiters. Deterministic — colours
-     * follow from the index, not the RNG, so the same count always looks the same.
+     * `orbiterCount` evenly-spaced collectible orbiters. The level's numbers come
+     * from the Content Pack (`levelAt`, src/game/content) — the sim never reads the
+     * pack itself; ring radius/speed default to the demo constants. Deterministic —
+     * colours follow from the index, not the RNG, so the same level always looks
+     * the same.
      */
-    startDemo(store, { orbiterCount, seed }: { orbiterCount: number; seed: number }) {
+    startDemo(
+      store,
+      {
+        orbiterCount,
+        seed,
+        orbitRadius = ORBIT_RADIUS,
+        orbitSpeed = ORBIT_SPEED,
+        level = 0,
+        packId = '',
+      }: {
+        orbiterCount: number;
+        seed: number;
+        orbitRadius?: number;
+        orbitSpeed?: number;
+        level?: number;
+        packId?: string;
+      },
+    ) {
       // Clear-and-rebuild: spread before delete (deleting while iterating a live
       // selection skips entities).
       for (const e of [...store.select(['angle'])]) store.delete(e); // orbiters
       for (const e of [...store.select(['velocity'])]) store.delete(e); // movers
 
+      store.resources.level = level;
+      store.resources.packId = packId;
       store.resources.score = 0;
       store.resources.phase = 'playing';
       store.resources.remaining = orbiterCount;
@@ -133,13 +157,13 @@ export const gamePlugin = Database.Plugin.create({
 
       for (let i = 0; i < orbiterCount; i++) {
         const angle = (i / orbiterCount) * Math.PI * 2;
-        const color = i % COLORS.length;
+        const color = i % PALETTE_SIZE;
         store.archetypes.Orbiter.insert({
           angle,
-          orbitRadius: ORBIT_RADIUS,
-          orbitSpeed: ORBIT_SPEED,
+          orbitRadius,
+          orbitSpeed,
           color,
-          position: orbiterPos(angle, ORBIT_RADIUS),
+          position: orbiterPos(angle, orbitRadius),
           spriteKey: `orbiter-${color}`,
         });
       }
@@ -200,7 +224,7 @@ export const gamePlugin = Database.Plugin.create({
       const drawA = nextAngle(store.resources.rng);
       const drawC = nextRng(drawA.state);
       store.resources.rng = drawC;
-      const color = Math.floor(rngFloat(drawC) * COLORS.length) % COLORS.length;
+      const color = Math.floor(rngFloat(drawC) * PALETTE_SIZE) % PALETTE_SIZE;
       store.archetypes.Mover.insert({
         color,
         position: [x, y],

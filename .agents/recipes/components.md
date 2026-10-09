@@ -6,7 +6,7 @@ Open this recipe before you add a HUD, button, menu, screen, background, popup, 
 
 ## Do
 
-Read `node_modules/@wolfgames/components/src/modules/INDEX.md` before the first edit. It lists every module with what each does, when to use it, and its folder.
+Read `node_modules/@wolfgames/components/src/modules/catalog.json` before the first edit (fallback: `INDEX.md` next to it on older packages). It lists every module with what it does, its `surface`, its import and its README path.
 
 Pick the closest modules and read each module's `README.md` in that folder. Check its Variants section before you change how it looks. Open its `manifest.ts` and match `surface` to where the element will live. `src/game/screens/**/*.tsx` may use `dom` or `logic`. The Pixi scene may use `pixi` or `logic`.
 

@@ -49,8 +49,9 @@ import {
   return an ephemeral id without throwing. Ids use `crypto.randomUUID` with a
   non-secure-context fallback generator.
 - **Host resolution.** Per-environment map keyed on `VITE_APP_ENV`
-  (`player-data.{env}.wolf.games`), with an optional `VITE_PLAYER_DATA_HOST`
-  override for local/custom hosts.
+  (`player-data.{env}.wolf.games`; production is the bare
+  `player-data.wolf.games`), with an optional `VITE_PLAYER_DATA_HOST` override
+  for local/custom hosts.
 
 ## One id, three consumers
 

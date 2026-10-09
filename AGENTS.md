@@ -8,7 +8,7 @@ This game is SolidJS and Pixi 8. Gameplay state lives in the `@adobe/data` ECS w
 
 These hold for every change, whether or not you open a recipe.
 
-1. **No DOM in game code.** Outside `src/game/screens/` and `src/game/setup/`, nothing under `src/game/` touches `document`, `window` listeners, `element.style`, `requestAnimationFrame`, `setTimeout`, or `setInterval`. Keyboard and other DOM input is wired in a Solid screen and passed to the controller as intents.
+1. **No DOM in game code.** Outside `src/game/screens/`, `src/game/setup/` and `src/game/brand/` (theming), nothing under `src/game/` touches `document`, `window` listeners, `element.style`, `requestAnimationFrame`, `setTimeout`, or `setInterval`. Keyboard and other DOM input is wired in a Solid screen and passed to the controller as intents.
 2. **ECS models the world.** Grid cells, pieces, and bodies are archetype entities with a `spriteKey`. Resources hold only global values (score, phase, level, rng). State changes only inside `db.transactions`, with a seeded rng and no `Math.random`.
 3. **`src/core/` is read-only.**
 4. **A new game replaces the sample.** One game folder, never two: rewrite the orb sample in place (or `git mv` the folder to the game's name), delete what you don't reuse, and finish with `bun run check:agent`. Follow `.agents/recipes/new-game.md`.

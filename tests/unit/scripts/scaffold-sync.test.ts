@@ -83,12 +83,10 @@ describe("scaffold-sync.ts (integration)", () => {
 
     // Create scaffold structure
     mkdirSync(path.join(scaffoldDir, "src/core/systems"), { recursive: true });
-    mkdirSync(path.join(scaffoldDir, "src/modules/primitives"), { recursive: true });
     mkdirSync(path.join(scaffoldDir, "src/game"), { recursive: true });
 
     writeFileSync(path.join(scaffoldDir, "src/core/index.ts"), 'export const version = "1.0.0";\n');
     writeFileSync(path.join(scaffoldDir, "src/core/systems/audio.ts"), "export const audio = {};\n");
-    writeFileSync(path.join(scaffoldDir, "src/modules/primitives/button.ts"), "export const Button = {};\n");
     writeFileSync(path.join(scaffoldDir, "src/game/config.ts"), 'export const game = "scaffold-template";\n');
     writeFileSync(
       path.join(scaffoldDir, "package.json"),

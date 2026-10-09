@@ -6,7 +6,7 @@ Open this recipe when you add or change event tracking, wire PostHog, or impleme
 
 ## Do
 
-Analytics is already wired: `src/game/setup/analytics-service.ts` types the service, and screens get it with `useAnalyticsService()` from `@wolfgames/components/solid`. Do not add a second analytics SDK.
+Analytics is already wired: screens call `useGameTracking()` from `src/game/setup/tracking.ts`, which wraps `useAnalyticsService()` from `@wolfgames/components/solid` (typed as the package's `BaseAnalyticsService`). Do not add a second analytics SDK.
 
 Fire gameplay events from the game controller or an ECS transaction that owns the moment the event describes. Do not fire from a renderer or a DOM event handler — those run many times per frame.
 

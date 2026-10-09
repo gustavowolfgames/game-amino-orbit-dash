@@ -26,6 +26,7 @@ Framework shell — providers, hooks, systems, dev tools. No deps on `modules/` 
 | VFX particle runtime | systems/vfx/particleRuntime.ts | |
 | VFX types (ParticleConfig, SpawnerData) | systems/vfx/types.ts | |
 | Asset manifest & game data context | systems/manifest/context.tsx | `useManifest()` |
+| Player identity (stable player id singleton) | systems/identity/ (see its README.md) | `resolvePlayerId()`, `getResolvedPlayerId()` |
 
 ## Config
 
@@ -52,7 +53,7 @@ Framework shell — providers, hooks, systems, dev tools. No deps on `modules/` 
 |--------|------|
 | localStorage helpers (get/set/remove) | utils/storage.ts |
 | Versioned store (createVersionedStore) | utils/storage.ts |
-| Settings menu (gear icon, audio controls) | utils/SettingsMenu/SettingsMenu.tsx |
+| Settings menu (gear, audio controls, placement) | `@wolfgames/components` → `prefabs/settings-menu-dom` (DOM) / `prefabs/settings-menu` (in-canvas) |
 
 ## Integrations
 
@@ -77,6 +78,7 @@ Framework shell — providers, hooks, systems, dev tools. No deps on `modules/` 
 | Full tuning editor panel | dev/TuningPanel.tsx |
 | Tuning ↔ pane bindings | dev/bindings.ts |
 | Tuning registry (track tuned params) | dev/tuningRegistry.ts |
+| Pixi DevTools hook (`globalThis.__PIXI_APP__`, off in prod) | dev/pixiDevtools.ts → `exposePixiApp(app)` |
 | GSAP easing picker | dev/EasingPicker.ts |
 | Dev environment checks | dev/env.ts |
 

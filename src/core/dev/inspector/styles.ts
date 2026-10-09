@@ -221,6 +221,7 @@ export const s = {
     color: '#e0e0e0',
     'font-size': '11px',
     'text-align': 'right' as const,
+    'overflow-wrap': 'anywhere' as const,
   },
 
   input: {

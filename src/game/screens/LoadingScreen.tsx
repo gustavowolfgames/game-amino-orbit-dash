@@ -1,12 +1,13 @@
 import { createMemo, createSignal, onMount } from 'solid-js';
-import { ContentLoader } from '@wolfgames/components/modules/prefabs/screen-content-loader';
 import { useScreen } from '~/core/systems/screens';
 import { useAssets, useLoadingState } from '~/core/systems/assets';
-import { useManifest } from '@wolfgames/components/solid';
+import { useConfigState, useManifest, useSignal } from '@wolfgames/components/solid';
 import { useTuning, type ScaffoldTuning } from '~/core';
 import type { GameTuning } from '~/game/tuning';
-import { gameConfig } from '~/game/config';
+import { gameConfig, GAME_TITLE } from '~/game/config';
+import { loadContent } from '~/game/setup/content';
 import { useGameTracking } from '~/game/setup/tracking';
+import { IntroSting } from './components/IntroSting';
 
 export function LoadingScreen() {
   const { goto } = useScreen();
@@ -15,13 +16,14 @@ export function LoadingScreen() {
   const { manifest } = useManifest();
   const tuning = useTuning<ScaffoldTuning, GameTuning>();
   const { trackStartScreenSkipped } = useGameTracking();
+  const gameKit = useSignal(useConfigState().gameKit);
 
   const m = manifest();
   const bundlesByPrefix = (prefix: string) =>
     m.bundles.filter((b) => b.name.startsWith(prefix)).map((b) => b.name);
 
-  // boot-splash: needed for loading animation. Other boot-* bundles (e.g. boot-ui)
-  // are title-screen assets — background-load them when skipping to avoid blocking.
+  // boot-splash: needed for the loading phase. Other boot-* bundles (e.g. boot-ui) are
+  // title-screen assets — background-load them when skipping so they don't block.
   const splashBundles = m.bundles
     .filter((b) => b.name.startsWith('boot-splash'))
     .map((b) => b.name);
@@ -31,13 +33,6 @@ export function LoadingScreen() {
   const themeBundles = bundlesByPrefix('theme-');
   const coreBundles = bundlesByPrefix('core-');
   const audioBundles = bundlesByPrefix('audio-');
-
-  /* Resolve the hero image src from the manifest so the URL stays consistent
-     with cdnBase regardless of local vs CDN mode. */
-  const splashSrc = m.bundles
-    .find((b) => b.name === 'boot-splash')
-    ?.assets.find((a) => (a as { alias?: string }).alias === 'splash-hero')
-    ?.src as string | undefined;
 
   type SkipSource = 'config' | 'dev_mode' | 'url_param';
 
@@ -58,7 +53,7 @@ export function LoadingScreen() {
     ? [...splashBundles, ...themeBundles, ...coreBundles, ...audioBundles]
     : [...splashBundles, ...themeBundles];
 
-  /* progress: 0–1 across all target bundles */
+  /* progress: 0–1 across all target bundles — drives the sting's loader bar */
   const progress = createMemo(() => {
     const s = loadingState();
     if (targetBundles.length === 0) return 1;
@@ -70,18 +65,14 @@ export function LoadingScreen() {
     return sum / targetBundles.length;
   });
 
-  /* heroUrl becomes non-null once boot-splash resolves */
-  const heroUrl = createMemo<string | null>(() => {
-    const s = loadingState();
-    if (!splashBundles.some((b) => s.loaded.includes(b))) return null;
-    if (!splashSrc) return null;
-    const base = m.cdnBase ?? '/assets';
-    return `${base}/${splashSrc}`;
-  });
-
-  const [shouldExit, setShouldExit] = createSignal(false);
+  // The sting owns the two-gate exit (plays through once AND assets ready) and the
+  // handoff, mirroring ContentLoader's exitSignal/onExitComplete contract.
+  const [assetsReady, setAssetsReady] = createSignal(false);
 
   onMount(async () => {
+    // Content Pack + brand sheet (Dynamic Data), in parallel with the bundles. Never rejects,
+    // and is bounded — a slow or empty CDN costs the published content, never the boot.
+    const content = loadContent(gameKit());
     try {
       if (skipToGame) {
         trackStartScreenSkipped({ skip_source: skipSource });
@@ -97,28 +88,32 @@ export function LoadingScreen() {
         } catch (err) {
           console.warn('Audio loading failed:', err);
         }
-        await new Promise((r) => setTimeout(r, 300));
       } else {
         await assets.loadBoot();
         await assets.loadTheme();
-        await new Promise((r) => setTimeout(r, 500));
       }
-      setShouldExit(true);
+      await content;
+      setAssetsReady(true);
     } catch (err) {
       console.error('Failed to load initial assets:', err);
     }
   });
 
+  /* IntroSting roots itself at `position: absolute` and fills whatever box the
+     host gives it. Unwrapped inside the GameShell design root that box is the
+     390x844 canvas, so the sting would paint a column with bands down both sides
+     of any phone shorter than the canvas ratio. The `design-box-span` wrapper is
+     the frame box; `pointer-events-auto` opts this fully-DOM screen back in, since
+     GameShell passes events through for the gameplay canvas. Same wrapper as
+     template-amino's ContentLoader (components.md §9.5.2). */
   return (
-    <ContentLoader
-      heroUrl={heroUrl()}
-      progress={progress}
-      exitSignal={shouldExit}
-      onExitComplete={() => goto(skipToGame ? 'game' : 'start')}
-      bgColor="#1a1a2e"
-      enterAnimation="rise"
-      heroAmbient="gentle"
-      exitAnimation="fade"
-    />
+    <div class="design-box-span pointer-events-auto">
+      <IntroSting
+        progress={progress}
+        title={GAME_TITLE}
+        exitSignal={assetsReady}
+        onExitComplete={() => goto(skipToGame ? 'game' : 'start')}
+      />
+    </div>
   );
 }

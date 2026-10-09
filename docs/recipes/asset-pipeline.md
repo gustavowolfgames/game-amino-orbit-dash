@@ -8,7 +8,7 @@ plus its typed seed (`assets/registry.ts`). Four stages:
 ```
 GENERATE                 STAGE                      PUBLISH                        LOAD
 wolf-game-kit MCP   →    assets/src/_staging/  →   bun run assets:publish     →   manifest bundles
-(asset-gen batches)      rename + compress →       hash → upload immutable →      srcs = lockfile keys
+(asset-gen batches)      rename →                  encode → hash → upload →       srcs = lockfile keys
                          assets/src/               verify → lockfile + registry   Pixi / Howler / DOM
 ```
 
@@ -18,10 +18,10 @@ wolf-game-kit MCP   →    assets/src/_staging/  →   bun run assets:publish   
   naming-convention names and move up into `assets/src/` (a gitignored
   working dir — the committed record of a publish is the lockfile).
 - **Publish** — `bun run assets:publish` (or the `assets_publish` MCP tool):
-  content-hashes everything in `assets/src/`, rewrites JSON sidecar refs,
-  uploads immutable, verifies every object at the storage origin, and only
-  then writes the lockfile and regenerates `assets/registry.ts`. All or
-  nothing.
+  encodes images to optimized delivery files, content-hashes everything
+  in `assets/src/`, rewrites JSON sidecar refs, uploads immutable, verifies
+  every object at the storage origin, and only then writes the lockfile and
+  regenerates `assets/registry.ts`. All or nothing.
 - **Load** — register bundles in `src/game/asset-manifest.ts` with **logical
   names** (lockfile keys — paths relative to `assets/src/`). At boot,
   `CdnManifestProvider` resolves them through the shared `AssetClient` to
@@ -45,8 +45,9 @@ wolf-game-kit MCP   →    assets/src/_staging/  →   bun run assets:publish   
 All generation goes through the `wolf-game-kit` MCP server (tools named
 `mcp__wolf-game-kit__*`). MCP config is machine-local — the workspace setup /
 Nucleo Studio CLI provisions it (`.mcp.json` is gitignored); the server reads
-`ASSET_GEN_API_KEY` / `ASSET_GEN_HOST` from your environment (see
-`.env.example`).
+a per-environment key (`PROD_ASSET_GEN_API_KEY`, or `QA_ASSET_GEN_API_KEY`
+for QA) from that file's `env` block or a shell export (see README → MCP
+servers).
 
 ### Discover first
 
@@ -54,9 +55,16 @@ Never hardcode IDs — style presets and process templates differ per environmen
 
 ```
 list_style_presets        # pick a presetId from THIS environment
-list_process_templates    # transparent-raster, styled-sprite-sheet, sfx-audio-sprite, dialog-audio-sprite, …
+list_process_templates    # transparent-raster, styled-sprite-sheet, sheet-cutout, sfx-audio-sprite, dialog-audio-sprite
 list_models               # model catalog + input contracts
+search_assets             # this game's existing library — reuse before generating
 ```
+
+`search_assets` covers art made anywhere for this game (the prod UI, an
+earlier session). To adopt a match instead of regenerating it, call
+`assets_set` per asset with `name=<lockfile key>`, `source=<cdnUrl>`,
+`assetId=<assetId>`; game code always references the lockfile name, never a
+raw `cdnUrl`.
 
 When you pass a style preset, `styleContext.imageRole` is **required**
 (baseline roles: `backgrounds`, `uiElements`, `gameplayProps`,
@@ -132,11 +140,11 @@ game code or the manifest.** The `check:assets` script fails any hardcoded
    `assets/src/json-data/`; DOM-loaded atlases (`theme-*`) and Howler audio
    sprites stay at the top level next to their media. See
    [assets/README.md](../../assets/README.md).
-5. Compress before publishing:
-   - Images: **webp**. Backgrounds ~100-150KB; sprites as small as quality
-     allows.
-   - Music: ~150KB per track.
-   - `cwebp -q 80 in.png -o bg-forest_day.webp` is a good starting point.
+5. **Don't pre-compress.** `assets:publish` encodes images on the way up (§3),
+   so a file you squashed first gets squashed twice. Stage the best version
+   you have — a packed PNG sheet can go in as it is. One exception: **files
+   over 8 MiB skip the encoder** and ship exactly as staged, so bring them
+   under that first.
 
 `assets/src/` is a gitignored working dir — after a publish, the committed
 lockfile is the durable record, and every published version stays on the CDN
@@ -151,11 +159,11 @@ re-uploading).
 ```
 bun run assets:publish            # wolf-dev assets publish
 bun run assets:publish -- --dry-run   # hash + rewrite only; writes <lockfile>.dry-run, uploads nothing
-bun run assets:verify             # HEAD every lockfile entry at the storage origin
+bun run assets:verify             # HEAD every lockfile entry, and size it against its budget
 ```
 
-Authenticated session required: `bun wolf-dev auth login` (check with
-`bun wolf-dev auth check`). One command publishes everything under
+Authenticated session required: `wolf-dev auth login` (check with
+`wolf-dev auth check`). One command publishes everything under
 `assets/src/`: it content-hashes each file, rewrites JSON sidecar media refs
 to the hashed names, uploads with an immutable cache policy, HEAD-verifies
 every object at the storage origin, and only then writes
@@ -163,15 +171,95 @@ every object at the storage origin, and only then writes
 both. A failed upload or a stripped header aborts before the lockfile is
 touched.
 
-**Where assets land is decided by `projectId`** — the id in
-`wolf-game-kit.json` (`games/<projectId>/` on the CDN). It must equal the
-game's Nucleo `gameSlug`; if it's still the template placeholder `mygame`,
-stop and set the real id first ([newgame checklist](../factory/newgame.md),
-Step 1).
+**Where assets land is decided by `gameSlug`** — the id in
+`wolf-game-kit.json` (`games/<gameSlug>/` on the CDN; the key was called
+`projectId` before). It must equal the game's Nucleo slug; if it's still the
+template placeholder `mygame`, stop and set the real one first ([newgame
+checklist](../factory/newgame.md), Step 1).
 
-The `upload_asset` MCP tool / `bun wolf-dev upload-asset` still exists for
+The `projectId` argument on the asset-gen tools is a different thing: it
+defaults to this same slug, and you pass it only to reach another project's
+assets (`list_projects` shows them).
+
+The `upload_asset` MCP tool / `wolf-dev upload-asset` still exists for
 one-off hosting of a single file, but it does not touch the lockfile — game
 art goes through `assets:publish`.
+
+### Size is handled on the way up
+
+Publish runs each image through asset-gen's delivery encoder — WebP, long edge
+capped at 2048px — and prints before → after bytes. Sprite sheets are the
+exception: publish finds them through their atlas JSON and encodes them
+lossless at full size instead (`wolf-dev` 0.2.57 or later; see below). It
+uploads only the delivery file, never what it was encoded from, so keep your
+own copy of anything you made. WebP files, files over 8 MiB, and everything
+under `--no-optimize` skip the encoder and ship exactly as staged.
+
+- **Never regenerate art to get resolution back.** `wolf-dev assets pull
+  --original` writes the exact bytes each delivery file was encoded from,
+  wherever asset-gen kept them; edit those and publish re-derives. An entry
+  without them — anything `assets publish` or a local `assets set` encoded —
+  comes back as its delivery file, and the pull lists it.
+- **Line art, UI and text have to ask for their encode.** The default suits
+  painted and photographic work but leaves strokes soft and flat colour
+  mottled. Pass `role: "ui-text"` to the asset-gen tool that makes it
+  (`generate_image`, `generate_styled_image`, `edit_image`,
+  `remove_background`, `optimize_image`), or use
+  `wolf-dev assets set <key> <file> --role ui-text` for a file from disk; it
+  is stored lossless instead, for roughly 10-15% more bytes. Nothing infers
+  this from the picture. Pass `--role ui-text` to `assets set` when adopting
+  asset-gen line art too. The lockfile records what `set` was given, so later
+  publishes and `assets optimize` keep it (`wolf-dev` 0.2.59 or later).
+- **Packed sheets need lossless and their original size**, or the frame
+  positions in their JSON stop matching. Publish finds them itself — any image
+  an atlas JSON names by `meta.image` — and keeps them lossless at full size
+  (`wolf-dev` 0.2.57 or later). Sheets made by `pack_spritesheet` and adopted
+  with `assets set` are already right. A sheet you `assets set` from a local
+  file needs `--role atlas`, because `set` never reads its JSON. A PNG sheet
+  that went through the encoder before 0.2.57 came out lossy, and shrunk if
+  it was over 2048px; publish it again from its source PNG to fix it.
+- **To ship art exactly as authored:** `bun run assets:publish --
+  --no-optimize`, or `--no-optimize` on `assets set`. `--max <px>` on `set`
+  caps a local file's long edge when you know the display size. It does
+  nothing to art claimed from asset-gen: cap that with `optimize_image`
+  `maxDimension` on its original, then set the result.
+
+Art published before the encoder existed keeps its old bytes until something
+re-derives it. `wolf-dev assets optimize --dry-run` lists what a sweep would
+save and uploads nothing. It treats sheets the same way publish does, and
+re-encodes each key under the role `set` recorded for it.
+
+### Budgets
+
+`bun run assets:verify` (`wolf-dev assets verify --budget`) also weighs every
+lockfile entry against a byte budget for its role and fails on anything over,
+listing each of those files with its size, budget and role. Nothing runs it
+for you — run it before a release. The budgets come from measuring every
+image in production (94,091 objects across 40 games), set where 95% of each
+role already lands after the encoder's pass, so a failure means a real
+outlier. The numbers live in one place: game-sdk's
+`packages/dev/src/modules/assets/budgets.ts`.
+
+The role comes from the words in the lockfile key, folder names included:
+
+| role | keys that land there |
+| --- | --- |
+| `atlas` | `atlas-*`, `vfx-*`, plus any sheet an atlas JSON names |
+| `host` | anything with `host`, `portrait`, `avatar`, `talkinghead` |
+| `background` | `bg-*`, plus `scene`, `loading`, `cover`, `backdrop` |
+| `ui` | `ui-*`, plus `button`, `icon`, `badge`, `title`, `logo` |
+| `prop` | `prop-*`, `item-*`, `piece-*`, plus `fragment`, `clutter` |
+| unattributed | everything else |
+
+Two things the naming convention won't warn you about:
+
+- `character-` and `exit-` aren't words the budgets know, so
+  `character-hero_walk.webp` is weighed as unattributed, not as a host.
+  `character-host_idle.webp` does classify as a host — `host` is in it.
+- Unnamed generation outputs (`styled-image-<hash>`) are unattributed too.
+  One more reason to pass `name` on every asset-gen call.
+
+Audio, video and JSON have no budget yet and are listed without one.
 
 ## 4. Load (manifest)
 
@@ -246,14 +334,14 @@ use:
 | Setting | Value |
 |---------|-------|
 | Data Format | JSON (Hash) |
-| Texture Format | PNG (convert to webp before staging) |
+| Texture Format | PNG |
 | Max Size | 2048 x 2048 (or 4096 for retina) |
 | Algorithm | MaxRects |
 | Trim Mode | Trim |
 | Extrude | 1px (prevents bleeding) |
 
 Atlas output names follow the packed convention: `atlas-{name}.json` +
-`atlas-{name}.webp`.
+`atlas-{name}.png`.
 
 **Sprite naming inside the atlas:** descriptive frame names
 (`road_straight.png`, `character_walk_01.png`, `ui_button.png`); animation
@@ -357,12 +445,20 @@ alongside `check:manifest`):
 - Increase extrude to 2px when packing.
 - Ensure no half-pixel positions in sprite placement.
 
-### Publish fails immediately
-- `wolf-dev CLI not found` → `bun add -d @wolfgames/dev` (needs ≥0.2.13 for
-  the `assets` command group).
-- Auth errors → `bun wolf-dev auth check`; sign in with
-  `bun wolf-dev auth login`. MCP generation errors are separate — those use
-  `ASSET_GEN_HOST` / `ASSET_GEN_API_KEY`.
+### Publish or verify fails immediately
+- `wolf-dev CLI not found`, or `unknown option` on a flag from this page →
+  `wolf-dev` is missing or too old. This page needs 0.2.46 or later — older
+  releases don't encode on publish and have no `verify --budget`,
+  `pull --original` or `set --role/--max/--no-optimize` — and 0.2.57 for
+  sprite sheets (§3). Check with `wolf-dev --version`, and install or update
+  with `bun install -g @wolfgames/dev@latest`. It has to be the global
+  install: the template doesn't depend on `@wolfgames/dev`, and a copy added
+  with `bun add -d` would be the one `bun run` scripts use.
+- Auth errors → `wolf-dev auth check`; sign in with
+  `wolf-dev auth login`. MCP generation errors are separate — those use
+  the asset-gen key, and `wolf-dev auth asset-gen` prints where calls land.
+  `Invalid API key` means the key belongs to a different environment than the
+  one you are signed into, not that it is missing.
 - `stored Cache-Control … expected immutable` → the target game-api predates
   the immutable-header support (game-api#30); the publish failed closed and
   the lockfile was not written.

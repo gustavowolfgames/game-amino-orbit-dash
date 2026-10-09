@@ -17,34 +17,38 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONTROLLER_MAX_LINES = 400;
-/** DOM shell folders under src/game/ where DOM and window listeners are allowed. */
-const DOM_ALLOWED = ['src/game/screens/', 'src/game/setup/'];
+/** DOM shell folders under src/game/ where DOM and window listeners are allowed:
+ *  Solid screens, app wiring, and brand theming (CSS variables + font loading). */
+const DOM_ALLOWED = ['src/game/screens/', 'src/game/setup/', 'src/game/brand/'];
 const DOM_PATTERN =
   /\bdocument\.|\b(window|document|globalThis)\.(add|remove)EventListener\(|\brequestAnimationFrame\(|\bset(Timeout|Interval)\(/;
-/** Names that exist only in the orb sample (Orbiter/Mover demo). */
-const SAMPLE_PATTERN = /\b(Orbiter|orbitSystem|movementSystem|ORBITER_COUNT)\b/;
+/** Names that exist only in the orb sample (Orbiter/Mover demo). Systems are noun-first
+ *  since ENG-4473 (systemOrbit); the old names stay so pre-rename forks are caught too. */
+const SAMPLE_PATTERN = /\b(Orbiter|systemOrbit|systemMovement|orbitSystem|movementSystem|ORBITER_COUNT)\b/;
 /** The template's own src/game files. Any other .ts/.tsx there means a new game exists. */
+// Regenerate when the template's own src/game files change:
+//   git ls-files 'src/game/*.ts' 'src/game/*.tsx'
 const TEMPLATE_FILES = new Set([
-  'src/game/EmbedHook.tsx', 'src/game/asset-manifest.ts', 'src/game/audio/manager.ts',
-  'src/game/audio/sounds.ts', 'src/game/config.ts', 'src/game/config/identity.ts',
-  'src/game/index.ts', 'src/game/mygame-contract.ts', 'src/game/mygame/demo/config.ts',
-  'src/game/mygame/demo/rng.ts', 'src/game/mygame/ecs/agentPlugin.ts',
-  'src/game/mygame/ecs/gamePlugin.ts', 'src/game/mygame/ecs/readStateFromEcs.ts',
-  'src/game/mygame/ecs/schedule.ts', 'src/game/mygame/ecs/systems/index.ts',
-  'src/game/mygame/ecs/systems/inputSystem.ts', 'src/game/mygame/ecs/systems/movementSystem.ts',
-  'src/game/mygame/ecs/systems/orbitSystem.ts', 'src/game/mygame/engine/createTickerEngine.ts',
-  'src/game/mygame/engine/fixedStep.ts', 'src/game/mygame/engine/index.ts',
+  'src/game/EmbedHook.tsx', 'src/game/asset-manifest.ts', 'src/game/audio/manager.ts', 'src/game/audio/sounds.ts',
+  'src/game/brand/defaults.ts', 'src/game/brand/fonts.ts', 'src/game/brand/index.ts', 'src/game/brand/load.ts',
+  'src/game/brand/merge.ts', 'src/game/brand/theme.ts', 'src/game/config.ts', 'src/game/content/active-pack.ts',
+  'src/game/content/assemble.ts', 'src/game/content/catalog.ts', 'src/game/content/content-pack.ts',
+  'src/game/content/dynamic-client.ts', 'src/game/content/index.ts', 'src/game/content/level.ts', 'src/game/content/load.ts',
+  'src/game/index.ts', 'src/game/lib/sentry-client.ts', 'src/game/mygame-contract.ts', 'src/game/mygame/demo/config.ts',
+  'src/game/mygame/demo/rng.ts', 'src/game/mygame/ecs/agentPlugin.ts', 'src/game/mygame/ecs/gamePlugin.ts',
+  'src/game/mygame/ecs/readStateFromEcs.ts', 'src/game/mygame/ecs/schedule.ts', 'src/game/mygame/ecs/systems/index.ts',
+  'src/game/mygame/ecs/systems/systemInput.ts', 'src/game/mygame/ecs/systems/systemMovement.ts', 'src/game/mygame/ecs/systems/systemOrbit.ts',
+  'src/game/mygame/engine/createTickerEngine.ts', 'src/game/mygame/engine/fixedStep.ts', 'src/game/mygame/engine/index.ts',
   'src/game/mygame/engine/types.ts', 'src/game/mygame/index.ts', 'src/game/mygame/render/textures.ts',
-  'src/game/mygame/screens/gameController.ts', 'src/game/mygame/screens/index.ts',
-  'src/game/mygame/screens/startView.tsx', 'src/game/mygame/world.ts',
-  'src/game/screens/GameScreen.tsx', 'src/game/screens/LoadingScreen.tsx',
-  'src/game/screens/PixiBackdrop.ts', 'src/game/screens/ResultsScreen.tsx',
-  'src/game/screens/StartScreen.tsx', 'src/game/screens/components/CompletionOverlay.tsx',
-  'src/game/screens/components/index.ts', 'src/game/screens/index.ts',
-  'src/game/screens/useCompanionDialogue.ts', 'src/game/screens/useGameData.ts',
-  'src/game/setup/analytics-service.ts', 'src/game/setup/events.ts', 'src/game/setup/flags.ts',
-  'src/game/setup/helper.ts', 'src/game/setup/loading-tracker.ts', 'src/game/setup/session-tracker.ts',
-  'src/game/setup/tracking.ts', 'src/game/tuning/index.ts', 'src/game/tuning/types.ts',
+  'src/game/mygame/screens/gameController.ts', 'src/game/mygame/screens/index.ts', 'src/game/mygame/screens/startView.tsx',
+  'src/game/mygame/world.ts', 'src/game/screens/GameScreen.tsx', 'src/game/screens/LoadingScreen.tsx',
+  'src/game/screens/PixiBackdrop.ts', 'src/game/screens/ResultsScreen.tsx', 'src/game/screens/StartScreen.tsx',
+  'src/game/screens/components/CompletionOverlay.tsx', 'src/game/screens/components/GameSettingsMenu.tsx',
+  'src/game/screens/components/IntroSting.tsx', 'src/game/screens/components/index.ts', 'src/game/screens/index.ts',
+  'src/game/screens/useCompanionDialogue.ts', 'src/game/screens/useGameData.ts', 'src/game/settingsTheme.ts',
+  'src/game/setup/content.ts', 'src/game/setup/events.ts', 'src/game/setup/flags.ts', 'src/game/setup/loading-tracker.ts',
+  'src/game/setup/session-tracker.ts', 'src/game/setup/tracking.ts', 'src/game/setup/vault-content.tsx',
+  'src/game/tuning/index.ts', 'src/game/tuning/types.ts',
 ]);
 /** Paths the recipes tell an agent to create; they need not exist yet. */
 const CITED_TO_CREATE = [/^src\/game\/mygame\/rules\/?$/, /^src\/game\/mygame\/levels\.ts$/, /^src\/game\/mygame\/defaultPack\.ts$/, /<name>/, /^src\/game\/progress\.ts$/];

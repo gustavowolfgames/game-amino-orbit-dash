@@ -10,7 +10,6 @@ import { execSync } from "node:child_process";
 
 const AMINO_PATHS = [
   "src/core/",
-  "src/modules/",
   "vite.config.ts",
   "tsconfig.json",
   "vitest.config.ts",

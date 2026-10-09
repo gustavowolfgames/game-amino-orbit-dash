@@ -15,16 +15,7 @@
 1 node_modules/tweakpane/dist/types/blade/text/plugin.d.ts TS2307
 2 node_modules/tweakpane/dist/types/index.d.ts TS2307
 1 node_modules/tweakpane/dist/types/pane/pane.d.ts TS2307
-1 node_modules/vite/client.d.ts TS2300
-2 src/app.tsx TS2322
-2 src/app.tsx TS2345
+1 src/app.tsx TS2322
 3 src/core/dev/bindings.ts TS2339
 3 src/core/dev/Tweakpane.tsx TS2339
 1 src/core/systems/errors/boundary.tsx TS2503
-1 src/core/systems/feature-flags/context.tsx TS2551
-1 src/core/systems/screens/context.tsx TS2503
-4 src/core/systems/screens/context.tsx TS2769
-3 src/core/systems/tuning/state.ts TS2345
-1 src/core/ui/Button.tsx TS2349
-1 src/core/utils/SettingsMenu/types.d.ts TS2300
-1 src/game/setup/tracking.ts TS2352

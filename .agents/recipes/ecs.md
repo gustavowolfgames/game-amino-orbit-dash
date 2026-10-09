@@ -20,7 +20,7 @@ Write state only inside `db.transactions`. A DOM screen may read the world to re
 ### Pick the cadence from the game
 
 - **Turn-based** (the board changes when the player acts, then waits): call a plain turn function from input. It reads state, runs pure rules, writes through transactions, and returns animation metadata. No frame loop, no `stepWorld`.
-- **Real-time** (things move with no input, like falling pieces): call `stepWorld` from `src/game/mygame/ecs/schedule.ts` through `startFixedStepLoop` in `src/game/mygame/engine/fixedStep.ts`. Pass a constant `dt`, never the raw frame delta. Input is an intent resource that `inputSystem` drains on the next step.
+- **Real-time** (things move with no input, like falling pieces): call `stepWorld` from `src/game/mygame/ecs/schedule.ts` through `startFixedStepLoop` in `src/game/mygame/engine/fixedStep.ts`. Pass a constant `dt`, never the raw frame delta. Input is an intent resource that `systemInput` drains on the next step.
 
 The sample (`src/game/mygame/ecs/README.md`) is real-time: orbiting and drifting orbs. Replace it, don't build next to it; see `.agents/recipes/new-game.md`.
 

@@ -1,0 +1,100 @@
+{
+  "darkSecondaryAccent": null,
+  "negative": "#AB1F25",
+  "badge": "#AB1F25",
+  "mark": null,
+  "wallpaper": null,
+  "hand": null,
+  "acceptInkFallback": [
+    "solid.hover",
+    "primary.hover"
+  ],
+  "roles": {
+    "buttonInk": "tertiaryAccent",
+    "ground": "secondary",
+    "surface": "base"
+  },
+  "buttons": {},
+  "extraColors": null,
+  "displayName": "Law & Crime",
+  "light": {
+    "base": "#FFFFFF",
+    "secondary": "#E3E9FB",
+    "textLine": "#000000",
+    "inactive": "#989898",
+    "inactive2": "#DCDCDC"
+  },
+  "dark": {
+    "base": "#000000",
+    "secondary": "#111C39",
+    "textLine": "#FFFFFF",
+    "inactive": "#232831",
+    "inactive2": "#555A64"
+  },
+  "primaryAccent": "#AF8F53",
+  "secondaryAccent": "#EFD7AA",
+  "tertiaryAccent": "#1E3C6C",
+  "scale": {
+    "title1": {
+      "role": "display",
+      "weight": 400,
+      "size": 32
+    },
+    "title2": {
+      "role": "display",
+      "weight": 400,
+      "size": 26
+    },
+    "title3": {
+      "role": "display",
+      "weight": 400,
+      "size": 20
+    },
+    "bodyLarge": {
+      "role": "body",
+      "weight": 400,
+      "size": 18
+    },
+    "bodyMedium": {
+      "role": "body",
+      "weight": 400,
+      "size": 16
+    },
+    "bodySmall": {
+      "role": "body",
+      "weight": 400,
+      "size": 14
+    },
+    "caption": {
+      "role": "display",
+      "weight": 400,
+      "size": 12
+    },
+    "data": {
+      "role": "numeric",
+      "weight": 600,
+      "size": 16
+    }
+  },
+  "link": "https://lawandcrime.com",
+  "fonts": [
+    {
+      "family": "Bebas Neue",
+      "role": "display",
+      "weight": "400",
+      "sourceUrl": "https://media.qa.wolf.games/games/temp-test-tier-a/data/assets/ui-font_bebas_neue_400-a7c90c89240c.woff2"
+    },
+    {
+      "family": "Libre Franklin",
+      "role": "body",
+      "weight": "400",
+      "sourceUrl": "https://media.qa.wolf.games/games/temp-test-tier-a/data/assets/ui-font_libre_franklin_400-50a24a85106a.woff2"
+    },
+    {
+      "family": "Libre Franklin",
+      "role": "numeric",
+      "weight": "600",
+      "sourceUrl": "https://media.qa.wolf.games/games/temp-test-tier-a/data/assets/ui-font_libre_franklin_600-aaa877781157.woff2"
+    }
+  ]
+}

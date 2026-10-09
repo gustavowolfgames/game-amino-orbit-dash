@@ -20,8 +20,11 @@ import { DynamicBackground } from '@wolfgames/components/modules/primitives/dyna
 import { SpriteLogoTitle } from '@wolfgames/components/modules/primitives/sprite-logo-title';
 import { SpriteButton } from '@wolfgames/components/modules/primitives/sprite-button';
 import { MOTION_PRESETS } from '@wolfgames/components/modules/logic/motion-presets';
+import { getTheme } from '~/game/brand';
+import { whenContentSettled } from '~/game/setup/content';
 import { createPixiBackdrop } from '../../screens/PixiBackdrop';
 import { loadStartTextures } from '../render/textures';
+import { exposePixiApp } from '~/core/dev/pixiDevtools';
 import type { PixiLoader } from '~/core/systems/assets';
 import type {
   StartScreenDeps,
@@ -44,6 +47,7 @@ const BUTTON_SIZE = 150;
 
 export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): StartScreenController => {
   let app:           Application       | null = null;
+  let releasePixiApp: (() => void)     | null = null;
   let bg:            DynamicBackground | null = null;
   let logo:          SpriteLogoTitle   | null = null;
   let playBtn:       SpriteButton      | null = null;
@@ -51,7 +55,7 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
   let cleanupResize: (() => void)      | null = null;
 
   return {
-    backgroundColor: '#0d1117',
+    backgroundColor: getTheme().ground,
 
     init(container: HTMLDivElement) {
       let loading = false;
@@ -64,6 +68,8 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
             deps.unlockAudio();
             await deps.loadCore();
             try { await deps.loadAudio(); } catch { /* audio optional */ }
+            // A Vault edition selected while the title was up: play it, not the boot pack.
+            await whenContentSettled();
             deps.analytics.trackGameStart({ start_source: 'play_button', is_returning_player: false });
             deps.goto('game');
           },
@@ -92,7 +98,8 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
           autoDensity:     true,
         });
         if (!app) return;
-        
+        releasePixiApp = exposePixiApp(app);
+
         const backdrop = createPixiBackdrop({
           app,
           container,
@@ -190,7 +197,9 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
       playBtn?.destroy(); playBtn = null;
       bg?.destroy();      bg      = null;
       root?.destroy({ children: true }); root = null;
-      
+
+      releasePixiApp?.();
+      releasePixiApp = null;
       if (app) {
         if (app.canvas && app.canvas.parentNode) {
           app.canvas.parentNode.removeChild(app.canvas);

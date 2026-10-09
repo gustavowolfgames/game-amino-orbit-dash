@@ -3,9 +3,10 @@
 //
 // Usage: bun scripts/amino-sync.ts
 //
-// This performs a ROUTINE sync: overwrites src/core/ and src/modules/ with the
-// latest amino versions. Game-owned files (src/game/, src/app.tsx, index.html)
-// are never touched.
+// This performs a ROUTINE sync: overwrites src/core/ with the latest amino
+// version. Game-owned files (src/game/, src/app.tsx, index.html) are never
+// touched. Reusable building blocks come from the @wolfgames/components
+// package, not a synced tree.
 //
 // For MAJOR version updates (breaking changes), use a full merge instead:
 //   git fetch amino && git merge amino/main
@@ -23,7 +24,6 @@ export interface SyncConfig {
 
 const SYNC_PATHS = [
   "src/core/",
-  "src/modules/",
   "vite.config.ts",
   "tsconfig.json",
   "vitest.config.ts",

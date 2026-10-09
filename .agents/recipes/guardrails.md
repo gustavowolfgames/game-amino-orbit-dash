@@ -8,13 +8,13 @@ Open this recipe when you are about to touch input (tap, swipe, keyboard), rende
 
 ### DOM stays in screens
 
-After the GPU starts, draw gameplay with Pixi. DOM is for the Solid screen shells in `src/game/screens/` and app wiring in `src/game/setup/`. **Anywhere else under `src/game/`** (whatever you name the game folder) do not create elements, set `element.style`, use CSS transitions, or add `window` or `document` listeners.
+After the GPU starts, draw gameplay with Pixi. DOM is for the Solid screen shells in `src/game/screens/`, app wiring in `src/game/setup/`, and brand theming (CSS variables, font loading) in `src/game/brand/`. **Anywhere else under `src/game/`** (whatever you name the game folder) do not create elements, set `element.style`, use CSS transitions, or add `window` or `document` listeners.
 
 ### Input
 
 - **Taps and swipes** go through Pixi: `eventMode = 'static'` on the hit target, `'passive'` on its parents, and `pointertap` / `pointerdown` / `pointermove` handlers. Setup is in `.agents/skills/pixi-gameplay/SKILL.md`.
 - **Keyboard** is DOM, so it lives in a Solid screen, for example a `useGameKeyboard()` hook called from `src/game/screens/GameScreen.tsx`. It maps keys to intents and calls a controller method such as `controller.input('left')`. Add the listener in `onMount` and remove it in `onCleanup`.
-- Either way, input becomes an intent that a transaction or `inputSystem` applies. Input never writes state directly.
+- Either way, input becomes an intent that a transaction or `systemInput` applies. Input never writes state directly.
 
 ### Animation and lifetime
 

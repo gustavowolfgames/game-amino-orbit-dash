@@ -11,7 +11,7 @@
  *
  * This is a NEUTRAL template placeholder set — swap the .webp for your game's art
  * (same filenames) and everything downstream keeps working. A single neutral orb
- * is tinted per colour index (COLORS in demo/config.ts); replace it with one
+ * is tinted per colour index (the brand theme's piece colours); replace it with one
  * sprite per index when the art count grows (pack into a `scene-*` atlas then).
  */
 
@@ -29,7 +29,7 @@ import playUrl from '../assets/generated/ui-button_play.webp?url';
 import titleBgUrl from '../assets/generated/bg-title.webp?url';
 
 export interface GameTextures {
-  /** Neutral orb, tinted per colour index (COLORS order) by the renderer. */
+  /** Neutral orb, tinted per colour index (theme `pieces` order) by the renderer. */
   orb: Texture;
   /** Full-bleed game background. */
   field: Texture;
