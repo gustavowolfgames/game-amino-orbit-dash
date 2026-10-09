@@ -2,7 +2,6 @@
   "name": "template-amino-ecs-pure",
   "type": "module",
   "scripts": {
-    "predev": "bun run cortex:setup",
     "dev": "vite",
     "build": "vite build",
     "build:frozen": "VITE_IS_FROZEN=true vite build --base=./",
@@ -26,13 +25,15 @@
     "decompose:content": "bun run scripts/decompose-content.ts",
     "typecheck": "tsc --noEmit",
     "lint:unused": "knip",
-    "cortex:setup": "node node_modules/@wolfgames/cortex/scripts/setup.mjs",
-    "cortex:refresh": "bun update @wolfgames/cortex",
-    "postinstall": "node node_modules/@wolfgames/cortex/scripts/setup.mjs",
     "prepare": "husky",
     "use:local": "../../scripts/use-local.sh",
     "use:remote": "../../scripts/use-remote.sh",
     "status": "../../scripts/status.sh",
+    "typecheck:baseline": "node scripts/typecheck-baseline.mjs",
+    "check:agent": "node scripts/check-agent-surface.mjs && bun run check:assets && bun run check:manifest",
+    "agent:surface": "node scripts/agent-surface.mjs",
+    "postinstall": "node scripts/agent-surface.mjs",
+    "predev": "node scripts/agent-surface.mjs",
     "check": "nucleo game check local",
     "check:fix": "nucleo game check local --fix",
     "prebuild": "nucleo game check local --tier 0 --no-commit-hooks --warn-only || echo \"[prebuild] nucleo not available; skipped game checks\""
@@ -73,5 +74,10 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "agentSurface": {
+    "recipes": true,
+    "cortex": false,
+    "systems": false
   }
 }
