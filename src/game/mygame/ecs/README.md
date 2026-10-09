@@ -70,7 +70,7 @@ replayable in a headless test — the same reason the whole sim stays testable
 ## The orbiter ring
 
 `startDemo` rings the centre with `orbiterCount` evenly-spaced orbiters: orbiter
-`i` starts at angle `i / orbiterCount · 2π` and colour `i % COLORS.length`, so the
+`i` starts at angle `i / orbiterCount · 2π` and colour `i % PALETTE_SIZE`, so the
 ring is fully deterministic — the same count always looks the same. Each step
 `advanceOrbiters` adds `orbitSpeed · dt` to every angle and re-derives position
 from `CENTER + (cos, sin)·orbitRadius`. Position is always a pure function of

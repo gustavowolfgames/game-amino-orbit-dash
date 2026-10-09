@@ -28,6 +28,7 @@ Routing table for everything in `docs/`. Start from what you're trying to do.
 | Use shared components (check before writing new ones) | [guides/shared-components.md](guides/shared-components.md), catalog at `node_modules/@wolfgames/components/src/modules/INDEX.md` |
 | Write a new module | [modules/writing-a-module.md](modules/writing-a-module.md), [standards/agent-friendly-modules.md](standards/agent-friendly-modules.md) |
 | Save/load player progress | [recipes/progress-persistence.md](recipes/progress-persistence.md) |
+| Add levels, a daily edition, or a partner reskin (Game Packs / Dynamic Data) | [recipes/game-packs.md](recipes/game-packs.md) — content and brand are data, published without a redeploy |
 | Hit 60fps / fix jank | [standards/performance.md](standards/performance.md) |
 | Make it work well on phones | [standards/mobile.md](standards/mobile.md) |
 | Debug a problem | [guides/debugging.md](guides/debugging.md), then [guides/troubleshooting.md](guides/troubleshooting.md) |

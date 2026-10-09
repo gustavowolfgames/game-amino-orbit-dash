@@ -1,10 +1,11 @@
 import { createMemo, createSignal, onMount } from 'solid-js';
 import { useScreen } from '~/core/systems/screens';
 import { useAssets, useLoadingState } from '~/core/systems/assets';
-import { useManifest } from '@wolfgames/components/solid';
+import { useConfigState, useManifest, useSignal } from '@wolfgames/components/solid';
 import { useTuning, type ScaffoldTuning } from '~/core';
 import type { GameTuning } from '~/game/tuning';
 import { gameConfig, GAME_TITLE } from '~/game/config';
+import { loadContent } from '~/game/setup/content';
 import { useGameTracking } from '~/game/setup/tracking';
 import { IntroSting } from './components/IntroSting';
 
@@ -15,6 +16,7 @@ export function LoadingScreen() {
   const { manifest } = useManifest();
   const tuning = useTuning<ScaffoldTuning, GameTuning>();
   const { trackStartScreenSkipped } = useGameTracking();
+  const gameKit = useSignal(useConfigState().gameKit);
 
   const m = manifest();
   const bundlesByPrefix = (prefix: string) =>
@@ -68,6 +70,9 @@ export function LoadingScreen() {
   const [assetsReady, setAssetsReady] = createSignal(false);
 
   onMount(async () => {
+    // Content Pack + brand sheet (Dynamic Data), in parallel with the bundles. Never rejects,
+    // and is bounded — a slow or empty CDN costs the published content, never the boot.
+    const content = loadContent(gameKit());
     try {
       if (skipToGame) {
         trackStartScreenSkipped({ skip_source: skipSource });
@@ -87,6 +92,7 @@ export function LoadingScreen() {
         await assets.loadBoot();
         await assets.loadTheme();
       }
+      await content;
       setAssetsReady(true);
     } catch (err) {
       console.error('Failed to load initial assets:', err);

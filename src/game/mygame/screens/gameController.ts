@@ -15,9 +15,15 @@
  *     intent → `submitTap`; `systemInput` drains it next step).
  *   • Collect every orb → win → hand off to the results screen.
  *
+ * Content: each run plays one level of the active Content Pack (`levelAt`,
+ * src/game/content) — the bundled pack, or a published one (`?wolfPack=`, a
+ * Vault edition). Winning advances to the pack's next level; winning its last
+ * level reports the edition complete to the Vault.
+ *
  * Rendering: a fixed design box (DESIGN_W×DESIGN_H) scaled to fit the viewport
  * ("contain"), with a cover-fit background. Every orb is the neutral `piece-orb`
- * sprite tinted by its colour index (COLORS in demo/config.ts). The art is
+ * sprite tinted by its colour index, mapped onto the brand theme's piece
+ * colours (`getTheme()`, src/game/brand) — a partner sheet recolours the scene. The art is
  * placeholder .webp committed under mygame/assets/generated/ and loaded via Vite
  * ?url + Pixi Assets (see render/textures.ts) — self-contained, resolves the same
  * in dev and the production build. Swap the art, keep the code.
@@ -35,10 +41,13 @@ import { createSignal } from 'solid-js';
 import { ParticleBurst } from '@wolfgames/components/modules/primitives/particle-burst';
 
 import { setActiveInspectorActions } from '~/core/systems/ecs';
+import { getTheme } from '~/game/brand';
+import { getActivePack, isLastLevel, levelAt } from '~/game/content';
+import { inVault, reportContentCompleted, reportGameCompleted } from '~/integrations/vault';
 import type { Entity } from '~/core/systems/ecs';
 import type { GameController, GameControllerDeps, SetupGame } from '~/game/mygame-contract';
 import { loadGameTextures, type GameTextures } from '../render/textures';
-import { COLORS, DESIGN_H, DESIGN_W, ORB_RADIUS, ORBITER_COUNT } from '../demo/config';
+import { DESIGN_H, DESIGN_W, ORB_RADIUS } from '../demo/config';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import type { EngineHandle } from '../engine';
 import type { GameDatabase, GamePhase } from '../ecs/gamePlugin';
@@ -47,14 +56,9 @@ import { stepWorld } from '../ecs/schedule';
 import { getGameWorld } from '../world';
 import { exposePixiApp } from '~/core/dev/pixiDevtools';
 
-// ── Palette / layout ───────────────────────────────────────────────────────
-/** Letterbox fill behind the background (neutral dark). */
-const BG = '#141821';
-const HUD_FILL = '#f4f1e8';
+// ── Layout ─────────────────────────────────────────────────────────────────
 /** Delay (s) before handing off to results after a win, so the last pop reads. */
 const WIN_PAUSE = 0.9;
-/** Deterministic seed for the demo run (no Math.random / Date.now in the sim). */
-const DEMO_SEED = 0x9e3779b1;
 
 /** Deps optionally carry `goto` (GameScreen injects it) for the results hop. */
 type Deps = GameControllerDeps & { goto?: (screen: string) => void };
@@ -69,6 +73,9 @@ interface Dot {
 export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameController => {
   const deps = rawDeps as Deps;
   const [ariaText, setAriaText] = createSignal('Loading…');
+  // Settled by the loading screen before this screen exists; read once per run.
+  const theme = getTheme();
+  const tint = (colorIndex: number) => theme.pieces[colorIndex % theme.pieces.length];
 
   let app: Application | null = null;
   let releasePixiApp: (() => void) | null = null;
@@ -103,7 +110,7 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     body.anchor.set(0.5);
     body.width = radius * 2;
     body.height = radius * 2;
-    body.tint = COLORS[colorIndex % COLORS.length];
+    body.tint = tint(colorIndex);
     container.addChild(body);
     layer.addChild(container);
     // Spawn pop.
@@ -173,7 +180,7 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
         collected++;
         popFx?.burst(view.container.x, view.container.y, {
           count: 22,
-          colors: [COLORS[view.colorIndex % COLORS.length], 0xfff2c4],
+          colors: [tint(view.colorIndex), 0xfff2c4],
           lifetime: 0.7,
         });
         popDot(view);
@@ -184,7 +191,10 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     popFx?.update(dtSec);
 
     // HUD.
-    if (hud) hud.text = `SCORE ${db.resources.score}    ORBS ${db.resources.remaining}`;
+    if (hud) {
+      const total = getActivePack().levels.length;
+      hud.text = `LEVEL ${db.resources.level + 1}/${total}    SCORE ${db.resources.score}    ORBS ${db.resources.remaining}`;
+    }
 
     // Terminal transition (won → results).
     handlePhase(db.resources.phase);
@@ -194,6 +204,7 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     if (phase === 'playing' || phase === handledPhase) return;
     handledPhase = phase;
     if (phase === 'won') {
+      if (db && isLastLevel(db.resources.level)) reportPackCompleted();
       tryPlay('sfx-clear');
       showBanner('YOU WIN!');
       setAriaText('You collected every orb.');
@@ -212,13 +223,33 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     gsap.to(banner.scale, { x: 1, y: 1, duration: 0.4, ease: 'back.out(1.7)', overwrite: 'auto' });
   };
 
-  /** Start (or restart) the demo via the ECS transaction. */
+  /**
+   * Start (or restart) a run on the right level of the active pack: the next one after a win,
+   * the same one on a restart, the first one when the pack changed (a Vault edition arrived).
+   * The level index and pack id live in ECS so the run's progress survives screen changes.
+   */
   const startDemo = () => {
     if (!db) return;
     handledPhase = null;
     if (banner) banner.alpha = 0;
-    db.transactions.startDemo({ orbiterCount: ORBITER_COUNT, seed: DEMO_SEED });
-    setAriaText('Tap the drifting orbs to collect them.');
+    const pack = getActivePack();
+    const prev = db.resources;
+    const next = prev.packId !== pack.id ? 0 : prev.phase === 'won' ? prev.level + 1 : prev.level;
+    const index = next % pack.levels.length;
+    const level = levelAt(index);
+    db.transactions.startDemo({ ...level, level: index, packId: pack.id });
+    setAriaText(`Level ${index + 1} of ${pack.levels.length}. Tap the drifting orbs to collect them.`);
+  };
+
+  /**
+   * The pack's last level was won: the edition is done. A Vault-selected pack reports its
+   * `contentId`; the default run reports the game. Both are deduped per session by the SDK.
+   */
+  const reportPackCompleted = () => {
+    if (!inVault()) return;
+    const { contentId } = getActivePack();
+    if (contentId) reportContentCompleted(contentId);
+    else reportGameCompleted();
   };
 
   /** Play a sound if the audio bundle provides it; silently no-op otherwise. */
@@ -309,7 +340,7 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     // HUD (top-left).
     hud = new Text({
       text: '',
-      style: { fill: HUD_FILL, fontFamily: 'Arial, sans-serif', fontSize: 30, fontWeight: '700' },
+      style: { fill: theme.text, fontFamily: theme.fonts.numeric, fontSize: 30, fontWeight: '700' },
     });
     hud.position.set(24, 20);
     root.addChild(hud);
@@ -317,7 +348,7 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     // Centre banner (win).
     banner = new Text({
       text: '',
-      style: { fill: HUD_FILL, fontFamily: 'Arial, sans-serif', fontSize: 72, fontWeight: '800', align: 'center' },
+      style: { fill: theme.text, fontFamily: theme.fonts.display, fontSize: 72, fontWeight: '800', align: 'center' },
     });
     banner.anchor.set(0.5);
     banner.position.set(DESIGN_W / 2, DESIGN_H * 0.28);
@@ -338,7 +369,7 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
       initPromise = application
         .init({
           resizeTo: container,
-          background: BG,
+          background: theme.ground,
           antialias: true,
           resolution: Math.min(window.devicePixelRatio, 2),
           autoDensity: true,
