@@ -23,6 +23,7 @@
     "assets:verify": "wolf-dev assets verify --budget",
     "check:assets": "bun run scripts/check-asset-naming.ts",
     "check:manifest": "bun run scripts/check-manifest.ts",
+    "decompose:content": "bun run scripts/decompose-content.ts",
     "typecheck": "tsc --noEmit",
     "lint:unused": "knip",
     "cortex:setup": "node node_modules/@wolfgames/cortex/scripts/setup.mjs",
@@ -42,7 +43,7 @@
   "dependencies": {
     "@adobe/data": "^0.9.103",
     "@sentry/solid": "^10.72.0",
-    "@wolfgames/client": "^0.1.52",
+    "@wolfgames/client": "^0.1.62",
     "@wolfgames/components": "^2.4.2",
     "@wolfgames/cortex": "^0.5.0",
     "arktype": "^2.2.3",

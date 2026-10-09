@@ -54,6 +54,16 @@ describe('startDemo', () => {
     }
   });
 
+  it('plays a Content Pack level: its ring, and which level of which pack it is', () => {
+    const db = createGameWorld();
+    db.transactions.startDemo({ orbiterCount: 3, seed: 7, orbitRadius: 200, level: 1, packId: 'edition' });
+    expect(db.resources.level).toBe(1);
+    expect(db.resources.packId).toBe('edition');
+    for (const o of readOrbiters(db)) {
+      expect(Math.hypot(o.position[0] - CENTER[0], o.position[1] - CENTER[1])).toBeCloseTo(200, 3);
+    }
+  });
+
   it('restarts cleanly — a second start replaces the ring, no leftovers', () => {
     const db = createGameWorld();
     startTestRun(db, { orbiterCount: 6 });

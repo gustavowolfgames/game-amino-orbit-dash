@@ -62,7 +62,8 @@ export default function GameScreen() {
     <>
     <div
       class="design-box-span"
-      classList={{ 'pointer-events-auto': !isPixi, 'bg-black': !isPixi }}
+      classList={{ 'pointer-events-auto': !isPixi }}
+      style={isPixi ? undefined : { background: 'var(--brand-ground)' }}
     >
       {/* Engine container. Portalled to the renderer host for a 'pixi'
           controller so Pixi renders 1:1 with the screen; kept in the scaled tree

@@ -1,0 +1,124 @@
+{
+  "darkSecondaryAccent": null,
+  "negative": "#FF0000",
+  "badge": "#8ED1FC",
+  "mark": null,
+  "wallpaper": null,
+  "hand": null,
+  "roles": {
+    "buttonInk": "primaryAccent"
+  },
+  "buttons": {
+    "solid": {
+      "hover": {
+        "ink": "primaryAccent"
+      }
+    },
+    "primary": {
+      "hover": {
+        "ink": "primaryAccent"
+      }
+    }
+  },
+  "extraColors": null,
+  "acceptInkFallback": null,
+  "displayName": "Us Weekly",
+  "light": {
+    "base": "#F2E9ED",
+    "secondary": "#FFFFFF",
+    "textLine": "#000000",
+    "inactive": "#989898",
+    "inactive2": "#DCDCDC"
+  },
+  "dark": {
+    "base": "#323232",
+    "secondary": "#000000",
+    "textLine": "#FFFFFF",
+    "inactive": "#4A4246",
+    "inactive2": "#15181D"
+  },
+  "primaryAccent": "#EC2A8C",
+  "secondaryAccent": "#F9A5C6",
+  "tertiaryAccent": "#8ED1FC",
+  "scale": {
+    "title1": {
+      "role": "display",
+      "weight": 600,
+      "size": 32
+    },
+    "title2": {
+      "role": "display",
+      "weight": 600,
+      "size": 26
+    },
+    "title3": {
+      "role": "display",
+      "weight": 400,
+      "size": 20
+    },
+    "bodyLarge": {
+      "role": "body",
+      "weight": 400,
+      "size": 18
+    },
+    "bodyMedium": {
+      "role": "body",
+      "weight": 400,
+      "size": 16
+    },
+    "bodySmall": {
+      "role": "body",
+      "weight": 300,
+      "size": 14
+    },
+    "caption": {
+      "role": "display",
+      "weight": 400,
+      "size": 12
+    },
+    "data": {
+      "role": "numeric",
+      "weight": 500,
+      "size": 16
+    }
+  },
+  "link": "https://www.usmagazine.com",
+  "fonts": [
+    {
+      "family": "Fira Sans Extra Condensed",
+      "role": "display",
+      "weight": "400",
+      "sourceUrl": "https://media.qa.wolf.games/games/temp-test-tier-a/data/assets/ui-font_fira_sans_extra_condensed_400-66f7e397ba6a.woff2"
+    },
+    {
+      "family": "Fira Sans Extra Condensed",
+      "role": "display",
+      "weight": "600",
+      "sourceUrl": "https://media.qa.wolf.games/games/temp-test-tier-a/data/assets/ui-font_fira_sans_extra_condensed_600-8a8302c72dcd.woff2"
+    },
+    {
+      "family": "Arimo",
+      "role": "body",
+      "weight": "400",
+      "sourceUrl": "https://media.qa.wolf.games/games/temp-test-tier-a/data/assets/ui-font_arimo_400-c1f056f51c99.woff2"
+    },
+    {
+      "family": "Arimo",
+      "role": "body",
+      "weight": "700",
+      "sourceUrl": "https://media.qa.wolf.games/games/temp-test-tier-a/data/assets/ui-font_arimo_700-181215e08de9.woff2"
+    },
+    {
+      "family": "Arimo",
+      "role": "numeric",
+      "weight": "400",
+      "sourceUrl": "https://media.qa.wolf.games/games/temp-test-tier-a/data/assets/ui-font_arimo_400-c1f056f51c99.woff2"
+    },
+    {
+      "family": "Arimo",
+      "role": "numeric",
+      "weight": "500",
+      "sourceUrl": "https://media.qa.wolf.games/games/temp-test-tier-a/data/assets/ui-font_arimo_500-afc54dd7dfe7.woff2"
+    }
+  ]
+}

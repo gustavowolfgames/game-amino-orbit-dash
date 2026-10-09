@@ -3,12 +3,13 @@
  *
  * Pure module: no Pixi, no DOM. Imported by the ECS sim (deterministic rules)
  * AND by the Pixi renderer, so both agree on the design box, orb geometry, and
- * interaction distances. Colours are the ONLY render-facing values here — the
- * sim only ever deals in a colour *index* — kept in one place so an art pass can
- * map each index to a real sprite tint/alias.
+ * interaction distances. The sim only ever deals in a colour *index*; the actual
+ * colours come from the brand theme.
  *
- * This is the template's swap-me surface: a new game replaces these constants
- * (and the systems/transactions that read them) with its own rules.
+ * This is the template's swap-me surface for MECHANICS: a new game replaces these
+ * constants (and the systems/transactions that read them) with its own rules.
+ * CONTENT — how many orbiters, how fast, how wide — comes per level from the
+ * Content Pack (src/game/content/level.ts); the values here are its defaults.
  */
 
 /** Fixed design box; the renderer scales this to fit ("contain"). Portrait,
@@ -22,13 +23,13 @@ export const CENTER: readonly [number, number] = [DESIGN_W / 2, DESIGN_H / 2];
 /** Orb geometry (design px). Orbiters and movers share this radius. */
 export const ORB_RADIUS = 34;
 
-/** How many collectible orbiters ring the centre at level start. */
+/** Default orbiters per level (a pack level's `orbiterCount` overrides it). */
 export const ORBITER_COUNT = 6;
 
-/** Radius of the orbiter ring around CENTER (design px). */
+/** Default ring radius around CENTER, design px (a pack level may override it). */
 export const ORBIT_RADIUS = 300;
 
-/** Angular speed of the orbiter ring (radians / sec). */
+/** Default ring angular speed, radians/sec (a pack level may override it). */
 export const ORBIT_SPEED = 0.6;
 
 /** A tap within this of an orbiter's centre collects it (design px). */
@@ -48,18 +49,11 @@ export const MAX_MOVERS = 40;
 export const POINTS_PER_COLLECT = 100;
 
 /**
- * Colour palette — index → placeholder tint applied to the neutral orb sprite.
- * The sim stores a colour *index* on each orb; the renderer tints `piece-orb`
- * by this. ART TODO: regenerate a neutral white orb so tints read cleanly, or
- * ship one sprite per index — see the asset-pipeline rule.
+ * How many colour slots the sim deals in. The sim stores a colour *index* on each orb; the
+ * renderer maps it onto the brand theme's piece colours (`getTheme().pieces`, src/game/brand),
+ * so a partner sheet recolours every orb without the sim knowing.
  */
-export const COLORS: readonly number[] = [
-  0x5aa9e6, // blue
-  0x7fc8a9, // teal
-  0xf6c453, // amber
-  0xe86a92, // rose
-  0xb08bd8, // violet
-];
+export const PALETTE_SIZE = 5;
 
-/** How many colours exist at most. */
-export const MAX_COLORS = COLORS.length;
+/** Default mover seed (deterministic sim: no Math.random / Date.now). A level may override it. */
+export const DEMO_SEED = 0x9e3779b1;

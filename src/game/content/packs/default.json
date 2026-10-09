@@ -1,0 +1,14 @@
+{
+  "id": "default",
+  "blocks": [
+    {
+      "id": "orbits",
+      "name": "Orbits",
+      "levels": [
+        { "orbiterCount": 4, "seed": 1, "orbitSpeed": 0.5 },
+        { "orbiterCount": 6, "seed": 2, "orbitSpeed": 0.7 },
+        { "orbiterCount": 8, "seed": 3, "orbitSpeed": 0.9, "orbitRadius": 320 }
+      ]
+    }
+  ]
+}

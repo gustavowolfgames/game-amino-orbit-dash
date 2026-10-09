@@ -39,7 +39,7 @@ import { GameSettingsMenu } from '~/game/screens/components/GameSettingsMenu';
 import { createLoadingTracker } from '~/game/setup/loading-tracker';
 import { createSessionTracker } from '~/game/setup/session-tracker';
 import { AttractGate, EmbedProvider } from '~/integrations/embed';
-import { VaultHostBridge } from '~/integrations/vault';
+import { VaultContentBridge } from '~/game/setup/vault-content';
 
 const environment = parseEnvironment(import.meta.env.VITE_APP_ENV);
 
@@ -159,12 +159,11 @@ export default function App() {
                                 />
                               </div>
                             </DesignBleed>
-                            {/* Generic Vault Player runtime; inert outside a Vault. Content
-                                forks pass Daily-Editions handling via its onContext / catalog
-                                props (see src/integrations/vault/README.md). Must stay inside
-                                ScreenProvider — it reads useScreen() to hold `ready` until the
-                                first non-loading screen. */}
-                            <VaultHostBridge />
+                            {/* Vault runtime + Daily Editions (contentId →
+                                Content Pack); inert outside a Vault. Must stay
+                                inside ScreenProvider — reads useScreen() to hold
+                                `ready` until playable. */}
+                            <VaultContentBridge />
                             <AttractGate
                               hook={(engage) => <EmbedHook engage={engage} />}
                             >

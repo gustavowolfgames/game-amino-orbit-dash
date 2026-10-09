@@ -75,3 +75,6 @@ docs/cortex-inventory.md
 # `wolf-dev assets hydrate` output: build input for a frozen bundle, pulled
 # from the CDN on demand.
 public/assets/cdn/
+
+# decompose:content output — regenerate from src/game/content/packs, never commit
+local/content-packs/

@@ -118,6 +118,8 @@ export function createGameAgentService(db: GameDatabase): AgenticService {
         db.transactions.startDemo({
           orbiterCount: input.orbiterCount ?? ORBITER_COUNT,
           seed: (db.resources.level + 1) * 1013904223,
+          level: db.resources.level,
+          packId: db.resources.packId,
         });
       },
     },
