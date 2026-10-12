@@ -9,6 +9,8 @@
 //   4. The agent surface matches its toggles (package.json "agentSurface").
 //   5. Every repo path the router, recipes and skills cite exists (or is a path the
 //      recipes tell you to create).
+//   6. A new game does not keep the template's slug: wolf-game-kit.json gameSlug is the
+//      CDN and Dynamic Data namespace, so a game left on it publishes as the template.
 //
 // The limits live here. Change a rule in this file, not in a doc.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -17,6 +19,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONTROLLER_MAX_LINES = 400;
+/** This template's own Nucleo slug (wolf-game-kit.json). A new game must not publish under it. */
+const TEMPLATE_SLUG = 'aminoecspure';
 /** DOM shell folders under src/game/ where DOM and window listeners are allowed:
  *  Solid screens, app wiring, and brand theming (CSS variables + font loading). */
 const DOM_ALLOWED = ['src/game/screens/', 'src/game/setup/', 'src/game/brand/'];
@@ -124,6 +128,15 @@ for (const doc of docs) {
     if (!existsSync(path.join(root, clean)) && !(newGame && clean.startsWith('src/game/mygame/'))) {
       fail(`${rel(doc)} cites ${clean}, which does not exist`);
     }
+  }
+}
+
+// 6. A new game has its own slug.
+if (newGame) {
+  const kit = path.join(root, 'wolf-game-kit.json');
+  const slug = existsSync(kit) ? JSON.parse(readFileSync(kit, 'utf8')).gameSlug : undefined;
+  if (slug === TEMPLATE_SLUG) {
+    fail(`wolf-game-kit.json gameSlug is still the template's ("${TEMPLATE_SLUG}") — set the game's Nucleo slug, or "mygame" for a local-only build (.agents/recipes/new-game.md)`);
   }
 }
 

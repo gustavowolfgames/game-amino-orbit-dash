@@ -6,9 +6,9 @@ Open this recipe when you build a new game in this template: right after a copy,
 
 ## Do
 
-Get the Nucleo slug from the user. Do not invent one. If the task is a local build with no slug, keep `mygame` and skip the slug steps.
+Get the Nucleo slug from the user. Do not invent one. If the task is a local build with no slug, set `gameSlug` to `mygame` and do not publish; the assets recipe stops at `mygame`.
 
-1. Set `gameSlug` and `gameName` in `wolf-game-kit.json`. Set `VITE_GAME_KIT_PROJECT_ID` in `.env.example` to the same slug. Assets publish under that slug, and a mismatch makes players 404. Do this before you change `src/`. If the copy kept the template's git history, `bun run check:agent` fails on any src change while the slug is still `mygame`.
+1. Set `gameSlug` and `gameName` in `wolf-game-kit.json`. Set `VITE_GAME_KIT_PROJECT_ID` in `.env.example` to the same slug. Assets and Dynamic Data publish under that slug, and a mismatch makes players 404. Do this before you change `src/`. Once the game is no longer the sample, `bun run check:agent` fails while `gameSlug` is still the template's own (`aminoecspure`).
 2. Run `cp .env.example .env`, then `bun install`.
 3. Write the new game into `docs/GAME-DESIGN.md`: the loop, win and lose, and the tuning numbers. It still describes the Spiral Pop sample.
 4. **Replace the sample in place, then delete what you don't reuse.** The sample is the orb demo: `Orbiter` and `Mover` archetypes, `systemOrbit`, `systemMovement`, `src/game/mygame/demo/config.ts`. **One game folder, never two.** Either keep `src/game/mygame/`, or, if the task wants a game-named folder, `git mv src/game/mygame src/game/<name>` and update every importer (the Solid screens in `src/game/screens/`, `src/game/mygame-contract.ts`, `src/game/asset-manifest.ts`, `knip.config.ts`, the unit tests). Do not build the new game in a sibling folder next to the sample. The paths below say `mygame`; read them as your folder.
