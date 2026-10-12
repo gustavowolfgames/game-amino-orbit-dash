@@ -11,7 +11,7 @@
  * the outcome with no engine and no screen. See `schedule.test.ts`.
  */
 
-import type { GameDatabase } from './gamePlugin';
+import type { GameDatabase } from './plugin';
 import { SYSTEM_ORDER } from './systems';
 
 /** Advance the world by one frame of `dtMs` milliseconds. */

@@ -53,7 +53,7 @@ describe('partner sheets', () => {
     expect(validateOverride({ link: 'javascript:alert(1)' })).toBeNull();
   });
 
-  it("reskin the build: Us Weekly orbs take its accents (its null palette clears Wolf's)", () => {
+  it("reskin the build: Us Weekly pieces take its accents (its null palette clears Wolf's)", () => {
     const theme = resolveTheme(
       mergeOverride(BUILD_SHEET, validateOverride(usWeekly)!),
     );

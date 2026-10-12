@@ -17,7 +17,7 @@ export function validateOverride(raw: unknown): BrandOverride | null {
 
 /**
  * Lay `override` over `base`. Absent keys change nothing; `null` un-sets the key so it resolves
- * to the build default (a partner sheet's `extraColors: null` drops the build's orb palette for
+ * to the build default (a partner sheet's `extraColors: null` drops the build's piece palette for
  * its own accents); `roles` replaces the base's whole, so a partner never inherits the build's
  * pins; `scale` merges entry by entry. `fonts` is not merged — the loader resolves it to the
  * families actually registered.

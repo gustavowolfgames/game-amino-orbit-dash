@@ -151,9 +151,8 @@ export default function App() {
                                 real edge. DesignBleed is the frame box expressed
                                 in design coordinates.
 
-                                Inside ScreenProvider so the menu can hide itself
-                                on the `game` screen, where the in-game Pixi panel
-                                owns settings (ENG-4127). */}
+                                The one settings menu, on every screen; the game
+                                stops while it is open (settingsOpen). */}
                               <DesignBleed zIndex={9999}>
                                 {/* `pointer-events: auto` per control: the bleed
                                   layer spans the whole frame and deliberately

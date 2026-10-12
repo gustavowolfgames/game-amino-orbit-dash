@@ -2,7 +2,7 @@
  * The resolved theme: a brand sheet reduced to the handful of values this game draws with.
  *
  * A sheet is the partner's vocabulary (grounds, accents, roles that point at either). The theme
- * is the game's: one page colour, one text colour, an orb palette, three font stacks. Screens
+ * is the game's: one page colour, one text colour, a piece palette, three font stacks. Screens
  * (DOM) read it through CSS variables set on `<html>`; the Pixi scene reads `getTheme()` when it
  * builds, which is always after boot has settled the brand.
  *
@@ -30,7 +30,7 @@ export interface GameTheme {
   readonly accent: string;
   /** Ink that reads on `accent`. */
   readonly accentInk: string;
-  /** Piece tints for the Pixi scene (the demo's orbs), as `0xRRGGBB`. Never empty. */
+  /** Piece tints for the Pixi scene (one tint per kind of piece), as `0xRRGGBB`. Never empty. */
   readonly pieces: readonly number[];
   /** CSS font stacks, by typographic role. */
   readonly fonts: Readonly<Record<TypeRole, string>>;
