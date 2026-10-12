@@ -198,7 +198,7 @@ game/<mode-name>/
 
 > **Signals here are core *infrastructure* state** (pause, audio volume, screen
 > nav) — not game state. Game state lives in the app-scoped ECS world
-> (`src/game/mygame/ecs/`, held by `world.ts`): ECS is the single source of
+> (`src/game/mygame/sim/`, held by `world.ts`): ECS is the single source of
 > truth, DOM screens read it, and signals are only a DOM bridge for JSX.
 > See [../guides/state-architecture.md](../guides/state-architecture.md).
 

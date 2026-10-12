@@ -3,8 +3,7 @@
 //   1. No DOM or timers in game code: nothing under src/game/ outside the DOM shell
 //      folders touches document, window/document listeners, requestAnimationFrame,
 //      setTimeout or setInterval. Keyboard input is wired in a Solid screen.
-//   2. The orb sample is replaced, not left beside the new game: once a new game
-//      exists, no file may still carry the sample's names.
+//   2. (retired: the template ships a skeleton, not a sample game to replace)
 //   3. A new game's controller stays thin (CONTROLLER_MAX_LINES).
 //   4. The agent surface matches its toggles (package.json "agentSurface").
 //   5. Every repo path the router, recipes and skills cite exists (or is a path the
@@ -26,11 +25,8 @@ const TEMPLATE_SLUG = 'aminoecspure';
 const DOM_ALLOWED = ['src/game/screens/', 'src/game/setup/', 'src/game/brand/'];
 const DOM_PATTERN =
   /\bdocument\.|\b(window|document|globalThis)\.(add|remove)EventListener\(|\brequestAnimationFrame\(|\bset(Timeout|Interval)\(/;
-/** Names that exist only in the orb sample (Orbiter/Mover demo). Systems are noun-first
- *  since ENG-4473 (systemOrbit); the old names stay so pre-rename forks are caught too. */
-const SAMPLE_PATTERN =
-  /\b(Orbiter|systemOrbit|systemMovement|orbitSystem|movementSystem|ORBITER_COUNT)\b/;
-/** The template's own src/game files. Any other .ts/.tsx there means a new game exists. */
+/** The template's own src/game files. Any other .ts/.tsx there, or a registered system,
+ *  means a new game exists. */
 // Regenerate when the template's own src/game files change:
 //   git ls-files 'src/game/*.ts' 'src/game/*.tsx'
 const TEMPLATE_FILES = new Set([
@@ -56,25 +52,23 @@ const TEMPLATE_FILES = new Set([
   'src/game/index.ts',
   'src/game/lib/sentry-client.ts',
   'src/game/mygame-contract.ts',
-  'src/game/mygame/demo/config.ts',
-  'src/game/mygame/demo/rng.ts',
-  'src/game/mygame/ecs/agentPlugin.ts',
-  'src/game/mygame/ecs/gamePlugin.ts',
-  'src/game/mygame/ecs/readStateFromEcs.ts',
-  'src/game/mygame/ecs/schedule.ts',
-  'src/game/mygame/ecs/systems/index.ts',
-  'src/game/mygame/ecs/systems/systemInput.ts',
-  'src/game/mygame/ecs/systems/systemMovement.ts',
-  'src/game/mygame/ecs/systems/systemOrbit.ts',
+  'src/game/mygame/agent/agentPlugin.ts',
+  'src/game/mygame/config.ts',
   'src/game/mygame/engine/createTickerEngine.ts',
   'src/game/mygame/engine/fixedStep.ts',
   'src/game/mygame/engine/index.ts',
   'src/game/mygame/engine/types.ts',
   'src/game/mygame/index.ts',
+  'src/game/mygame/input/pointer.ts',
   'src/game/mygame/render/textures.ts',
   'src/game/mygame/screens/gameController.ts',
   'src/game/mygame/screens/index.ts',
   'src/game/mygame/screens/startView.tsx',
+  'src/game/mygame/sim/plugin.ts',
+  'src/game/mygame/sim/readStateFromEcs.ts',
+  'src/game/mygame/sim/rng.ts',
+  'src/game/mygame/sim/schedule.ts',
+  'src/game/mygame/sim/systems/index.ts',
   'src/game/mygame/world.ts',
   'src/game/screens/GameScreen.tsx',
   'src/game/screens/LoadingScreen.tsx',
@@ -88,6 +82,7 @@ const TEMPLATE_FILES = new Set([
   'src/game/screens/index.ts',
   'src/game/screens/useCompanionDialogue.ts',
   'src/game/screens/useGameData.ts',
+  'src/game/settingsOpen.ts',
   'src/game/settingsTheme.ts',
   'src/game/setup/content.ts',
   'src/game/setup/events.ts',
@@ -131,8 +126,13 @@ function codeLines(file) {
 }
 
 const gameFiles = walk(path.join(root, 'src/game'));
+const systemsIndex = path.join(root, 'src/game/mygame/sim/systems/index.ts');
+const hasSystems =
+  existsSync(systemsIndex) &&
+  !/SYSTEM_ORDER[^;]*=\s*\[\s*\]\s*;/.test(readFileSync(systemsIndex, 'utf8'));
 const newGame =
   gameFiles.some((f) => !TEMPLATE_FILES.has(rel(f))) ||
+  hasSystems ||
   !existsSync(path.join(root, 'src/game/mygame'));
 
 // 1. DOM and timers stay in the shell folders.
@@ -148,16 +148,6 @@ for (const f of gameFiles) {
 }
 
 if (newGame) {
-  // 2. No orb-sample leftovers once a new game exists.
-  for (const f of [...gameFiles, ...walk(path.join(root, 'tests'))]) {
-    const hits = codeLines(f)
-      .map((l, i) => (SAMPLE_PATTERN.test(l) ? i + 1 : 0))
-      .filter(Boolean);
-    if (hits.length)
-      fail(
-        `orb-sample code left in ${rel(f)} (lines ${hits.slice(0, 5).join(', ')}) — replace or delete it (.agents/recipes/new-game.md)`,
-      );
-  }
   // 3. Thin controller.
   for (const f of gameFiles.filter((f) => f.endsWith('gameController.ts'))) {
     const n = readFileSync(f, 'utf8').split('\n').length;
@@ -242,5 +232,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `PASS agent surface${newGame ? ' (new game: sample replaced, controller thin)' : ' (template sample)'}`,
+  `PASS agent surface${newGame ? ' (new game: own slug, controller thin)' : ' (template skeleton)'}`,
 );

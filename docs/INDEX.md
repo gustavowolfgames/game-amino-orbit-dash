@@ -22,8 +22,8 @@ Routing table for everything in `docs/`. Start from what you're trying to do.
 | Add or name assets | [guides/naming-convention.md](guides/naming-convention.md), [recipes/asset-pipeline.md](recipes/asset-pipeline.md) |
 | Register assets in the manifest | [recipes/manifest-contract.md](recipes/manifest-contract.md) |
 | Add music or sound effects | [recipes/audio-setup.md](recipes/audio-setup.md) |
-| Build gameplay state (ECS — the default, pre-wired in `src/game/mygame/ecs/`) | [guides/state-architecture.md](guides/state-architecture.md) |
-| Add a real-time / per-frame loop (physics, movement, orbit, matter.js) | [../src/game/mygame/ecs/README.md](../src/game/mygame/ecs/README.md) (fixed-step + systems), [guides/state-architecture.md](guides/state-architecture.md) |
+| Build gameplay state (ECS — the default, pre-wired in `src/game/mygame/sim/`) | [guides/state-architecture.md](guides/state-architecture.md) |
+| Add a real-time / per-frame loop (physics, movement, matter.js) | [../src/game/mygame/sim/README.md](../src/game/mygame/sim/README.md) (fixed-step + systems), [../src/game/mygame/sim/systems/README.md](../src/game/mygame/sim/systems/README.md), [guides/state-architecture.md](guides/state-architecture.md) |
 | Animate things / improve game feel | [guides/animation-cookbook.md](guides/animation-cookbook.md) |
 | Use shared components (check before writing new ones) | [guides/shared-components.md](guides/shared-components.md), catalog at `node_modules/@wolfgames/components/src/modules/INDEX.md` |
 | Write a new module | [modules/writing-a-module.md](modules/writing-a-module.md), [standards/agent-friendly-modules.md](standards/agent-friendly-modules.md) |
