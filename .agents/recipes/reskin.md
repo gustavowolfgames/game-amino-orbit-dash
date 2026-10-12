@@ -6,31 +6,25 @@ Open this recipe when a partner, a brand, or a level needs different colors, typ
 
 ## Do
 
-Brand tokens live in `brand/`. The schema is `schemas/brand.ts`. A new partner skin is a new JSON file in `brand/`, not a new game class. Systems read a `brand` field; they do not embed hex values, font names, or asset paths.
+A brand is data, not code. The template ships the brand seam in `src/game/brand/`. Full guide: `docs/recipes/game-packs.md`.
 
-To add a partner skin:
+- **The game's own look** is `BUILD_SHEET` in `src/game/brand/defaults.ts`. Every build boots in it with no network. A fork retheming its default look edits this file.
+- **A partner skin** is a published `brand` entry (schema: `schemas/brand/schema.ts`). Publish it under the key `theme` to reskin the whole deployment, or bind it into a Content Pack to ship it with one edition. It needs no code change. `schemas/brand/examples/us-weekly.json` and `law-and-crime.json` are filled sheets.
+- A sheet is partial on purpose. It layers over `BUILD_SHEET` key by key (`src/game/brand/merge.ts`), so an entry with one accent changes only that accent.
+- Fonts travel with their files. A sheet names each face and its URL, and `src/game/brand/fonts.ts` registers it before the theme applies.
 
-1. Copy `brand/_template.json` to `brand/<partner_id>.json`.
-2. Fill in colors, fonts, logo URL, and (if the game needs it) `blockPalette` or other per-game extensions.
-3. Validate it against `schemas/brand.ts` at boot. See `examples/brand.example.json` for a filled reference.
-4. Reference the brand id from the content pack (`schemas/pack.ts` has a `brand: Brand` field — see `examples/pack.example.json`).
+Draw with the theme, never with literals. Pixi code calls `getTheme()` from `src/game/brand`. DOM screens use the `--brand-*` and `--font-*` CSS variables. Systems and renderers do not embed hex values, font names, or asset paths.
 
-Settings chrome is themed through the catalog `options-menu` module's config, passed from the screen that wraps it. Leaving the config empty keeps the catalog default.
-
-Gameplay skin is read from the active pack's `brand` field. The content pack carries the brand with it, so publishing a new pack to a partner is a single DynamicData change. Adding a skin edits the brand JSON, the pack, and the CDN assets. It does not edit systems.
-
-In game-amino-sort the theme ids are a closed union on the pack schema, and `BLOCK_THEMES` maps each id to art. A new id fails validation until the schema and the map both know it. That is the point. The sort systems stay put.
-
-In game-amino-trivia-eda the Calloway colors and fonts live in one theme module under that repo's themes directory. Questions live in the pack.
+Settings chrome is themed through `src/game/settingsTheme.ts`, which configures the catalog `options-menu`. Leaving it empty keeps the catalog default.
 
 Do not create a second game class per partner.
 
 ## Verify
 
-Search the systems you touched for a raw color or a font family. They should be gone, replaced by a theme field.
+Search the files you touched for a raw color or a font family. They should be gone, replaced by a theme field.
 
-Run `bun run typecheck:baseline`. If the pack schema rejects an unknown theme id, that rejection is the check working.
+`bun run test:run` passes `tests/unit/content/brand.test.ts`. `bun run test:e2e` passes the brand switch in `tests/e2e/game-packs.spec.ts`: same build, same pack, a different look.
 
 ## Example
 
-The Stacks map to copy for level art is `BLOCK_THEMES` in that game's levels themes file. Do not copy its Solid store.
+`src/game/mygame/screens/startView.tsx` draws its background from `getTheme().ground`.

@@ -2,38 +2,29 @@
 
 ## When
 
-Open this recipe when a daily edition, a vault schedule, or any Games Manager config should change the running game.
+Open this recipe when a daily edition, a vault schedule, a partner brand, or any Games Manager data should change the running game.
 
 ## Do
 
-Register two schemas, `catalog` and `pack`, with `bundleSyncEnabled: false`. The client type comes from `@wolfgames/client`.
+The template ships the client, the loaders, and the fallbacks. Reuse them. Full guide: `docs/recipes/game-packs.md`.
 
-Build one client per GameKIT instance.
+- `src/game/content/dynamic-client.ts` holds the one Dynamic Data client per GameKIT. Call `dynamicClient(kit)`. Do not build a second client: inside a Vault each one opens its own parent-frame bridge.
+- `src/game/content/load.ts` picks the pack key (`?wolfPack=`, else the Vault `contentId`, else `default`) and fetches it with `getPack`.
+- `src/game/brand/load.ts` fetches the brand sheet: the one in the pack, else the `brand/theme` entry.
+- `src/game/content/catalog.ts` answers the Daily Editions schedule (`catalog` schema: pack key to `YYYY-MM-DD`).
+- `src/game/setup/content.ts` runs the pack and the brand at boot, in parallel with the assets, capped at `CONTENT_BUDGET_MS`. A missing, failing, or malformed response falls back to the bundled pack and the build's brand, and the game still plays.
+- `src/game/setup/vault-content.tsx` maps the Vault's `contentId` to a pack key and reports completion.
 
-```ts
-gameKit.execute(new GetDynamicDataClientCommand(registry, ['pack']))
-```
+Schemas are registered in `schemas/registry.ts`, each with `bundleSyncEnabled: false`. A new schema goes in that file. A shape change bumps the schema's `version` and needs a redeploy. An entry change needs neither.
 
-`pack` is the schema an embedding parent frame may serve. Read `catalog` from storage.
-
-The shipped Stacks catalog maps a pack entry key to a `YYYY-MM-DD` string. The productionization checklist writes the pair the other way, a date to an edition id, and it says the vault contract was not final on 2026-09-18. Follow the shipped map until that page and the games match.
-
-Boot calls `loadActivePack` before play. On a null client, a fetch error, or invalid JSON, seed the bundled pack from `.agents/recipes/content.md` and continue. `?pack=` selects an entry key. A miss leaves the current pack in place.
-
-Share one in-flight client promise. Two boot readers must not open two parent-frame bridges.
-
-Reset mid-play storage when the loaded pack id changes.
-
-Do not copy Solid session state from the Stacks or Off the Record repos. Copy the client and the pack load.
-
-The Games Vault host is a separate path. `src/integrations/vault/README.md` covers `VaultHostBridge`. Its `catalog` prop is `{ contentId, availableFrom }` scheduling metadata sent to the Vault. It is not the DynamicData `catalog` schema. Map the Vault `contentId` to a pack entry key in `onContext`.
+Publishing is the content person's job, in order: deploy (registers the schemas), create entries, bind a Game Pack. The `wolf-dev` CLI refuses to run without an interactive terminal, so agents use the wolf-game-kit MCP tools of the same names: `schema_data_batch-create`, `pack_create`, `pack_assign`, `pack_entries_set`.
 
 ## Verify
 
-A unit test covers three cases. A valid remote pack replaces the bundled one. Invalid JSON keeps the bundled pack. A `?pack=` key selects that entry.
+`bun run test:run` passes, including `tests/unit/content/content-load.test.ts` (fallbacks, `?wolfPack=`) and `tests/unit/content/brand.test.ts`.
 
-When you are ready to publish, ask the user to register the schema with `wolf-dev` in a terminal. The CLI does not run for agents. Until then the unit test is the check.
+`bun run test:e2e` runs `tests/e2e/game-packs.spec.ts`: the bundled pack with nothing published, a `?wolfPack=` pack with its brand, a brand switch, and a broken pack falling back.
 
 ## Example
 
-GetDynamicDataClientCommand is imported from `@wolfgames/client` in the Stacks dynamic-client file. The registry in that repo sets bundleSyncEnabled to false on catalog and pack. This template depends on `@wolfgames/client` and does not ship that client yet.
+`sheetFromPack` in `src/game/brand/load.ts` reads a sheet out of a Content Pack with `client.getPack(packKey)`, and treats `PACK_NOT_FOUND` as the ordinary "nothing published" case.

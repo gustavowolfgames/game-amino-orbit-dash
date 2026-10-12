@@ -43,8 +43,8 @@ Content and brand are separate on purpose: any edition can wear any partner's lo
   `levels` and a line in `assemble.ts`. The gameplay reads `levelAt(n)` (`src/game/content`).
 - **Its default look:** edit `BUILD_SHEET` in `src/game/brand/defaults.ts`. Draw with
   `getTheme()` (Pixi) or the `--brand-*` / `--font-*` CSS variables (DOM).
-- **Its identity:** `gameSlug` in `wolf-game-kit.json`, `GAME_SLUG` in `src/game/config/identity.ts`
-  and `VITE_GAME_KIT_PROJECT_ID` in `.env` must all be the game's Nucleo slug — Dynamic Data paths
+- **Its identity:** `gameSlug` in `wolf-game-kit.json` (which `src/game/setup/content.ts` reads)
+  and `VITE_GAME_KIT_PROJECT_ID` in `.env` must both be the game's Nucleo slug — Dynamic Data paths
   are keyed by it.
 
 Nothing else: the loader, fallback, Vault wiring and completion reporting are template code.

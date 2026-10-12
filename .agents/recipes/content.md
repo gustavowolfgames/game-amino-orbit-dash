@@ -6,26 +6,32 @@ Open this recipe when you add levels, questions, cards, categories, or anything 
 
 ## Do
 
-The pack schema is `schemas/pack.ts`. The game-specific level shape (e.g. `TapClearLevel` for a tap-to-clear game) extends it in the same file. Validated with arktype before the game reads it.
+Content ships as a Game Pack. The template already has the code. Change the level shape and the bundled pack; do not write a new loader.
 
-Ship a bundled default pack as `examples/pack.example.json` adapted to the game, imported from a module like `src/game/mygame/defaultPack.ts`. The game boots on that pack when DynamicData is missing. See `.agents/recipes/dynamic-data.md` for the fetch.
+The schemas are `blocks` and `levels`. A `blocks` entry is a run of levels: `{ id, name, order, levels: [<level key>, ...] }`. Blocks play by `order`, levels in list order. A `levels` entry is one level, keyed `<block id>-<n>`. There is no `pack` schema. Both live under `schemas/`, and `docs/recipes/game-packs.md` has the full model.
 
-Screens call `getActivePack()`. They do not import a level file on their own.
+Gameplay reads a level with `levelAt(n)` from `src/game/content`. Screens read `getActivePack()` from the same module. Nothing imports a pack JSON directly.
 
-Words, questions, card layout, and brand id belong in the pack. Systems, input, and scoring rules stay in code.
+To change what a level holds:
 
-Use string ids for fields that will be registered as DynamicData. A small numeric union can arrive from the backend as a plain `number`.
+1. Edit `LevelsDef` in `schemas/levels/schema.ts` and bump the schema's `version`.
+2. Update the defaults and `parseLevel` in `src/game/content/level.ts`.
+3. Rewrite the bundled pack `src/game/content/packs/default.json`. The game boots on it when nothing is published, and when a fetch fails.
 
-The pack's `brand` field carries the active skin — see `.agents/recipes/reskin.md`. Changing a partner skin is a brand JSON edit + a pack publish; it does not touch systems.
+A level with more than one part (cards, narrative) gets a sibling schema keyed like `levels` and a line in `src/game/content/assemble.ts`. Values shared by a run of levels (a name, a theme) go on the block, not on every level.
 
-The Stacks pack is one object with an id, a thumbnail, an art style, and level blocks. Off the Record's true-crime pack is one object with an id, narrative, and tiers of questions that each have four answers. Copy that shape. Do not copy either game's Solid state.
+Words, questions, card layout, and level numbers belong in the pack. Systems, input, and scoring rules stay in code. Use string ids for anything registered as Dynamic Data.
+
+The look is separate from the content. Any edition can wear any partner's brand. See `.agents/recipes/reskin.md`. Fetching and publishing are in `.agents/recipes/dynamic-data.md`.
 
 ## Verify
 
-A unit test loads the bundled pack, runs validation, and reads one field through `getActivePack()`.
+`bun run test:run` passes, including `tests/unit/content/content-load.test.ts` and `tests/unit/content/schemas.test.ts`.
+
+`bun run decompose:content src/game/content/packs/default.json local/content-packs/default` splits the pack into entries, checks each one against its schema, and proves the round trip.
 
 `bun run typecheck:baseline` passes.
 
 ## Example
 
-The access rule is `getActivePack()`, once it exists. Until then, read the bundled default pack through one module (for example `src/game/mygame/defaultPack.ts`, which you create) rather than importing the JSON from several places.
+`src/game/content/packs/edition-2026-10-08.json` is a second authored pack: one block of two levels, published as a dated edition. `src/game/mygame/screens/gameController.ts` reads levels through `levelAt` and `isLastLevel`.
