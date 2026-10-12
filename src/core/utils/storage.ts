@@ -171,10 +171,8 @@ export function createVersionedStore<T extends { version: number }>(
   // The SDK service, built once the player id has resolved.
   let service: GameSaveService<Stored> | null = null;
 
-  // In-memory cache: source of truth for the sync surface. Stamp the current
-  // schema version so a load() before hydration never surfaces a stale
-  // `defaults.version`.
-  let cache: T = { ...defaults, version };
+  // In-memory cache: source of truth for the sync surface.
+  let cache: T = { ...defaults };
 
   // Hydration-window guard. `service` is null (or its `load()` unresolved) until
   // `prime` settles, and nothing gates render on `prime`. A save()/clear() issued
@@ -234,7 +232,7 @@ export function createVersionedStore<T extends { version: number }>(
   };
 
   const clear = (): void => {
-    cache = { ...defaults, version }; // stamp current version — never a stale defaults.version
+    cache = { ...defaults };
     service?.clear(); // synchronous
     if (!primed) pending = 'clear'; // replayed after hydration so it isn't un-done
   };

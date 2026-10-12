@@ -13,10 +13,15 @@
  */
 
 import type { ScheduledContentMetadata } from '@wolfgames/client';
-import { GAME_SLUG } from '~/game/config/identity';
 import { loadBrand } from '~/game/brand';
 import { type KitLike, loadActivePack, loadCatalog, resolvePackKey } from '~/game/content';
 import { inVault } from '~/integrations/vault';
+import wolfGameKit from '../../../wolf-game-kit.json';
+
+/** The registered Nucleo slug. template-amino dropped `config/identity.ts` in its identity
+ *  rework (#97, ENG-4222); its scaffold now reads the slug from the config service, which
+ *  this plain module cannot reach, so it reads the same value from wolf-game-kit.json. */
+const GAME_SLUG = wolfGameKit.gameSlug;
 
 /** How long boot (or Play) waits on Dynamic Data before going with what it has. */
 export const CONTENT_BUDGET_MS = 4000;

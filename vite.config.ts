@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
+import { aminoGamePlugin } from '@wolfgames/game-dev';
 import { existsSync, realpathSync } from 'fs';
 import { networkInterfaces } from 'os';
 import path from 'path';
@@ -39,46 +40,6 @@ function qrcodePlugin(): Plugin {
   };
 }
 
-function gameKitEnvPlugin(): Plugin {
-  let envVars: Record<string, string>;
-
-  return {
-    name: 'game-kit-env',
-    enforce: 'pre',
-    configResolved(config) {
-      envVars = loadEnv(config.mode, config.root, 'VITE_');
-    },
-    transform(code, id) {
-      if (
-        !id.includes('game-kit') &&
-        !id.includes('wolfgames/client') &&
-        !id.includes('wolfgames/components')
-      ) return;
-      return code
-        .replace(
-          /import\.meta\.env\.VITE_POSTHOG_API_KEY/g,
-          JSON.stringify(envVars.VITE_POSTHOG_API_KEY ?? ''),
-        )
-        .replace(
-          /import\.meta\.env\.VITE_APP_ENV/g,
-          JSON.stringify(envVars.VITE_APP_ENV ?? ''),
-        )
-        .replace(
-          /import\.meta\.env\.VITE_GAME_KIT_PROJECT_ID/g,
-          JSON.stringify(envVars.VITE_GAME_KIT_PROJECT_ID ?? ''),
-        )
-        .replace(
-          /import\.meta\.env\.VITE_IS_FROZEN/g,
-          JSON.stringify(envVars.VITE_IS_FROZEN ?? ''),
-        )
-        .replace(
-          /import\.meta\.env\.VITE_DISABLE_VERSION_BANNER/g,
-          JSON.stringify(envVars.VITE_DISABLE_VERSION_BANNER ?? ''),
-        );
-    },
-  };
-}
-
 // -----------------------------------------------------------------------------
 // @wolfgames/components consumption mode
 //
@@ -90,6 +51,10 @@ function gameKitEnvPlugin(): Plugin {
 //                             instead of `node_modules/@wolfgames/components/`.
 //                             Use when iterating on game-components in this
 //                             monorepo without publishing/installing.
+//
+//   VITE_COMPONENTS_PATH=…    Sibling checkout to use with LOCAL=1, relative to
+//                             this file (default `../game-components`). Point it
+//                             at a worktree to develop against a branch.
 //
 //   VITE_COMPONENTS_SOURCE=1  Resolve from the raw `src/` tree instead of the
 //                             compiled `dist/`. Use for HMR off `.ts` source.
@@ -130,7 +95,7 @@ export default defineConfig(({ command, mode }) => {
   const useSource = requestedSource && !isBuild;
 
   const componentsBase = useLocal
-    ? path.resolve(__dirname, '../game-components')
+    ? path.resolve(__dirname, env.VITE_COMPONENTS_PATH || '../game-components')
     : path.resolve(__dirname, 'node_modules/@wolfgames/components');
   const componentsRoot = path.join(componentsBase, useSource ? 'src' : 'dist');
   const shouldAliasComponents = useLocal || useSource;
@@ -142,7 +107,7 @@ export default defineConfig(({ command, mode }) => {
   }
 
   return {
-    plugins: [solid(), tailwindcss(), qrcodePlugin(), gameKitEnvPlugin()],
+    plugins: [solid(), tailwindcss(), qrcodePlugin(), aminoGamePlugin()],
     resolve: {
       alias: [
         // Retarget package resolution so dev iterations don't need bun install.

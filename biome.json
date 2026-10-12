@@ -1,5 +1,5 @@
 {
-  "extends": ["@wolfgames/dev/config/biome"],
+  "extends": ["@wolfgames/game-dev/config/biome"],
   "files": {
     "includes": ["**", "!dist", "!index.html"]
   },

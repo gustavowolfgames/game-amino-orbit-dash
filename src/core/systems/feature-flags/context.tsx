@@ -24,12 +24,16 @@ export function FeatureFlagProvider(props: ParentProps) {
     );
   }
 
-  const { defaults, validators, userId: userIdSource, timeoutMs = 2000 } = config;
+  const { defaults, validators, timeoutMs = 2000 } = config;
+  // Evaluated once at mount, which the boot gate guarantees runs after player-id
+  // resolution — so a getter here reads the resolved id, not a boot-time null.
   const userId =
-    typeof userIdSource === 'function' ? userIdSource() : userIdSource;
+    typeof config.userId === 'function' ? config.userId() : config.userId;
   const configState = useConfigState();
-  const projectId = configState.service.get()?.projectId ?? 'unknown';
-  const storagePrefix = config.storagePrefix ?? `${projectId}_ff_`;
+  // @wolfgames/client 0.1.47 renamed the config service's `projectId` to
+  // `gameSlug` (same bare slug value).
+  const gameSlug = configState.service.get()?.gameSlug ?? 'unknown';
+  const storagePrefix = config.storagePrefix ?? `${gameSlug}_ff_`;
   const cached = loadFlagCache(storagePrefix, userId, defaults, validators);
   const analytics = useAnalyticsService();
   const ph = analytics.getPosthog();
@@ -84,10 +88,19 @@ export function FeatureFlagProvider(props: ParentProps) {
     if (firstKey && ph.getFeatureFlag(firstKey) !== undefined) {
       processFlags('immediate_check');
     }
+  } else {
+    // No PostHog, so nothing can ever resolve these flags — settle now instead
+    // of making the whole subtree wait out timeoutMs to learn that. Children
+    // render on defaults, which is what the timer would have given them
+    // anyway. Cost of not doing this: 2.0s of idle boot (ENG-4169).
+    setState('isReady', true);
+    isSettled = true;
   }
 
-  // Timeout fallback — unblock UI even if PostHog never loads
+  // Timeout fallback — for when PostHog is present but never answers.
   onMount(() => {
+    if (isSettled) return;
+
     const timeoutId = window.setTimeout(() => {
       if (!isSettled) {
         console.warn('[FeatureFlags] Timeout exceeded. Unblocking UI with current data.');

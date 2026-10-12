@@ -29,9 +29,12 @@ export function Button(props: ButtonProps) {
   const variant = () => local.variant ?? 'primary';
   const size = () => local.size ?? 'md';
 
-  const handleClick = (e: MouseEvent) => {
-    if (local.onClick) {
-      local.onClick(e);
+  const handleClick: JSX.EventHandler<HTMLButtonElement, MouseEvent> = (e) => {
+    const handler = local.onClick;
+    if (typeof handler === 'function') {
+      handler(e);
+    } else if (handler) {
+      handler[0](handler[1], e);
     }
   };
 

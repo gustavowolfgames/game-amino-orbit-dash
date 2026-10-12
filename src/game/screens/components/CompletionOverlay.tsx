@@ -7,7 +7,7 @@
  * - Continue button (after timer)
  * 
  * Features:
- * - Mobile-first responsive design
+ * - Authored in design px on the 390x844 canvas — no breakpoint tiers
  * - GSAP animations (fade + scale entrance)
  * - Keyboard accessible (Enter/Space)
  * - Blocks pointer events when open
@@ -38,7 +38,14 @@ export interface CompletionOverlayProps {
 /**
  * Level completion overlay with celebration and clue reveal.
  * 
- * Mobile-first responsive design with safe padding and max-width constraints.
+ * Sized once, in design px, with safe padding and max-width constraints. There are
+ * deliberately no `sm:` / `md:` tiers: they fire off the REAL window, while this
+ * renders inside the design transform against a fixed 390 px canvas. So on a
+ * desktop the tiers fired and swapped in larger type and art for a container that
+ * had not changed size, and on a phone they never fired at all. One authored value
+ * per property is both simpler and what the design actually specifies.
+ * See @wolfgames/components docs/standards/components.md §9.
+ *
  * Uses GSAP for smooth entrance animations.
  */
 export function CompletionOverlay(props: CompletionOverlayProps) {
@@ -164,15 +171,25 @@ export function CompletionOverlay(props: CompletionOverlayProps) {
     <Show when={props.open}>
       <div
         ref={overlayRef}
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        /* `design-box-span` spans the frame box. `fixed inset-0` here pinned to
+           the 390x844 design canvas instead — the transform makes the design root
+           the containing block for fixed descendants — so the scrim stopped ~33
+           real px short of each edge on a 375x667 screen and left bands.
+
+           Render this as a SIBLING of the screen root, not a child: the utility
+           offsets by the bleed measured from the design root, so nesting it inside
+           another spanning root applies that offset twice and lands the layer at
+           left:-33. A full-bleed layer inside a spanning root wants plain
+           `absolute inset-0`. See components.md §9.5.2. */
+        class="design-box-span z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
         style={{ 'pointer-events': 'all' }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="completion-title"
       >
         {/* Content card - mobile-first with safe padding */}
-        <div class="safe-area-inset w-full max-w-lg px-4 sm:px-6">
-          <div class="flex flex-col items-center gap-6 sm:gap-8">
+        <div class="safe-area-inset w-full max-w-lg px-4">
+          <div class="flex flex-col items-center gap-6">
 
             {/* Celebration visual */}
             <div ref={celebrationRef} class="flex items-center justify-center">
@@ -180,8 +197,8 @@ export function CompletionOverlay(props: CompletionOverlayProps) {
                 when={props.celebrationImageUrl}
                 fallback={
                   // Fallback: Emoji celebration
-                  <div class="w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-2xl">
-                    <span class="text-6xl sm:text-7xl" role="img" aria-label="Celebration">
+                  <div class="w-32 h-32 flex items-center justify-center bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-2xl">
+                    <span class="text-6xl" role="img" aria-label="Celebration">
                       🎉
                     </span>
                   </div>
@@ -190,7 +207,7 @@ export function CompletionOverlay(props: CompletionOverlayProps) {
                 <img
                   src={props.celebrationImageUrl}
                   alt="Level complete celebration"
-                  class="w-48 h-48 sm:w-64 sm:h-64 object-contain"
+                  class="w-48 h-48 object-contain"
                 />
               </Show>
             </div>
@@ -201,12 +218,12 @@ export function CompletionOverlay(props: CompletionOverlayProps) {
               id="completion-title"
               class="text-center px-4"
             >
-              <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight mb-2">
+              <h2 class="text-2xl font-bold text-white leading-tight mb-2">
                 Level Complete!
               </h2>
 
               <Show when={props.clueText}>
-                <p class="text-lg sm:text-xl md:text-2xl text-gray-200 leading-relaxed max-w-md mx-auto">
+                <p class="text-lg text-gray-200 leading-relaxed max-w-md mx-auto">
                   {props.clueText}
                 </p>
               </Show>

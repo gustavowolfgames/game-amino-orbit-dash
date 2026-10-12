@@ -24,8 +24,11 @@ export function ResultsScreen() {
   // Colours and type come from the brand theme's CSS variables (src/game/brand/theme.ts),
   // so a published partner sheet restyles this screen with no code change.
   return (
+    // Fully-DOM screen: `design-box-span` so it fills the frame rather than the
+    // canvas, and `pointer-events-auto` to take its events back — GameShell passes
+    // them through for the sake of the gameplay screen's canvas.
     <div
-      class="fixed inset-0 flex flex-col items-center justify-center px-6"
+      class="design-box-span pointer-events-auto flex flex-col items-center justify-center px-6"
       style={{ background: 'var(--brand-ground)', color: 'var(--brand-text)', 'font-family': 'var(--font-body)' }}
     >
       <h1 class="text-3xl font-bold mb-2" style={{ 'font-family': 'var(--font-display)' }}>

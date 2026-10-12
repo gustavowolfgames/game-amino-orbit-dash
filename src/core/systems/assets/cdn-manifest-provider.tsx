@@ -32,7 +32,19 @@ export const CdnManifestProvider: ParentComponent<CdnManifestProviderProps> = (p
   const config = useGameConfig();
   const gameKit = useSignal(configState.gameKit);
 
+  const isFrozen = import.meta.env.VITE_IS_FROZEN === 'true';
+
+  /* Opt-in escape hatch for local work: skip the AssetClient and render from
+   * the authored manifest, so srcs resolve against `public/assets` instead of
+   * the published CDN lockfile. Off by default on purpose — this template's
+   * pipeline is CDN-first (see assets/README.md: the art lives on the CDN,
+   * `assets/src/` is gitignored), so forcing it on in dev would 404 every
+   * asset for any game that follows that pipeline. Set it only in a game that
+   * keeps full local copies under `public/assets`. */
+  const useLocalAssets = import.meta.env.VITE_ASSETS_LOCAL === '1';
+
   const [client] = createResource(gameKit, async (kit) => {
+    if (useLocalAssets) return null;
     try {
       const { promise } = kit.execute(new GetAssetClientCommand(assetSeed));
       // The manifest treats names dynamically, so widen the seed-derived key union.
@@ -45,10 +57,11 @@ export const CdnManifestProvider: ParentComponent<CdnManifestProviderProps> = (p
     }
   });
 
-  const isFrozen = import.meta.env.VITE_IS_FROZEN === 'true';
   const resolved = (): Manifest => {
     const assetClient = client();
-    return assetClient ? resolveManifestWithClient(props.manifest, assetClient) : props.manifest;
+    return assetClient
+      ? resolveManifestWithClient(props.manifest, assetClient)
+      : props.manifest;
   };
 
   return (

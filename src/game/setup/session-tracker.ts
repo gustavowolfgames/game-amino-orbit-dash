@@ -1,4 +1,4 @@
-import type { GameAnalyticsService } from './analytics-service';
+import type { BaseAnalyticsService } from '@wolfgames/components/core';
 import {
   sessionEndSchema,
   sessionPauseSchema,
@@ -17,7 +17,7 @@ import {
  * - session_end: when user leaves the page
  */
 export function createSessionTracker(
-  service: GameAnalyticsService,
+  service: BaseAnalyticsService,
   initialScreen: string,
 ): () => void {
   const trackSessionStart = service.createTracker(

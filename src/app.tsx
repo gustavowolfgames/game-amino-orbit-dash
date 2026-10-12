@@ -4,8 +4,8 @@ import {
   DevOnly,
   GameConfigProvider,
   useAnalyticsService,
-  useGameConfig,
-  ViewportModeWrapper,
+  DesignBleed,
+  GameShell,
   ViewportProvider,
   ViewportToggle,
 } from '@wolfgames/components/solid';
@@ -14,13 +14,12 @@ import {
   AssetProvider,
   CdnManifestProvider,
   FeatureFlagProvider,
-  getResolvedPlayerId,
   GlobalBoundary,
+  getResolvedPlayerId,
   initPauseKeyboard,
   PauseProvider,
   ScreenProvider,
   ScreenRenderer,
-  SettingsMenu,
   setupGlobalErrorHandlers,
   TuningProvider,
 } from '~/core';
@@ -33,10 +32,10 @@ import { Show } from 'solid-js';
 import { Inspector } from '~/core/dev/inspector';
 import { activeDb } from '~/core/systems/ecs/DbBridge';
 import { createExampleWorld } from '~/core/systems/ecs/ExamplePlugin';
-import { useGameTracking } from '~/game/setup/tracking';
 import '~/game/setup/flags'; // registers flag config at module load
 import { useAssetCoordinator } from '~/core/systems/assets';
 import { EmbedHook } from '~/game/EmbedHook';
+import { GameSettingsMenu } from '~/game/screens/components/GameSettingsMenu';
 import { createLoadingTracker } from '~/game/setup/loading-tracker';
 import { createSessionTracker } from '~/game/setup/session-tracker';
 import { AttractGate, EmbedProvider } from '~/integrations/embed';
@@ -66,18 +65,6 @@ function LoadingTrackerBridge() {
   return null;
 }
 
-/** SettingsMenu wired with game analytics */
-function GameSettingsMenu() {
-  const config = useGameConfig();
-  const { trackAudioSettingChanged } = useGameTracking();
-  return (
-    <SettingsMenu
-      onResetProgress={!config.isProduction() ? handleResetProgress : undefined}
-      onAudioSettingChanged={trackAudioSettingChanged}
-    />
-  );
-}
-
 const TuningViewportBridge: ParentComponent = (props) => (
   <ViewportProvider autoFill>{props.children}</ViewportProvider>
 );
@@ -88,7 +75,10 @@ const exampleDB = createExampleWorld();
 export default function App() {
   onMount(async () => {
     // Initialize error tracking
-    initSentry(environment);
+    /* The loader is a thunk, not the factory: a static import of
+     * `createSentryClient` here would drag @sentry/browser back into the entry
+     * chunk. See SentryClientLoader in ~/core/lib/sentry. */
+    initSentry(environment, () => import('~/game/lib/sentry-client'));
 
     // Setup global error handlers
     setupGlobalErrorHandlers();
@@ -111,11 +101,17 @@ export default function App() {
               </DevOnly>
               <FeatureFlagProvider>
                 <TuningViewportBridge>
-                  <ViewportModeWrapper>
-                    {/* Settings Menu - Top Right Corner */}
-                    <div class="fixed top-2 right-2 z-[9999]">
-                      <GameSettingsMenu />
-                    </div>
+                  {/* The three scaling layers, composed: the viewport frame, the
+                      renderer host (frame-sized, outside the DOM transform), and
+                      the one design transform every screen below is authored
+                      against. See @wolfgames/components docs/standards/components.md
+                      §9.7 — and §9.2b for why the renderer cannot live inside the
+                      transform. GameShell also puts `pointer-events-none` on the
+                      design root, because the canvas is now a sibling underneath
+                      the DOM layer: left interactive, this layer absorbs every tap
+                      and the game renders perfectly while responding to nothing.
+                      Each fully-DOM screen opts back in on its own root. */}
+                  <GameShell>
                     {/* Viewport Toggle - dev only; self-positions via Portal */}
                     <DevOnly>
                       <ViewportToggle />
@@ -133,6 +129,36 @@ export default function App() {
                               screenAssets: gameConfig.screenAssets,
                             }}
                           >
+                            {/* Corner chrome belongs on the edge of the VIEW, not
+                                the edge of the canvas. `position: fixed` does not
+                                do that here — a transformed ancestor becomes the
+                                containing block for fixed descendants, so `fixed`
+                                inside the design root pins to the 390×844 canvas
+                                and a tablet preset strands the cog well inside the
+                                real edge. DesignBleed is the frame box expressed
+                                in design coordinates.
+
+                                Inside ScreenProvider so the menu can hide itself
+                                on the `game` screen, where the in-game Pixi panel
+                                owns settings (ENG-4127). */}
+                            <DesignBleed zIndex={9999}>
+                              {/* `pointer-events: auto` per control: the bleed
+                                  layer spans the whole frame and deliberately
+                                  takes no events, or it would eat every tap meant
+                                  for the game below. */}
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: '8px',
+                                  right: '8px',
+                                  'pointer-events': 'auto',
+                                }}
+                              >
+                                <GameSettingsMenu
+                                  onResetProgress={handleResetProgress}
+                                />
+                              </div>
+                            </DesignBleed>
                             {/* Vault runtime + Daily Editions (contentId →
                                 Content Pack); inert outside a Vault. Must stay
                                 inside ScreenProvider — reads useScreen() to hold
@@ -147,7 +173,7 @@ export default function App() {
                         </AssetProvider>
                       </CdnManifestProvider>
                     </PauseProvider>
-                  </ViewportModeWrapper>
+                  </GameShell>
                 </TuningViewportBridge>
               </FeatureFlagProvider>
             </TuningProvider>

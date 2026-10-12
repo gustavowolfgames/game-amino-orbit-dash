@@ -99,12 +99,21 @@ export function LoadingScreen() {
     }
   });
 
+  /* IntroSting roots itself at `position: absolute` and fills whatever box the
+     host gives it. Unwrapped inside the GameShell design root that box is the
+     390x844 canvas, so the sting would paint a column with bands down both sides
+     of any phone shorter than the canvas ratio. The `design-box-span` wrapper is
+     the frame box; `pointer-events-auto` opts this fully-DOM screen back in, since
+     GameShell passes events through for the gameplay canvas. Same wrapper as
+     template-amino's ContentLoader (components.md §9.5.2). */
   return (
-    <IntroSting
-      progress={progress}
-      title={GAME_TITLE}
-      exitSignal={assetsReady}
-      onExitComplete={() => goto(skipToGame ? 'game' : 'start')}
-    />
+    <div class="design-box-span pointer-events-auto">
+      <IntroSting
+        progress={progress}
+        title={GAME_TITLE}
+        exitSignal={assetsReady}
+        onExitComplete={() => goto(skipToGame ? 'game' : 'start')}
+      />
+    </div>
   );
 }

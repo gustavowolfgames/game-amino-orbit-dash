@@ -2,7 +2,6 @@
   "name": "template-amino-ecs-pure",
   "type": "module",
   "scripts": {
-    "predev": "bun run cortex:setup",
     "dev": "vite",
     "build": "vite build",
     "build:frozen": "VITE_IS_FROZEN=true vite build --base=./",
@@ -26,43 +25,49 @@
     "decompose:content": "bun run scripts/decompose-content.ts",
     "typecheck": "tsc --noEmit",
     "lint:unused": "knip",
-    "cortex:setup": "node node_modules/@wolfgames/cortex/scripts/setup.mjs",
-    "cortex:refresh": "bun update @wolfgames/cortex",
-    "postinstall": "node node_modules/@wolfgames/cortex/scripts/setup.mjs",
     "prepare": "husky",
     "use:local": "../../scripts/use-local.sh",
     "use:remote": "../../scripts/use-remote.sh",
-    "status": "../../scripts/status.sh"
+    "status": "../../scripts/status.sh",
+    "typecheck:baseline": "node scripts/typecheck-baseline.mjs",
+    "check:agent": "node scripts/check-agent-surface.mjs && bun run check:assets && bun run check:manifest",
+    "agent:surface": "node scripts/agent-surface.mjs",
+    "postinstall": "node scripts/agent-surface.mjs",
+    "predev": "node scripts/agent-surface.mjs",
+    "check": "nucleo game check local",
+    "check:fix": "nucleo game check local --fix",
+    "prebuild": "nucleo game check local --tier 0 --no-commit-hooks --warn-only || echo \"[prebuild] nucleo not available; skipped game checks\""
   },
   "cortex": {
     "profile": "default"
   },
   "dependencies": {
-    "@adobe/data": "^0.9.73",
-    "@sentry/solid": "^10.63.0",
-    "@wolfgames/client": "^0.1.52",
+    "@adobe/data": "^0.9.103",
+    "@sentry/solid": "^10.72.0",
+    "@wolfgames/client": "^0.1.62",
     "@wolfgames/components": "^2.4.2",
     "@wolfgames/cortex": "^0.5.0",
-    "arktype": "^2.2.2",
+    "arktype": "^2.2.3",
     "gsap": "^3.15.0",
     "howler": "^2.2.4",
-    "pixi.js": "^8.19.0",
-    "posthog-js": "^1.396.5",
-    "solid-js": "^1.9.14",
+    "pixi.js": "^8.20.1",
+    "posthog-js": "^1.422.5",
+    "solid-js": "^1.9.15",
     "tweakpane": "^4.0.5"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.2",
-    "@playwright/test": "^1.61.1",
-    "@tailwindcss/vite": "^4.3.2",
+    "@biomejs/biome": "^2.5.11",
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/howler": "^2.2.13",
     "@wolfgames/game-dev": "^0.1.1",
     "husky": "^9.1.7",
-    "knip": "^6.24.0",
+    "knip": "^6.33.0",
     "qrcode-terminal": "^0.12.0",
-    "tailwindcss": "^4.3.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
     "vite": "^6.4.3",
-    "vite-plugin-solid": "^2.11.12",
+    "vite-plugin-solid": "^2.11.14",
     "vitest": "^2.1.9"
   },
   "amino": {
@@ -70,5 +75,10 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "agentSurface": {
+    "recipes": true,
+    "cortex": false,
+    "systems": false
   }
 }

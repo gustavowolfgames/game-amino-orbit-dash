@@ -14,13 +14,19 @@ export default defineConfig({
     setupFiles: ["tests/vitest.setup.ts"],
   },
   resolve: {
-    alias: {
-      "~": path.resolve(__dirname, "src"),
+    // Exact-match aliases: a bare "solid-js" prefix alias also rewrites
+    // "solid-js/web" to ".../dist/solid.js/web", which does not exist.
+    alias: [
+      { find: /^~\//, replacement: `${path.resolve(__dirname, "src")}/` },
       // The "node" condition resolves solid-js to its non-reactive server build.
-      "solid-js": path.resolve(
-        __dirname,
-        "node_modules/solid-js/dist/solid.js"
-      ),
-    },
+      {
+        find: /^solid-js$/,
+        replacement: path.resolve(__dirname, "node_modules/solid-js/dist/solid.js"),
+      },
+      {
+        find: /^solid-js\/web$/,
+        replacement: path.resolve(__dirname, "node_modules/solid-js/web/dist/web.js"),
+      },
+    ],
   },
 });

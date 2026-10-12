@@ -4,6 +4,7 @@ import { useTuning } from '../systems/tuning/context';
 import { bindTuningToPane, addPresetControls } from './bindings';
 import type { ScaffoldTuning, GameTuningBase } from '../systems/tuning/types';
 import { useGameConfig } from '@wolfgames/components/solid';
+import { isDevToggleKey } from './toggleKey';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PaneInstance = Pane & any;
@@ -13,7 +14,7 @@ const [isPanelOpen, setIsPanelOpen] = createSignal(false);
 
 if (typeof window !== 'undefined' && import.meta.env.DEV) {
   window.addEventListener('keydown', (e) => {
-    if (e.key === '`') {
+    if (isDevToggleKey(e)) {
       e.preventDefault();
       setIsPanelOpen((prev) => !prev);
     }

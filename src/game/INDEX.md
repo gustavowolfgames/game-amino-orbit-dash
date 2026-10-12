@@ -27,7 +27,6 @@ src/game/
 | Game tuning types + defaults | tuning/types.ts |
 | Game tuning barrel + URL helpers | tuning/index.ts |
 | Game tracking hook (wraps Core analytics) | setup/tracking.ts |
-| Analytics service type (base params applied) | setup/analytics-service.ts |
 | Session lifecycle tracking (start/pause/resume/end) | setup/session-tracker.ts |
 | Asset loading tracking (start/complete/abandon) | setup/loading-tracker.ts |
 | Game feature flag config + types | setup/flags.ts |

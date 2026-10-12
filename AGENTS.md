@@ -1,224 +1,47 @@
 # AGENTS.md
 
-> Single source of truth for AI coding agents working in this repository
-> (Claude Code, Cursor, Codex, Gemini CLI, …). Human-facing docs live in
-> [`README.md`](README.md). `CLAUDE.md` is a thin pointer that imports this
-> file. See [`docs/AGENT-HARNESSES.md`](docs/AGENT-HARNESSES.md) for how each
-> harness plugs in.
+This file is loaded for you. Open a recipe when the task reaches it, not all of them up front.
 
-## Project Overview
+This game is SolidJS and Pixi 8. Gameplay state lives in the `@adobe/data` ECS world behind `getGameWorld()` in `src/game/mygame/world.ts`. Wolf packages are `@wolfgames/components` and `@wolfgames/client`. wolf-game-kit publishes assets. Cortex rules are not installed here, and `bun install` must not write rules.
 
-This is **template-amino** — a production-ready template for building mobile
-web games (SolidJS + Pixi.js + GSAP + Howler). A new game starts from this
-template: the scaffold (`src/core/`) handles loading, screens, audio, tuning,
-analytics, and errors; the game (`src/game/`) implements the game contract.
-The placeholder game is called `mygame`. As the project becomes a real game,
-let the template framing fade — docs, names, and placeholders should always
-describe what the project *is now*.
+## Always
 
-**Before building game features, read [`docs/GAME-DESIGN.md`](docs/GAME-DESIGN.md)**
-— it is the design source of truth, written and maintained by designers in
-plain language. If a requested task conflicts with it, ask the user to resolve
-the conflict before proceeding. If a task changes the design (new mechanic,
-screen, asset, or tuning decision), update `docs/GAME-DESIGN.md` in the same
-task.
+These hold for every change, whether or not you open a recipe.
 
-## Setup, Build & Test
+1. **No DOM in game code.** Outside `src/game/screens/`, `src/game/setup/` and `src/game/brand/` (theming), nothing under `src/game/` touches `document`, `window` listeners, `element.style`, `requestAnimationFrame`, `setTimeout`, or `setInterval`. Keyboard and other DOM input is wired in a Solid screen and passed to the controller as intents.
+2. **ECS models the world.** Grid cells, pieces, and bodies are archetype entities with a `spriteKey`. Resources hold only global values (score, phase, level, rng). State changes only inside `db.transactions`, with a seeded rng and no `Math.random`.
+3. **`src/core/` is read-only.**
+4. **A new game replaces the sample.** One game folder, never two: rewrite the orb sample in place (or `git mv` the folder to the game's name), delete what you don't reuse, and finish with `bun run check:agent`. Follow `.agents/recipes/new-game.md`.
 
-| Task            | Command                                  |
-| --------------- | ---------------------------------------- |
-| Install         | `bun install` (also links AI context — see Cortex below) |
-| Dev server      | `bun run dev` (http://localhost:5173)    |
-| Build           | `bun run build` (`build:qa` for QA mode) |
-| Unit tests      | `bun run test:run`                       |
-| E2E smoke       | `bun run test:e2e` (starts dev server itself) |
-| Typecheck       | `bun run typecheck`                      |
-| Format/lint     | `bun run format` (Biome)                 |
-| Unused exports  | `bun run lint:unused` (knip)             |
-| Asset name check| `bun run check:assets`                   |
-| Manifest check  | `bun run check:manifest`                 |
+## Route
 
-Requires Node >= 22 and a GitHub Packages token for `@wolfgames/*` — see
-[`docs/guides/game-kit-setup.md`](docs/guides/game-kit-setup.md).
+Match the task, then open that file.
 
-## Project Structure
+- Building a new game in this template, or replacing the sample. Open `.agents/recipes/new-game.md`.
+- Gameplay state, a turn, a score, entities, or a frame loop. Open `.agents/recipes/ecs.md`.
+- Input (tap, swipe, keyboard), a leak, DOM in the game, or a "do not" rule. Open `.agents/recipes/guardrails.md`.
+- A sprite, canvas HUD, transition, VFX, or other Pixi drawing. Open `.agents/recipes/pixi.md`.
+- `setupGame`, a screen change, or `gameController.ts`. Open `.agents/recipes/game-controller.md`.
+- A HUD, button, screen, popup, or other visible element. Open `.agents/recipes/components.md`.
+- Colors, type, logos, or a partner skin. Open `.agents/recipes/reskin.md`.
+- Levels, questions, cards, or a content pack. Open `.agents/recipes/content.md`.
+- A daily edition, a vault schedule, or Games Manager config. Open `.agents/recipes/dynamic-data.md`.
+- An analytics event. Open `.agents/recipes/analytics.md`.
+- Images, audio, or VFX. Open `.agents/recipes/assets.md`.
+- You are about to say the change works. Open `.agents/recipes/verify.md`.
 
-```
-.
-├── AGENTS.md            # ← you are here: agent instructions (source of truth)
-├── CLAUDE.md            # thin pointer that imports AGENTS.md
-├── README.md            # human-facing docs (designers start here)
-├── docs/                # INDEX.md routes everything; GAME-DESIGN.md is the design source of truth
-├── .agents/             # tool-agnostic agent assets (context/, specs/) + cortex-generated rules/skills
-├── .claude/             # settings.json committed; rules/skills GENERATED by cortex (gitignored)
-├── local/               # project-only rules/skills/commands (tracked; merged in by cortex)
-├── assets/              # CDN-first assets: committed lockfile + registry.ts; gitignored src/ working dir (see asset-pipeline.md)
-├── public/
-│   ├── assets/          # committed exceptions (fonts, favicon, VFX config, proxy art) + local-mode iteration assets
-│   └── config/tuning/   # tuning JSON (core.json, game.json)
-├── src/
-│   ├── core/            # scaffold framework (loading, screens, audio, tuning, analytics) — DO NOT MODIFY
-│   ├── game/            # YOUR GAME: config, state, asset-manifest, screens, contract
-│   │   └── mygame/ecs/  # pre-wired ECS world: plugin, signal bridge, agent surface
-│   └── integrations/    # publisher embed integration
-├── scripts/             # amino-sync/release/verify/rollback/drift + asset/manifest checks
-└── tests/
-    ├── unit/            # vitest
-    └── e2e/             # Playwright smoke tests
-```
+If the task changes what the game is, update `docs/GAME-DESIGN.md` in the same change.
 
-Hard boundaries (full rules in
-[`docs/standards/best-practices.md`](docs/standards/best-practices.md) and
-[`docs/standards/guardrails.md`](docs/standards/guardrails.md)):
+## Wolf infra
 
-- **Don't modify `src/core/`** — it's the scaffold, managed upstream. Game code
-  goes in `src/game/`.
-- **GPU-only rendering in gameplay** — no DOM elements inside the game screen;
-  Pixi for everything in-canvas.
-- **Gameplay state lives in the ECS database** (`@adobe/data`). The world in
-  `src/game/mygame/ecs/` is pre-wired into the game controller — extend it,
-  don't route around it. Write via transactions; signals are only the DOM
-  bridge. Guide:
-  [`docs/guides/state-architecture.md`](docs/guides/state-architecture.md).
-- **Catalog check before any new element.** Before creating or adding a HUD,
-  button, menu, screen, background, popup, timer, or any other visual/logic
-  element (the trigger is the element, not whether the file already exists),
-  check the catalog at
-  `node_modules/@wolfgames/components/src/modules/catalog.json` (fallback:
-  `INDEX.md` next to it on older packages, or the `amino-component-discovery`
-  skill) and state which modules you considered
-  and why none fit. This is a required step, not a suggestion: if your
-  output does not name the modules you considered, the element counts as
-  unchecked. Guide:
-  [`docs/guides/shared-components.md`](docs/guides/shared-components.md).
-- **Game media is never committed (CDN-first).** Generate with the
-  wolf-game-kit MCP, stage in `assets/src/` (gitignored), publish with
-  `bun run assets:publish` — content-hashed immutable uploads, verified, then
-  the lockfile (`assets/asset-manifest.cdn.json`) + `assets/registry.ts` are
-  written; commit those two. Manifest bundles reference lockfile keys.
-  Committed `public/` exceptions: fonts, favicon, tuning/VFX config JSON, the
-  boot chrome the template already ships (existing files only, never new
-  ones), and size-budgeted local-mode iteration assets (moved to the CDN
-  before release). Full workflow and the local-fallback rules:
-  [`docs/recipes/asset-pipeline.md`](docs/recipes/asset-pipeline.md).
+Open `.agents/recipes/components.md` before a button, a screen, a menu, or any other visible control. Import `@wolfgames/components`.
 
-## AI Context via Cortex (auto-updating)
+Open `.agents/recipes/assets.md` before a picture, a sound, or an effect. Those come from the wolf-game-kit MCP. If those tools are missing, stop and name the one that is missing. Do not draw stand-in art, synthesize audio, or download a substitute, unless the task says placeholder geometry is fine.
 
-Rules, skills, and commands are distributed by the
-[`@wolfgames/cortex`](https://github.com/wolfgames/cortex) package and
-symlinked into `.agents/` and `.claude/` by its `setup.mjs` on every
-`bun install` (postinstall) or `bun run cortex:setup`. Because they are
-symlinks into `node_modules`, updating cortex updates the context — no manual
-sync.
+## Commands
 
-- **Which packs are linked** is controlled by the `cortex` field in
-  [`package.json`](package.json) — currently `{ "profile": "default" }`,
-  resolved against cortex's `profiles/`; a project can instead list packs
-  explicitly (see cortex's `scripts/setup.mjs` header for the schema).
-- **Project-only context** goes in `local/rules/`, `local/skills/`,
-  `local/commands/` — tracked in git, merged flat with cortex packs at setup.
-  Local rules/commands win on name collisions; cortex skills win.
-- **Refresh to latest cortex**: `bun run cortex:refresh` (setup warns when the
-  installed cortex SHA is stale).
-- **Never hand-edit** anything under `.agents/rules|skills|commands` or
-  `.claude/rules|skills|commands` — they are regenerated on every install.
+Install with `bun install`. Start the dev server with `bun run dev`. Before you claim success, run `bun run check:agent`, `bun run typecheck:baseline`, and `bun run test:run`. Run `bun run test:e2e` when the change touches a screen.
 
-Only drill into a skill when a task needs it: `amino-*` skills cover this
-template's conventions; guardrail rules cover Pixi/SolidJS foot-guns.
+## Boundaries
 
-This repo also ships always-on project rules in `local/rules/` — they restate
-the hard boundaries above for harnesses that load rules. If your harness
-doesn't load rules, this file is your source of truth; the boundaries above
-are complete.
-
-## MCP: asset generation (wolf-game-kit)
-
-Asset generation runs through the **wolf-game-kit** MCP server. Its config is
-**machine-local, not committed** — `.mcp.json` is gitignored and provisioned
-by the workspace setup / Nucleo Studio CLI; the server reads a
-per-environment key (`PROD_ASSET_GEN_API_KEY`, or `QA_ASSET_GEN_API_KEY` for
-QA) from that file's `env` block or a shell export (README → MCP servers has
-the shape; pre-commit blocks any staged real key). Tools appear as `mcp__wolf-game-kit__*` (`create_asset_gen_batch`,
-`generate_sfx`, `generate_music`, `generate_vfx`, `pack_spritesheet`,
-`upload_asset`, …). The workflow and the rules for using them efficiently are
-in [`docs/recipes/asset-pipeline.md`](docs/recipes/asset-pipeline.md) — read
-it before generating anything.
-
-If the tools do NOT appear, the server isn't configured or the env vars are
-unset. Tell the user exactly what is missing and how to fix it, then wait —
-or use the documented local fallback (rapid iteration / no MCP access) in
-[`docs/recipes/asset-pipeline.md`](docs/recipes/asset-pipeline.md). Do not
-improvise substitutes: no code-drawn or procedurally generated art or audio
-in place of real assets (no Pixi `Graphics`/Canvas backgrounds, no
-WebAudio/oscillator SFX, no data-URI media), no web downloads, no new "proxy"
-files (that exception covers only art the template already ships). Don't land
-code that references assets that don't exist yet. Placeholders only with the
-user's explicit OK, each flagged for replacement.
-
-## Workflow for non-trivial changes
-
-Small fixes can skip this; everything else follows the loop:
-
-1. **Plan** — read the relevant code and `docs/GAME-DESIGN.md`; for larger
-   features write the plan to `.agents/specs/<feature>.md` (copy
-   `.agents/specs/SPEC.template.md`). Before building any visual element, read
-   `node_modules/@wolfgames/components/src/modules/catalog.json` (or run the
-   `amino-component-discovery` skill) and name the modules you considered.
-2. **Implement** against the spec, respecting the boundaries above.
-3. **Verify** — run the checks from the command table (at minimum:
-   `typecheck`, `test:run`, and `test:e2e` for anything touching runtime).
-   Show evidence; don't assert success.
-4. **Record** — append durable, non-obvious learnings to
-   [`docs/LEARNINGS.md`](docs/LEARNINGS.md) (dated, newest first).
-
-Keep context lean: for broad searches dispatch read-only subagents; implement
-in fresh sessions for big specs.
-
-## Engineering principles
-
-Four rules that govern every change. The full 12-rule elaboration is in
-[`.agents/context/engineering-principles.md`](.agents/context/engineering-principles.md)
-— read it before any non-trivial change.
-
-1. **Think before coding** — state assumptions, surface tradeoffs, ask when
-   ambiguous, push back when a simpler solution exists.
-2. **Simplicity first** — minimum code that solves the problem; no speculative
-   features or abstractions.
-3. **Surgical changes** — touch only what the task needs; match existing style;
-   never refactor unrelated code.
-4. **Goal-driven execution** — define verifiable success criteria up front;
-   say "it works" only once you've checked.
-
-## Documentation
-
-All docs live in `docs/`. Read [`docs/INDEX.md`](docs/INDEX.md) for the
-routing table (organized by task: build a screen, add assets, tune feel,
-debug, ship). Critical pre-reads before writing game code:
-
-- [`docs/standards/best-practices.md`](docs/standards/best-practices.md) —
-  structure, assets, modules, game contract.
-- [`docs/standards/guardrails.md`](docs/standards/guardrails.md) — the rules of
-  what NOT to do (silent failures, memory leaks, framework foot-guns). Run
-  `/audit-guardrails` for a compliance report.
-
-## Maintaining the agent-facing docs
-
-The agent-facing content **is part of the project** — keep it accurate the
-same way you keep code and tests accurate. When a change makes any of these
-stale, update it **in the same task**:
-
-- `AGENTS.md` — this file (commands, structure, conventions)
-- `README.md` — onboarding paths and links for humans
-- `CLAUDE.md` — keep it a thin pointer to AGENTS.md
-- `docs/INDEX.md` — the routing table (add/remove rows when docs change)
-- `docs/GAME-DESIGN.md` — design decisions made during a task
-- `docs/LEARNINGS.md` — append durable learnings (never rewrite history)
-- `local/rules/`, `local/skills/` — project-only context; keep current
-- `.agents/context/` and `.agents/specs/` — durable context and plans
-
-Keep each file concise and high-signal; outdated guidance is worse than none.
-
-If you are running under a pipeline or skill that brings its own contract
-(write boundaries, its own design doc), that contract wins for the duration of
-the run — but still fix stale docs where the run's boundaries allow, and defer
-the rest to a follow-up.
+Do not edit `src/core/`. Do not put cortex `setup.mjs` back on `postinstall` or `predev`. Recipes link to `docs/reference/` when a task needs more depth. Open those only from a recipe.

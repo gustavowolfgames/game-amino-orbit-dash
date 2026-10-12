@@ -23,7 +23,10 @@ import {
   toEditions,
 } from '~/game/content';
 import type { PackBundle } from '~/game/content/dynamic-client';
-import { GAME_SLUG } from '~/game/config/identity';
+import wolfGameKit from '../../../wolf-game-kit.json';
+
+/** The registered slug (template-amino dropped `config/identity.ts`; see src/game/setup/content.ts). */
+const GAME_SLUG = wolfGameKit.gameSlug;
 
 /** A GameKIT whose Dynamic Data client serves `getPack` from the given function. */
 function fakeKit(getPack: (key: string) => Promise<PackBundle>): KitLike {
