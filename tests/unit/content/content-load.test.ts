@@ -82,7 +82,7 @@ describe('assemble / decompose', () => {
         },
       ],
     });
-    const { a, b } = bundle.schemas.blocks?.entries as Record<string, object>;
+    const { a, b } = bundle.schemas.blocks!.entries as Record<string, object>;
     bundle.schemas.blocks = {
       entries: { b: { ...b, order: 1 }, a: { ...a, order: 2 } },
     };

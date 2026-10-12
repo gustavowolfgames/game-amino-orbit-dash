@@ -10,7 +10,7 @@
  */
 
 import type { LoadingState, Manifest } from '@wolfgames/components/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const testManifest: Manifest = {
   cdnBase: '/assets',

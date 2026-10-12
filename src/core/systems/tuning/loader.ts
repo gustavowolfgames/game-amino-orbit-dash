@@ -1,9 +1,4 @@
-import type {
-  GameTuningBase,
-  ScaffoldTuning,
-  TuningLoadResult,
-  TuningSource,
-} from './types';
+import type { GameTuningBase, ScaffoldTuning, TuningLoadResult } from './types';
 import { SCAFFOLD_DEFAULTS } from './types';
 
 // Paths to JSON config files

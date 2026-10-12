@@ -17,7 +17,7 @@ export function Logo(props: LogoProps) {
         'logo-wide-small',
       );
       setSrc(url);
-    } catch (e) {
+    } catch {
       console.warn('Logo not loaded yet');
     }
   });

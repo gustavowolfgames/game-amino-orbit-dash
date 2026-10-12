@@ -114,6 +114,7 @@ export function InspectorOverlay(props: OverlayProps) {
 
   return (
     <svg
+      aria-hidden="true"
       style={{
         position: 'fixed',
         top: '0',

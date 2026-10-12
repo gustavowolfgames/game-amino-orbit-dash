@@ -10,7 +10,7 @@
  * - unload methods delegate to facade
  */
 
-import type { LoadingState, Manifest } from '@wolfgames/components/core';
+import type { LoadingState } from '@wolfgames/components/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockLoadingState: LoadingState = {
@@ -249,6 +249,8 @@ describe('useAssets contract', () => {
       'unloadScene',
     ];
 
+    // Every facade method is part of the context shape.
+    expect(expectedKeys).toEqual(expect.arrayContaining(facadeMethods));
     for (const key of facadeMethods) {
       expect(typeof (mockFacade as Record<string, unknown>)[key]).toBe(
         'function',

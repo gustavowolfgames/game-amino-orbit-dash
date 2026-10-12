@@ -9,7 +9,6 @@ import {
   type Ticker,
 } from 'pixi.js';
 import type {
-  BurstConfig,
   GradientStop,
   ParticleConfig,
   ShapeConfig,
@@ -735,7 +734,6 @@ export function createParticleRuntime(
             p.vy += (dy / dist) * radial;
           }
           if (vol.speedModifier != null) {
-            const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy) || 1;
             const mult = vol.speedModifier;
             p.vx *= mult;
             p.vy *= mult;

@@ -122,7 +122,7 @@ export const setupStartScreen: SetupStartScreen = (
           if (!app) return;
           releasePixiApp = exposePixiApp(app);
 
-          const backdrop = createPixiBackdrop({
+          createPixiBackdrop({
             app,
             container,
             zIndex: 0,

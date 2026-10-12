@@ -1,5 +1,4 @@
 import { type JSX, splitProps } from 'solid-js';
-import { useAssets } from '~/core/systems/assets';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -33,7 +32,6 @@ export function Button(props: ButtonProps) {
     'disabled',
     'onClick',
   ]);
-  const { coordinator } = useAssets();
 
   const variant = () => local.variant ?? 'primary';
   const size = () => local.size ?? 'md';

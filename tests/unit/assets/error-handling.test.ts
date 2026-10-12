@@ -9,13 +9,9 @@
  * - Error state is cleared on successful retry
  */
 
-import type {
-  LoaderAdapter,
-  LoadingState,
-  Manifest,
-} from '@wolfgames/components/core';
+import type { LoaderAdapter, Manifest } from '@wolfgames/components/core';
 import { createAssetCoordinator } from '@wolfgames/components/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 const manifest: Manifest = {
   cdnBase: '/assets',

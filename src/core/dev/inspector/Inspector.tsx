@@ -4,7 +4,6 @@ import { activeInspectorActions } from '~/core/systems/ecs';
 import { isPanelOpen, setIsPanelOpen } from '../TuningPanel';
 import {
   getEntityName,
-  getEntityPosition,
   type InspectorEntity,
   type InspectorResource,
   type InspectorSystem,
@@ -15,6 +14,21 @@ import {
 } from './bridge';
 import { entityColor, InspectorOverlay } from './Overlay';
 import { s } from './styles';
+
+/** Click, Enter/Space and keyboard focus for a non-button element that acts as a button. */
+function pressable(onPress: () => void) {
+  return {
+    role: 'button',
+    tabIndex: 0,
+    onClick: onPress,
+    onKeyDown: (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onPress();
+      }
+    },
+  } as const;
+}
 
 export type InspectorProps = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -134,7 +148,11 @@ export function Inspector(props: InspectorProps) {
         {/* Header */}
         <div style={s.header}>
           <span>Inspector</span>
-          <button style={s.closeBtn} onClick={() => setIsPanelOpen(false)}>
+          <button
+            type="button"
+            style={s.closeBtn}
+            onClick={() => setIsPanelOpen(false)}
+          >
             x
           </button>
         </div>
@@ -144,7 +162,11 @@ export function Inspector(props: InspectorProps) {
           <div style={s.actionBar}>
             <For each={activeInspectorActions()}>
               {(action) => (
-                <button style={s.actionBtn} onClick={() => action.run()}>
+                <button
+                  type="button"
+                  style={s.actionBtn}
+                  onClick={() => action.run()}
+                >
                   {action.label()}
                 </button>
               )}
@@ -169,7 +191,7 @@ export function Inspector(props: InspectorProps) {
           <div style={s.section}>
             <div
               style={s.accordionHeader}
-              onClick={() => toggleSection('entities')}
+              {...pressable(() => toggleSection('entities'))}
             >
               <span style={s.chevron(sections().has('entities'))}>
                 {'\u25B6'}
@@ -192,7 +214,7 @@ export function Inspector(props: InspectorProps) {
                         <div
                           ref={(el) => entityRefs.set(entity.id, el)}
                           style={s.entityAccordion}
-                          onClick={() => toggleEntity(entity.id)}
+                          {...pressable(() => toggleEntity(entity.id))}
                         >
                           <span style={s.chevronSmall(isOpen())}>
                             {'\u25B6'}
@@ -232,7 +254,7 @@ export function Inspector(props: InspectorProps) {
           <div style={s.section}>
             <div
               style={s.accordionHeader}
-              onClick={() => toggleSection('archetypes')}
+              {...pressable(() => toggleSection('archetypes'))}
             >
               <span style={s.chevron(sections().has('archetypes'))}>
                 {'\u25B6'}
@@ -249,7 +271,7 @@ export function Inspector(props: InspectorProps) {
                     <div>
                       <div
                         style={s.typeRow}
-                        onClick={() => toggleArchetype(archName)}
+                        {...pressable(() => toggleArchetype(archName))}
                       >
                         <span
                           style={s.chevronSmall(
@@ -275,12 +297,12 @@ export function Inspector(props: InspectorProps) {
                           {(entity) => (
                             <div
                               style={s.entityRow}
-                              onClick={() => {
+                              {...pressable(() => {
                                 setSections((p) => new Set([...p, 'entities']));
                                 setExpandedEntities(
                                   (p) => new Set([...p, entity.id]),
                                 );
-                              }}
+                              })}
                             >
                               <div style={s.dot(entityColor(entity.id))} />
                               <span
@@ -309,7 +331,7 @@ export function Inspector(props: InspectorProps) {
           <div style={s.section}>
             <div
               style={s.accordionHeader}
-              onClick={() => toggleSection('resources')}
+              {...pressable(() => toggleSection('resources'))}
             >
               <span style={s.chevron(sections().has('resources'))}>
                 {'\u25B6'}
@@ -337,7 +359,7 @@ export function Inspector(props: InspectorProps) {
           <div style={s.section}>
             <div
               style={s.accordionHeader}
-              onClick={() => toggleSection('systems')}
+              {...pressable(() => toggleSection('systems'))}
             >
               <span style={s.chevron(sections().has('systems'))}>
                 {'\u25B6'}
@@ -375,7 +397,7 @@ export function Inspector(props: InspectorProps) {
           <span>
             {entities().length} entities | {systems().length} systems
           </span>
-          <button style={s.footerBtn} onClick={copySnapshot}>
+          <button type="button" style={s.footerBtn} onClick={copySnapshot}>
             Copy JSON
           </button>
         </div>
