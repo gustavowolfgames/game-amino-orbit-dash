@@ -9,6 +9,69 @@ and errors so every game starts at production quality.
 satisfying, compulsively replayable. The quality bar lives in
 [`docs/GAME-DESIGN.md`](docs/GAME-DESIGN.md).
 
+## Agent surface: how agents get their instructions
+
+**This template guides agents with a small router plus on-demand recipes, not an
+always-on rule pack.** The agent always loads a 47-line router (`AGENTS.md`), then
+opens the one recipe the task needs. Benchmarks behind the default: recipes built the
+same games about 19% cheaper than the cortex rule pack, with equal build and test
+results (ENG-4734, ENG-4735). Reading instructions is about half of an agent's cost,
+so what loads every turn matters.
+
+```
+CLAUDE.md                  GENERATED from the toggles below; imports AGENTS.md
+AGENTS.md                  the router: task → which recipe to open (always loaded)
+.agents/
+├── recipes/               opened only when the task needs one
+│   ├── new-game.md          build a new game / replace the sample
+│   ├── ecs.md               state, turns, score, entities, frame loop
+│   ├── guardrails.md        input, leaks, DOM, "do not" rules
+│   ├── pixi.md              sprites, canvas HUD, VFX
+│   ├── game-controller.md   setupGame, screen changes
+│   ├── components.md        any visible element → @wolfgames/components
+│   ├── reskin.md            colors, type, logos, partner skin
+│   ├── content.md           levels, questions, content packs
+│   ├── dynamic-data.md      daily editions, vault, Games Manager
+│   ├── analytics.md         analytics events
+│   ├── assets.md            images, audio, VFX via the wolf-game-kit MCP
+│   ├── systems.md           @wolfgames/game-systems steer (toggle, off)
+│   └── verify.md            before saying "it works"
+├── skills/                longer Pixi and controller guidance the recipes point at
+├── specs/                 large feature plans (copy SPEC.template.md)
+└── decisions.tsv          every structural change, with its evidence
+```
+
+### The `agentSurface` toggles
+
+`package.json` switches each guidance layer on or off:
+
+```json
+"agentSurface": {
+  "recipes": true,
+  "cortex": false,
+  "systems": false
+}
+```
+
+| Toggle | What it loads | Default |
+|---|---|---|
+| `recipes` | `AGENTS.md` router + always-on core + on-demand `.agents/recipes/` | **on** |
+| `cortex` | the `@wolfgames/cortex` alwaysApply rule pack (generated `.claude/rules/`, skills, commands) | off |
+| `systems` | `.agents/recipes/systems.md`, the `@wolfgames/game-systems` catalog steer, every turn | off |
+
+```bash
+bun run agent:surface                                # apply the toggles (also runs on postinstall and predev)
+AGENT_SURFACE=recipes,cortex bun run agent:surface   # try a combination without editing package.json
+bun run check:agent                                  # fails if CLAUDE.md drifts from the toggles, a recipe cites a missing path, …
+```
+
+- **Never edit `CLAUDE.md` by hand.** Change the toggles; `agent:surface` regenerates it.
+- **Project instructions go in a recipe,** not in a cortex rule or a `postinstall` that writes rules.
+- **`dev` is plain `vite`, not `nucleo dev`:** `nucleo dev` runs `cortex:setup`, which
+  reinstalls the rule pack, and it refuses to run without an interactive terminal.
+
+Details: [`.agents/README.md`](.agents/README.md).
+
 ## Pick your path
 
 ### I'm a designer / artist / producer
@@ -77,10 +140,6 @@ structure, boundaries, workflow, and the self-maintenance mandate.
 Full walkthrough (including the Cursor non-interactive-shell gotcha):
 [`docs/guides/game-kit-setup.md`](docs/guides/game-kit-setup.md).
 
-**Windows only:** enable Developer Mode before the first `bun install` — the
-cortex postinstall uses symlinks. Without it, setup falls back to junctions or
-copies (copies won't pick up cortex updates).
-
 ### MCP servers
 
 Asset generation runs through the **wolf-game-kit MCP** — it lets agents
@@ -122,21 +181,10 @@ Add other servers (e.g. Playwright for E2E debugging) to your local
 
 ## How the AI context stays fresh
 
-All AI rules and skills come from
-[@wolfgames/cortex](https://github.com/wolfgames/cortex), symlinked into
-`.agents/` and `.claude/` on every `bun install`. Nothing to maintain by
-hand:
-
-```bash
-bun run cortex:refresh   # pull latest cortex content
-bun run cortex:setup     # re-link (also runs automatically on install)
-```
-
-- Project-only rules/skills go in [`local/`](local/) (tracked in git).
-- `docs/cortex-inventory.md` (generated) lists everything currently wired up.
-- The repo itself learns over time: agents append to
-  [`docs/LEARNINGS.md`](docs/LEARNINGS.md) and keep
-  [`docs/GAME-DESIGN.md`](docs/GAME-DESIGN.md) current as part of every task.
+Agent instructions live in this repo (see [Agent surface](#agent-surface-how-agents-get-their-instructions)),
+so they change with the code in the same PR. The repo also learns over time: agents
+append to [`docs/LEARNINGS.md`](docs/LEARNINGS.md) and keep
+[`docs/GAME-DESIGN.md`](docs/GAME-DESIGN.md) current as part of every task.
 
 ## Architecture
 
