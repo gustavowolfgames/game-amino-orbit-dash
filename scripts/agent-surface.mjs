@@ -27,10 +27,13 @@ if (process.env.AGENT_SURFACE !== undefined) {
   on = Object.fromEntries(Object.keys(DEFAULTS).map((k) => [k, want.has(k)]));
 }
 
-// Paths cortex setup generates. Only entries git does NOT track are ever removed,
-// so the recipes' own .agents/skills/ survive a cortex switch-off.
+// Paths cortex setup generates. Only cortex's own output is ever removed: a symlink (what
+// setup makes), or an entry named like one in a cortex pack (its copy fallback on Windows).
+// Anything else (the recipes' own .agents/skills/, a game's own skills) stays, tracked or
+// not: a game copied without git history (nucleo game create) still has them untracked.
 const CORTEX_OUTPUT = ['.claude/rules', '.claude/skills', '.claude/commands', '.agents/rules', '.agents/skills', '.agents/commands'];
 const CORTEX_INDEX = '.claude/rules.md';
+const CORTEX_PKG = path.join(root, 'node_modules/@wolfgames/cortex');
 
 function tracked(rel) {
   try {
@@ -41,18 +44,27 @@ function tracked(rel) {
   }
 }
 
+/** Entry names cortex setup can write into a `rules`, `skills` or `commands` folder. */
+function cortexNames(kind) {
+  const names = new Set();
+  if (!existsSync(CORTEX_PKG)) return names;
+  for (const pack of readdirSync(CORTEX_PKG)) {
+    const dir = path.join(CORTEX_PKG, pack, kind);
+    if (existsSync(dir) && lstatSync(dir).isDirectory()) for (const n of readdirSync(dir)) names.add(n);
+  }
+  return names;
+}
+
 function cortexOff() {
   let removed = 0;
   for (const dir of CORTEX_OUTPUT) {
     const abs = path.join(root, dir);
     if (!existsSync(abs)) continue;
+    const generated = cortexNames(path.basename(dir));
     for (const name of readdirSync(abs)) {
       const rel = `${dir}/${name}`;
-      const st = lstatSync(path.join(root, rel));
-      const keep = st.isDirectory() && !st.isSymbolicLink()
-        ? readdirSync(path.join(root, rel)).some((f) => tracked(`${rel}/${f}`))
-        : tracked(rel);
-      if (!keep) { rmSync(path.join(root, rel), { recursive: true, force: true }); removed++; }
+      const fromCortex = lstatSync(path.join(root, rel)).isSymbolicLink() || generated.has(name);
+      if (fromCortex && !tracked(rel)) { rmSync(path.join(root, rel), { recursive: true, force: true }); removed++; }
     }
     if (!readdirSync(abs).length) rmSync(abs, { recursive: true });   // leave no empty cortex dirs
   }
