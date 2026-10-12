@@ -4,6 +4,8 @@
 // Usage: bun scripts/amino-verify.ts
 //
 // Runs typecheck, lint, and build sequentially. Exits non-zero on first failure.
+// Typecheck is the baseline check, not plain tsc: the template carries inherited errors
+// (scripts/typecheck-baseline.txt), so plain tsc would stop here every time.
 
 import { execSync } from "node:child_process";
 
@@ -13,7 +15,7 @@ interface Step {
 }
 
 const STEPS: Step[] = [
-  { name: "Typecheck", command: "bun run tsc --noEmit" },
+  { name: "Typecheck", command: "bun run typecheck:baseline" },
   { name: "Lint", command: "bun run biome check ." },
   { name: "Build", command: "bun run build" },
 ];
