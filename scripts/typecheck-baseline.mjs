@@ -9,10 +9,18 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const baselineFile = path.join(root, 'scripts/typecheck-baseline.txt');
 
+// The repo's own compiler (devDependency), never a global tsc: the baseline is only
+// meaningful against one TypeScript version.
+const tsc = path.join(root, 'node_modules/.bin/tsc');
+if (!existsSync(tsc)) {
+  process.stderr.write('typescript is not installed; run `bun install` first.\n');
+  process.exit(1);
+}
+
 let output = '';
 try {
   output = execSync(
-    `${existsSync(path.join(root, 'node_modules/.bin/tsc')) ? path.join(root, 'node_modules/.bin/tsc') : 'tsc'} --noEmit --pretty false`,
+    `"${tsc}" --noEmit --pretty false`,
     { cwd: root, encoding: 'utf8', stdio: 'pipe' },
   );
 } catch (error) {
