@@ -10,45 +10,71 @@
  * - Underlying facade methods are delegated correctly
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@wolfgames/components/core', () => {
-  const createAssetFacade = vi.fn(({ loaders }: { loaders?: Record<string, unknown> }) => {
-    const loaded: string[] = [];
-    return {
-      loadBundle: vi.fn(async (name: string) => { loaded.push(name); }),
-      loadBundles: vi.fn(async (names: string[]) => { loaded.push(...names); }),
-      backgroundLoadBundle: vi.fn(async () => {}),
-      preloadScene: vi.fn(async () => {}),
-      loadBoot: vi.fn(async () => {}),
-      loadCore: vi.fn(async () => {}),
-      loadTheme: vi.fn(async () => {}),
-      loadAudio: vi.fn(async () => {}),
-      loadScene: vi.fn(async () => {}),
-      initGpu: vi.fn(async () => {}),
-      getLoadedBundles: vi.fn(() => loaded),
-      isLoaded: vi.fn((name: string) => loaded.includes(name)),
-      unloadBundle: vi.fn(),
-      unloadBundles: vi.fn(),
-      unloadScene: vi.fn(),
-      startBackgroundLoading: vi.fn(async () => {}),
-      loadingState: vi.fn(() => ({ loading: [], loaded, errors: {}, bundleProgress: {}, progress: 0, backgroundLoading: [], unloaded: [] })),
-      loadingStateSignal: { get: vi.fn(), set: vi.fn(), subscribe: vi.fn(() => () => {}) },
-      ready: { get: vi.fn(() => false), set: vi.fn(), subscribe: vi.fn(() => () => {}) },
-      gpuReady: { get: vi.fn(() => false), set: vi.fn(), subscribe: vi.fn(() => () => {}) },
-      dom: {
-        getFrameURL: vi.fn(async () => 'blob:mock'),
-        get: vi.fn(() => null),
-        getImage: vi.fn(() => null),
-        getSheet: vi.fn(() => null),
-        getSpritesheet: vi.fn(() => null),
-      },
-      getLoader: vi.fn(() => null),
-      dispose: vi.fn(),
-      coordinator: {},
-      _loaders: loaders,
-    };
-  });
+  const createAssetFacade = vi.fn(
+    ({ loaders }: { loaders?: Record<string, unknown> }) => {
+      const loaded: string[] = [];
+      return {
+        loadBundle: vi.fn(async (name: string) => {
+          loaded.push(name);
+        }),
+        loadBundles: vi.fn(async (names: string[]) => {
+          loaded.push(...names);
+        }),
+        backgroundLoadBundle: vi.fn(async () => {}),
+        preloadScene: vi.fn(async () => {}),
+        loadBoot: vi.fn(async () => {}),
+        loadCore: vi.fn(async () => {}),
+        loadTheme: vi.fn(async () => {}),
+        loadAudio: vi.fn(async () => {}),
+        loadScene: vi.fn(async () => {}),
+        initGpu: vi.fn(async () => {}),
+        getLoadedBundles: vi.fn(() => loaded),
+        isLoaded: vi.fn((name: string) => loaded.includes(name)),
+        unloadBundle: vi.fn(),
+        unloadBundles: vi.fn(),
+        unloadScene: vi.fn(),
+        startBackgroundLoading: vi.fn(async () => {}),
+        loadingState: vi.fn(() => ({
+          loading: [],
+          loaded,
+          errors: {},
+          bundleProgress: {},
+          progress: 0,
+          backgroundLoading: [],
+          unloaded: [],
+        })),
+        loadingStateSignal: {
+          get: vi.fn(),
+          set: vi.fn(),
+          subscribe: vi.fn(() => () => {}),
+        },
+        ready: {
+          get: vi.fn(() => false),
+          set: vi.fn(),
+          subscribe: vi.fn(() => () => {}),
+        },
+        gpuReady: {
+          get: vi.fn(() => false),
+          set: vi.fn(),
+          subscribe: vi.fn(() => () => {}),
+        },
+        dom: {
+          getFrameURL: vi.fn(async () => 'blob:mock'),
+          get: vi.fn(() => null),
+          getImage: vi.fn(() => null),
+          getSheet: vi.fn(() => null),
+          getSpritesheet: vi.fn(() => null),
+        },
+        getLoader: vi.fn(() => null),
+        dispose: vi.fn(),
+        coordinator: {},
+        _loaders: loaders,
+      };
+    },
+  );
 
   return {
     createAssetFacade,
@@ -61,7 +87,7 @@ vi.mock('@wolfgames/components/howler', () => {
   const createHowlerLoader = vi.fn(() => ({
     init: vi.fn(),
     loadBundle: vi.fn(async () => {}),
-    get: vi.fn((alias: string) => alias === 'sfx' ? mockHowl : null),
+    get: vi.fn((alias: string) => (alias === 'sfx' ? mockHowl : null)),
     has: vi.fn(() => false),
     setVolume: vi.fn(),
     getVolume: vi.fn(() => 1),
@@ -74,9 +100,9 @@ vi.mock('@wolfgames/components/howler', () => {
   return { createHowlerLoader };
 });
 
-import { createCoordinatorFacade } from '~/core/systems/assets/facade';
 import { createAssetFacade, type Manifest } from '@wolfgames/components/core';
 import { createHowlerLoader } from '@wolfgames/components/howler';
+import { createCoordinatorFacade } from '~/core/systems/assets/facade';
 
 const testManifest: Manifest = {
   cdnBase: '/assets',
@@ -89,8 +115,10 @@ const testManifest: Manifest = {
 // The inner createAssetFacade / Howler instances built during the current
 // beforeEach. Use the most recent mock result so a later facade creation in
 // this file can't silently target a stale instance.
-const innerFacade = () => vi.mocked(createAssetFacade).mock.results.at(-1)!.value;
-const innerHowler = () => vi.mocked(createHowlerLoader).mock.results.at(-1)!.value;
+const innerFacade = () =>
+  vi.mocked(createAssetFacade).mock.results.at(-1)!.value;
+const innerHowler = () =>
+  vi.mocked(createHowlerLoader).mock.results.at(-1)!.value;
 
 describe('createCoordinatorFacade', () => {
   let facade: ReturnType<typeof createCoordinatorFacade>;

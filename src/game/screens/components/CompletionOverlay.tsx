@@ -1,11 +1,11 @@
 /**
  * Level Completion Overlay Component
- * 
+ *
  * Displays level completion celebration with:
  * - Celebration visual (image or fallback)
  * - Clue text reveal
  * - Continue button (after timer)
- * 
+ *
  * Features:
  * - Authored in design px on the 390x844 canvas — no breakpoint tiers
  * - GSAP animations (fade + scale entrance)
@@ -14,8 +14,8 @@
  * - Graceful fallback for missing images
  */
 
-import { Show, onMount, onCleanup, createEffect } from 'solid-js';
 import gsap from 'gsap';
+import { createEffect, onCleanup, onMount, Show } from 'solid-js';
 import { Button } from '~/core/ui';
 
 export interface CompletionOverlayProps {
@@ -37,7 +37,7 @@ export interface CompletionOverlayProps {
 
 /**
  * Level completion overlay with celebration and clue reveal.
- * 
+ *
  * Sized once, in design px, with safe padding and max-width constraints. There are
  * deliberately no `sm:` / `md:` tiers: they fire off the REAL window, while this
  * renders inside the design transform against a fixed 390 px canvas. So on a
@@ -98,7 +98,7 @@ export function CompletionOverlay(props: CompletionOverlayProps) {
           duration: 0.5,
           ease: 'back.out(1.7)',
         },
-        '-=0.1' // Slight overlap
+        '-=0.1', // Slight overlap
       );
     }
 
@@ -112,7 +112,7 @@ export function CompletionOverlay(props: CompletionOverlayProps) {
           duration: 0.4,
           ease: 'power2.out',
         },
-        '-=0.2' // Overlap with celebration
+        '-=0.2', // Overlap with celebration
       );
     }
   });
@@ -137,7 +137,7 @@ export function CompletionOverlay(props: CompletionOverlayProps) {
         opacity: 1,
         duration: 0.3,
         ease: 'back.out(1.7)',
-      }
+      },
     );
   });
 
@@ -190,7 +190,6 @@ export function CompletionOverlay(props: CompletionOverlayProps) {
         {/* Content card - mobile-first with safe padding */}
         <div class="safe-area-inset w-full max-w-lg px-4">
           <div class="flex flex-col items-center gap-6">
-
             {/* Celebration visual */}
             <div ref={celebrationRef} class="flex items-center justify-center">
               <Show
@@ -213,11 +212,7 @@ export function CompletionOverlay(props: CompletionOverlayProps) {
             </div>
 
             {/* Clue text */}
-            <div
-              ref={clueRef}
-              id="completion-title"
-              class="text-center px-4"
-            >
+            <div ref={clueRef} id="completion-title" class="text-center px-4">
               <h2 class="text-2xl font-bold text-white leading-tight mb-2">
                 Level Complete!
               </h2>

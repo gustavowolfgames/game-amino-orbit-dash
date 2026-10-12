@@ -16,8 +16,8 @@
 
 import {
   createAssetFacade,
-  type Manifest,
   type LoadingState,
+  type Manifest,
   type Signal,
 } from '@wolfgames/components/core';
 import { createHowlerLoader } from '@wolfgames/components/howler';
@@ -49,7 +49,11 @@ export interface AssetCoordinatorFacade {
   unloadBundles(names: string[]): void;
   unloadScene(sceneName: string): void;
   audio: {
-    play(channel: string, sprite?: string, opts?: { volume?: number; loop?: boolean }): number;
+    play(
+      channel: string,
+      sprite?: string,
+      opts?: { volume?: number; loop?: boolean },
+    ): number;
     stop(channel: string, id?: number): void;
     setMasterVolume(volume: number): void;
     unlock(): Promise<void>;
@@ -59,7 +63,9 @@ export interface AssetCoordinatorFacade {
   dispose(): void;
 }
 
-export function createCoordinatorFacade(manifest: Manifest): AssetCoordinatorFacade {
+export function createCoordinatorFacade(
+  manifest: Manifest,
+): AssetCoordinatorFacade {
   const howlerLoader = createHowlerLoader();
 
   // createAssetFacade creates its own DOM loader and owns lazy GPU init; we
@@ -76,7 +82,8 @@ export function createCoordinatorFacade(manifest: Manifest): AssetCoordinatorFac
     gpuReady: facade.gpuReady,
     isLoaded: (name) => facade.isLoaded(name),
     dom: {
-      getFrameURL: (atlasAlias, frameName) => facade.dom.getFrameURL(atlasAlias, frameName),
+      getFrameURL: (atlasAlias, frameName) =>
+        facade.dom.getFrameURL(atlasAlias, frameName),
     },
 
     loadBundle: (name, onProgress) => facade.loadBundle(name, onProgress),
@@ -115,7 +122,8 @@ export function createCoordinatorFacade(manifest: Manifest): AssetCoordinatorFac
       },
     },
 
-    getLoader: <T = unknown>(type: LoaderType) => facade.getLoader(type) as T | null,
+    getLoader: <T = unknown>(type: LoaderType) =>
+      facade.getLoader(type) as T | null,
     getGpuLoader: () => facade.getLoader<PixiLoader>('gpu'),
     dispose: () => facade.dispose(),
   };

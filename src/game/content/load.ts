@@ -23,11 +23,14 @@ import { DEFAULT_PACK_KEY, parseLevel, type ResolvedLevel } from './level';
  * the param: a deployed QA build is where a pack is tried, and a tester's link beats the host.
  */
 export function resolvePackKey(selection?: string | null): string {
-  const asked = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('wolfPack');
+  const asked =
+    typeof location === 'undefined'
+      ? null
+      : new URLSearchParams(location.search).get('wolfPack');
   return asked || selection || DEFAULT_PACK_KEY;
 }
 
-const fallback = "keeping the pack in play";
+const fallback = 'keeping the pack in play';
 
 /**
  * Fetch, join, validate and seed the pack under `packKey`. Resolves to the pack now in play, or
@@ -48,12 +51,17 @@ export async function loadActivePack(
     // No pack under the default key is every ordinary boot with nothing published — not worth
     // a line. No pack under a key someone typed or a Vault sent is.
     if (!isPackNotFound(err) || packKey !== DEFAULT_PACK_KEY) {
-      console.warn(`[content] pack "${packKey}" unavailable — ${fallback}.`, err);
+      console.warn(
+        `[content] pack "${packKey}" unavailable — ${fallback}.`,
+        err,
+      );
     }
     return null;
   }
   if (typeof assembled === 'string') {
-    console.warn(`[content] pack "${packKey}" refused: ${assembled} — ${fallback}.`);
+    console.warn(
+      `[content] pack "${packKey}" refused: ${assembled} — ${fallback}.`,
+    );
     return null;
   }
 
@@ -62,17 +70,27 @@ export async function loadActivePack(
     block.levels.forEach((raw, i) => {
       const level = parseLevel(raw);
       if (level) levels.push(level);
-      else console.warn(`[content] pack "${assembled.id}" block "${block.id}" level ${i + 1} is not playable here — dropped.`);
+      else
+        console.warn(
+          `[content] pack "${assembled.id}" block "${block.id}" level ${i + 1} is not playable here — dropped.`,
+        );
     });
   }
   if (levels.length === 0) {
     if (packLevels(assembled).length > 0) {
-      console.warn(`[content] pack "${assembled.id}" has no playable level — ${fallback}.`);
+      console.warn(
+        `[content] pack "${assembled.id}" has no playable level — ${fallback}.`,
+      );
     }
     return null;
   }
 
-  const pack: ActivePack = { id: assembled.id, levels, source: 'published', contentId };
+  const pack: ActivePack = {
+    id: assembled.id,
+    levels,
+    source: 'published',
+    contentId,
+  };
   seedActivePack(pack);
   return pack;
 }

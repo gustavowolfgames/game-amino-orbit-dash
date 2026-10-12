@@ -14,7 +14,12 @@
 
 import type { ScheduledContentMetadata } from '@wolfgames/client';
 import { loadBrand } from '~/game/brand';
-import { type KitLike, loadActivePack, loadCatalog, resolvePackKey } from '~/game/content';
+import {
+  type KitLike,
+  loadActivePack,
+  loadCatalog,
+  resolvePackKey,
+} from '~/game/content';
 import { inVault } from '~/integrations/vault';
 import wolfGameKit from '../../../wolf-game-kit.json';
 
@@ -43,7 +48,10 @@ export function getEditions(): readonly ScheduledContentMetadata[] {
  * Fetch and apply the pack and brand for `selection` (a Vault `contentId`), bounded. The boot
  * call (no selection) inside a Vault also loads the edition schedule the manager harvests.
  */
-export function loadContent(gameKit: KitLike | null | undefined, selection: string | null = null): Promise<void> {
+export function loadContent(
+  gameKit: KitLike | null | undefined,
+  selection: string | null = null,
+): Promise<void> {
   if (!gameKit || isFrozen()) return Promise.resolve();
   const packKey = resolvePackKey(selection);
   const schedule =
@@ -52,10 +60,15 @@ export function loadContent(gameKit: KitLike | null | undefined, selection: stri
           editions = list;
         })
       : null;
-  const work = Promise.all([loadActivePack(gameKit, packKey, selection), loadBrand(gameKit, packKey), schedule]).then(
-    () => undefined,
-  );
-  const bounded = Promise.race([work, new Promise<void>((resolve) => setTimeout(resolve, CONTENT_BUDGET_MS))]);
+  const work = Promise.all([
+    loadActivePack(gameKit, packKey, selection),
+    loadBrand(gameKit, packKey),
+    schedule,
+  ]).then(() => undefined);
+  const bounded = Promise.race([
+    work,
+    new Promise<void>((resolve) => setTimeout(resolve, CONTENT_BUDGET_MS)),
+  ]);
   settled = bounded;
   return bounded;
 }

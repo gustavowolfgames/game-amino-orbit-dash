@@ -18,7 +18,7 @@ export interface BurstConfig {
 
 /** Emitter shape (Unity Shape module) */
 export interface ShapeConfig {
-  type: "point" | "circle" | "rectangle" | "edge" | "cone";
+  type: 'point' | 'circle' | 'rectangle' | 'edge' | 'cone';
   radius?: number;
   radiusThickness?: number;
   arc?: number;
@@ -26,7 +26,7 @@ export interface ShapeConfig {
   height?: number;
   angle?: number;
   coneAngle?: number; // cone opening angle in degrees
-  emitFrom?: "volume" | "edge" | "shell";
+  emitFrom?: 'volume' | 'edge' | 'shell';
   randomizeDirection?: number;
   alignToDirection?: boolean;
 }
@@ -83,7 +83,7 @@ export interface GradientStop {
 export interface TextureSheetAnimationConfig {
   tilesX: number;
   tilesY: number;
-  mode: "wholeSheet" | "singleRow";
+  mode: 'wholeSheet' | 'singleRow';
   row?: number;
   frameOverTime?: number[][];
   cycles?: number;
@@ -104,7 +104,7 @@ export interface ParticleConfig {
   textureName: string;
   alphaStart: number;
   alphaEnd: number;
-  sizeMode: "pixels" | "scale";
+  sizeMode: 'pixels' | 'scale';
   sizeStartPixels: number;
   sizeEndPixels: number;
   scaleStart: number;
@@ -113,7 +113,7 @@ export interface ParticleConfig {
   colorStart: { r: number; g: number; b: number };
   colorEnd: { r: number; g: number; b: number };
   /** Start color mode: constant uses colorStart; randomColor picks from startColorKeys */
-  startColorMode?: "constant" | "randomColor";
+  startColorMode?: 'constant' | 'randomColor';
   /** Color keys for randomColor mode; each particle picks one at random */
   startColorKeys?: GradientStop[];
   speed: number;
@@ -125,7 +125,7 @@ export interface ParticleConfig {
   rotationStart: number;
   rotationSpeed: number;
   rotationVariance: number;
-  rotationDirection: "clockwise" | "counter-clockwise" | "random";
+  rotationDirection: 'clockwise' | 'counter-clockwise' | 'random';
   emitterStartDelay: number;
   emitterLifetime: number;
   emitterLifetimeVariance: number;
@@ -137,7 +137,7 @@ export interface ParticleConfig {
   spawnRate: number;
   maxParticles: number;
   particlesPerWave: number;
-  blendMode: "normal" | "add" | "multiply" | "screen";
+  blendMode: 'normal' | 'add' | 'multiply' | 'screen';
   autoPlay: boolean;
 
   // Unity Main module extras
@@ -191,10 +191,10 @@ export interface SpawnerData {
 
 const DEFAULT_PARTICLE_CONFIG: ParticleConfig = {
   // Empty = use the built-in procedural radial-gradient texture (no asset load).
-  textureName: "",
+  textureName: '',
   alphaStart: 1,
   alphaEnd: 0,
-  sizeMode: "pixels",
+  sizeMode: 'pixels',
   sizeStartPixels: 30,
   sizeEndPixels: 10,
   scaleStart: 0.02,
@@ -211,7 +211,7 @@ const DEFAULT_PARTICLE_CONFIG: ParticleConfig = {
   rotationStart: 0,
   rotationSpeed: 0,
   rotationVariance: 0,
-  rotationDirection: "random",
+  rotationDirection: 'random',
   emitterStartDelay: 0,
   emitterLifetime: 0,
   emitterLifetimeVariance: 0,
@@ -223,7 +223,7 @@ const DEFAULT_PARTICLE_CONFIG: ParticleConfig = {
   spawnRate: 30,
   maxParticles: 1000,
   particlesPerWave: 3,
-  blendMode: "add",
+  blendMode: 'add',
   autoPlay: true,
 };
 
@@ -232,7 +232,7 @@ export function createDefaultSpawner(name?: string): SpawnerData {
   const id = `spawner_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   return {
     id,
-    name: name ?? "Spawner",
+    name: name ?? 'Spawner',
     position: { x: 0, y: 0 },
     visible: true,
     config: { ...DEFAULT_PARTICLE_CONFIG },
@@ -241,10 +241,10 @@ export function createDefaultSpawner(name?: string): SpawnerData {
 
 /** Default shape (point) */
 export const DEFAULT_SHAPE: ShapeConfig = {
-  type: "point",
+  type: 'point',
   radiusThickness: 0,
   arc: 360,
-  emitFrom: "volume",
+  emitFrom: 'volume',
   randomizeDirection: 0,
   alignToDirection: false,
 };
@@ -308,9 +308,9 @@ export function normalizeParticleConfig(
 /** Returns default VFXData for a new preset (single spawner, centered) */
 export function getDefaultVFXData(): VFXData {
   return {
-    version: "2.0",
+    version: '2.0',
     timestamp: new Date().toISOString(),
-    spawners: [createDefaultSpawner("Spawner 1")],
-    aspectRatio: "16:9",
+    spawners: [createDefaultSpawner('Spawner 1')],
+    aspectRatio: '16:9',
   };
 }

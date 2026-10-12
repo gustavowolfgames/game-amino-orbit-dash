@@ -34,27 +34,39 @@
  *            renderer teardown → setActiveInspectorActions([])
  */
 
-import gsap from 'gsap';
-import { Application, Container, Sprite, Text, type FederatedPointerEvent } from 'pixi.js';
-import { createSignal } from 'solid-js';
-
 import { ParticleBurst } from '@wolfgames/components/modules/primitives/particle-burst';
-
+import gsap from 'gsap';
+import {
+  Application,
+  Container,
+  type FederatedPointerEvent,
+  Sprite,
+  Text,
+} from 'pixi.js';
+import { createSignal } from 'solid-js';
+import { exposePixiApp } from '~/core/dev/pixiDevtools';
+import type { Entity } from '~/core/systems/ecs';
 import { setActiveInspectorActions } from '~/core/systems/ecs';
 import { getTheme } from '~/game/brand';
 import { getActivePack, isLastLevel, levelAt } from '~/game/content';
-import { inVault, reportContentCompleted, reportGameCompleted } from '~/integrations/vault';
-import type { Entity } from '~/core/systems/ecs';
-import type { GameController, GameControllerDeps, SetupGame } from '~/game/mygame-contract';
-import { loadGameTextures, type GameTextures } from '../render/textures';
+import type {
+  GameController,
+  GameControllerDeps,
+  SetupGame,
+} from '~/game/mygame-contract';
+import {
+  inVault,
+  reportContentCompleted,
+  reportGameCompleted,
+} from '~/integrations/vault';
 import { DESIGN_H, DESIGN_W, ORB_RADIUS } from '../demo/config';
-import { createTickerEngine, startFixedStepLoop } from '../engine';
-import type { EngineHandle } from '../engine';
 import type { GameDatabase, GamePhase } from '../ecs/gamePlugin';
 import { readMovers, readOrbiters } from '../ecs/readStateFromEcs';
 import { stepWorld } from '../ecs/schedule';
+import type { EngineHandle } from '../engine';
+import { createTickerEngine, startFixedStepLoop } from '../engine';
+import { type GameTextures, loadGameTextures } from '../render/textures';
 import { getGameWorld } from '../world';
-import { exposePixiApp } from '~/core/dev/pixiDevtools';
 
 // ── Layout ─────────────────────────────────────────────────────────────────
 /** Delay (s) before handing off to results after a win, so the last pop reads. */
@@ -70,12 +82,15 @@ interface Dot {
   colorIndex: number;
 }
 
-export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameController => {
+export const setupGame: SetupGame = (
+  rawDeps: GameControllerDeps,
+): GameController => {
   const deps = rawDeps as Deps;
   const [ariaText, setAriaText] = createSignal('Loading…');
   // Settled by the loading screen before this screen exists; read once per run.
   const theme = getTheme();
-  const tint = (colorIndex: number) => theme.pieces[colorIndex % theme.pieces.length];
+  const tint = (colorIndex: number) =>
+    theme.pieces[colorIndex % theme.pieces.length];
 
   let app: Application | null = null;
   let releasePixiApp: (() => void) | null = null;
@@ -103,7 +118,13 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
   let handledPhase: GamePhase | null = null;
 
   // ── View helpers ─────────────────────────────────────────────────────────
-  const makeDot = (layer: Container, colorIndex: number, radius: number, x: number, y: number): Dot => {
+  const makeDot = (
+    layer: Container,
+    colorIndex: number,
+    radius: number,
+    x: number,
+    y: number,
+  ): Dot => {
     const container = new Container();
     container.position.set(x, y);
     const body = new Sprite((textures as GameTextures).orb);
@@ -115,7 +136,13 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     layer.addChild(container);
     // Spawn pop.
     container.scale.set(0.4);
-    gsap.to(container.scale, { x: 1, y: 1, duration: 0.22, ease: 'back.out(2)', overwrite: 'auto' });
+    gsap.to(container.scale, {
+      x: 1,
+      y: 1,
+      duration: 0.22,
+      ease: 'back.out(2)',
+      overwrite: 'auto',
+    });
     return { container, body, colorIndex };
   };
 
@@ -130,7 +157,12 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     dot.container.eventMode = 'none';
     gsap.killTweensOf(dot.container);
     gsap.killTweensOf(dot.container.scale);
-    gsap.to(dot.container.scale, { x: 1.6, y: 1.6, duration: 0.22, ease: 'power2.out' });
+    gsap.to(dot.container.scale, {
+      x: 1.6,
+      y: 1.6,
+      duration: 0.22,
+      ease: 'power2.out',
+    });
     gsap.to(dot.container, {
       alpha: 0,
       duration: 0.22,
@@ -150,7 +182,13 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
       liveMovers.add(m.entity);
       let view = moverViews.get(m.entity);
       if (!view) {
-        view = makeDot(moverLayer as Container, m.color, ORB_RADIUS, m.position[0], m.position[1]);
+        view = makeDot(
+          moverLayer as Container,
+          m.color,
+          ORB_RADIUS,
+          m.position[0],
+          m.position[1],
+        );
         moverViews.set(m.entity, view);
       }
       view.container.position.set(m.position[0], m.position[1]);
@@ -169,7 +207,13 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
       liveOrbiters.add(o.entity);
       let view = orbiterViews.get(o.entity);
       if (!view) {
-        view = makeDot(orbiterLayer as Container, o.color, ORB_RADIUS, o.position[0], o.position[1]);
+        view = makeDot(
+          orbiterLayer as Container,
+          o.color,
+          ORB_RADIUS,
+          o.position[0],
+          o.position[1],
+        );
         orbiterViews.set(o.entity, view);
       }
       view.container.position.set(o.position[0], o.position[1]);
@@ -220,7 +264,13 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     banner.alpha = 0;
     banner.scale.set(0.7);
     gsap.to(banner, { alpha: 1, duration: 0.3, overwrite: 'auto' });
-    gsap.to(banner.scale, { x: 1, y: 1, duration: 0.4, ease: 'back.out(1.7)', overwrite: 'auto' });
+    gsap.to(banner.scale, {
+      x: 1,
+      y: 1,
+      duration: 0.4,
+      ease: 'back.out(1.7)',
+      overwrite: 'auto',
+    });
   };
 
   /**
@@ -234,11 +284,18 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     if (banner) banner.alpha = 0;
     const pack = getActivePack();
     const prev = db.resources;
-    const next = prev.packId !== pack.id ? 0 : prev.phase === 'won' ? prev.level + 1 : prev.level;
+    const next =
+      prev.packId !== pack.id
+        ? 0
+        : prev.phase === 'won'
+          ? prev.level + 1
+          : prev.level;
     const index = next % pack.levels.length;
     const level = levelAt(index);
     db.transactions.startDemo({ ...level, level: index, packId: pack.id });
-    setAriaText(`Level ${index + 1} of ${pack.levels.length}. Tap the drifting orbs to collect them.`);
+    setAriaText(
+      `Level ${index + 1} of ${pack.levels.length}. Tap the drifting orbs to collect them.`,
+    );
   };
 
   /**
@@ -255,7 +312,9 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
   /** Play a sound if the audio bundle provides it; silently no-op otherwise. */
   const tryPlay = (channel: string) => {
     try {
-      (deps.coordinator.audio as { play: (c: string) => void } | undefined)?.play(channel);
+      (
+        deps.coordinator.audio as { play: (c: string) => void } | undefined
+      )?.play(channel);
     } catch {
       /* audio optional */
     }
@@ -263,10 +322,11 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
 
   const startMusic = () => {
     try {
-      (deps.coordinator.audio as { play: (c: string, s?: string) => void } | undefined)?.play(
-        'audio-music',
-        'loop',
-      );
+      (
+        deps.coordinator.audio as
+          | { play: (c: string, s?: string) => void }
+          | undefined
+      )?.play('audio-music', 'loop');
     } catch {
       /* audio optional */
     }
@@ -274,7 +334,9 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
 
   const stopMusic = () => {
     try {
-      (deps.coordinator.audio as { stop: (c: string) => void } | undefined)?.stop('audio-music');
+      (
+        deps.coordinator.audio as { stop: (c: string) => void } | undefined
+      )?.stop('audio-music');
     } catch {
       /* audio optional */
     }
@@ -340,7 +402,12 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     // HUD (top-left).
     hud = new Text({
       text: '',
-      style: { fill: theme.text, fontFamily: theme.fonts.numeric, fontSize: 30, fontWeight: '700' },
+      style: {
+        fill: theme.text,
+        fontFamily: theme.fonts.numeric,
+        fontSize: 30,
+        fontWeight: '700',
+      },
     });
     hud.position.set(24, 20);
     root.addChild(hud);
@@ -348,7 +415,13 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     // Centre banner (win).
     banner = new Text({
       text: '',
-      style: { fill: theme.text, fontFamily: theme.fonts.display, fontSize: 72, fontWeight: '800', align: 'center' },
+      style: {
+        fill: theme.text,
+        fontFamily: theme.fonts.display,
+        fontSize: 72,
+        fontWeight: '800',
+        align: 'center',
+      },
     });
     banner.anchor.set(0.5);
     banner.position.set(DESIGN_W / 2, DESIGN_H * 0.28);
@@ -400,7 +473,11 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
 
           // Dev/bot surface — restart the demo.
           setActiveInspectorActions([
-            { id: 'restart-demo', label: () => '↻ Restart demo', run: () => startDemo() },
+            {
+              id: 'restart-demo',
+              label: () => '↻ Restart demo',
+              run: () => startDemo(),
+            },
           ]);
         });
     },

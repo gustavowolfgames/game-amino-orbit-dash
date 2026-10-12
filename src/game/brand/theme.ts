@@ -42,14 +42,21 @@ type Grounds = NonNullable<BrandOverride['dark']>;
 type Ref = string | { light: string; dark: string };
 
 const FALLBACK_STACK = "Arial, 'Helvetica Neue', sans-serif";
-const stack = (family: string) => `'${family.replace(/'/g, '')}', ${FALLBACK_STACK}`;
+const stack = (family: string) =>
+  `'${family.replace(/'/g, '')}', ${FALLBACK_STACK}`;
 const hexToNum = (hex: string) => Number.parseInt(hex.slice(1), 16);
 
 /**
  * Resolve a role reference — a hex, a palette role name, or one per mode — to a hex. Unknown
  * names fall back so a sheet naming a role this game does not draw still resolves.
  */
-function resolveRef(ref: Ref | undefined, mode: 'light' | 'dark', sheet: BrandOverride, grounds: Grounds, fallback: string): string {
+function resolveRef(
+  ref: Ref | undefined,
+  mode: 'light' | 'dark',
+  sheet: BrandOverride,
+  grounds: Grounds,
+  fallback: string,
+): string {
   if (ref === undefined) return fallback;
   const name = typeof ref === 'string' ? ref : ref[mode];
   if (name.startsWith('#')) return name;
@@ -65,7 +72,10 @@ function resolveRef(ref: Ref | undefined, mode: 'light' | 'dark', sheet: BrandOv
 }
 
 /** Reduce a (merged) sheet plus the font families that actually loaded to a theme. */
-export function resolveTheme(sheet: BrandOverride, families: Partial<Record<TypeRole, string>> = {}): GameTheme {
+export function resolveTheme(
+  sheet: BrandOverride,
+  families: Partial<Record<TypeRole, string>> = {},
+): GameTheme {
   const mode = sheet.theme ?? BUILD_SHEET.theme;
   const grounds: Grounds = sheet[mode] ?? BUILD_SHEET[mode];
   const primary = sheet.primaryAccent ?? BUILD_SHEET.primaryAccent;
@@ -74,11 +84,26 @@ export function resolveTheme(sheet: BrandOverride, families: Partial<Record<Type
   const roles = sheet.roles ?? {};
 
   const ground = resolveRef(roles.ground, mode, sheet, grounds, grounds.base);
-  const surface = resolveRef(roles.surface, mode, sheet, grounds, grounds.secondary);
+  const surface = resolveRef(
+    roles.surface,
+    mode,
+    sheet,
+    grounds,
+    grounds.secondary,
+  );
   const accent = resolveRef(roles.buttonFill, mode, sheet, grounds, primary);
-  const accentInk = resolveRef(roles.primaryInk, mode, sheet, grounds, grounds.base);
+  const accentInk = resolveRef(
+    roles.primaryInk,
+    mode,
+    sheet,
+    grounds,
+    grounds.base,
+  );
 
-  const extra = sheet.extraColors && sheet.extraColors.length > 0 ? sheet.extraColors : null;
+  const extra =
+    sheet.extraColors && sheet.extraColors.length > 0
+      ? sheet.extraColors
+      : null;
   const pieces = (extra ?? [primary, secondary, tertiary]).map(hexToNum);
 
   return {

@@ -1,6 +1,6 @@
-import { createSignal, Show, type JSX, type ParentComponent } from 'solid-js';
+import { createSignal, type JSX, type ParentComponent, Show } from 'solid-js';
 import { useEmbed } from './context';
-import { redirectWithOutcome, type EmbedOutcome } from './redirect';
+import { type EmbedOutcome, redirectWithOutcome } from './redirect';
 
 export type AttractEngage = (outcome: EmbedOutcome) => void;
 

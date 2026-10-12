@@ -1,11 +1,22 @@
-import { createContext, useContext, type JSX, type ParentProps, Show, Suspense } from 'solid-js';
+import {
+  createContext,
+  type JSX,
+  type ParentProps,
+  Show,
+  Suspense,
+  useContext,
+} from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { useGameTracking } from '~/game/setup/tracking';
-import { createScreenManager, type ScreenManager, type ScreenManagerOptions } from './manager';
-import type { ScreenId, ScreenAssetConfig } from './types';
+import { useAssets } from '../assets';
 import { ScreenBoundary } from '../errors/boundary';
 import { errorReporter } from '../errors/reporter';
-import { useAssets } from '../assets';
+import {
+  createScreenManager,
+  type ScreenManager,
+  type ScreenManagerOptions,
+} from './manager';
+import type { ScreenAssetConfig, ScreenId } from './types';
 
 const ScreenContext = createContext<ScreenManager>();
 
@@ -49,7 +60,9 @@ export function ScreenProvider(props: ScreenProviderProps) {
 
       // Track exit from previous screen with time spent
       if (from) {
-        const timeOnScreen = parseFloat(((Date.now() - screenEnteredAt) / 1000).toFixed(2));
+        const timeOnScreen = parseFloat(
+          ((Date.now() - screenEnteredAt) / 1000).toFixed(2),
+        );
         trackScreenExit({ screen_name: from, time_on_screen: timeOnScreen });
       }
 
@@ -91,7 +104,8 @@ interface ScreenRendererProps {
 }
 
 export function ScreenRenderer(props: ScreenRendererProps) {
-  const { current, transition, getTransitionClass, transitionConfig, goto } = useScreen();
+  const { current, transition, getTransitionClass, transitionConfig, goto } =
+    useScreen();
 
   const handleNavigateToStart = () => {
     goto('start');
@@ -104,10 +118,18 @@ export function ScreenRenderer(props: ScreenRendererProps) {
     >
       <ScreenBoundary onNavigate={handleNavigateToStart}>
         <Suspense>
-          <Show when={current() === 'loading'}><Dynamic component={props.screens.loading} /></Show>
-          <Show when={current() === 'start'}><Dynamic component={props.screens.start} /></Show>
-          <Show when={current() === 'game'}><Dynamic component={props.screens.game} /></Show>
-          <Show when={current() === 'results'}><Dynamic component={props.screens.results} /></Show>
+          <Show when={current() === 'loading'}>
+            <Dynamic component={props.screens.loading} />
+          </Show>
+          <Show when={current() === 'start'}>
+            <Dynamic component={props.screens.start} />
+          </Show>
+          <Show when={current() === 'game'}>
+            <Dynamic component={props.screens.game} />
+          </Show>
+          <Show when={current() === 'results'}>
+            <Dynamic component={props.screens.results} />
+          </Show>
         </Suspense>
       </ScreenBoundary>
     </div>

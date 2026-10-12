@@ -10,7 +10,9 @@ import { BridgedTokenStore, type TokenStore } from '@wolfgames/client';
  * The `?wolfHost=` origin, validated not trusted — these messages carry bearer
  * tokens, so only a concrete http(s) origin is honored; anything else → `null`.
  */
-export function validateHostOrigin(raw: string | null | undefined): string | null {
+export function validateHostOrigin(
+  raw: string | null | undefined,
+): string | null {
   if (!raw) return null;
   let url: URL;
   try {

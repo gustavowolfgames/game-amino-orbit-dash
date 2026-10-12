@@ -11,8 +11,11 @@
  * - Missing asset config doesn't throw
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createScreenManager, type ScreenManagerOptions } from '~/core/systems/screens/manager';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  createScreenManager,
+  type ScreenManagerOptions,
+} from '~/core/systems/screens/manager';
 import type { ScreenAssetConfig, ScreenId } from '~/core/systems/screens/types';
 
 function createMockAssets() {
@@ -22,8 +25,12 @@ function createMockAssets() {
     coordinator: {
       isLoaded: vi.fn((name: string) => loaded.has(name)),
     },
-    loadBundle: vi.fn(async (name: string) => { loaded.add(name); }),
-    backgroundLoadBundle: vi.fn(async (name: string) => { loaded.add(name); }),
+    loadBundle: vi.fn(async (name: string) => {
+      loaded.add(name);
+    }),
+    backgroundLoadBundle: vi.fn(async (name: string) => {
+      loaded.add(name);
+    }),
     unloadBundles: vi.fn((names: string[]) => {
       for (const n of names) loaded.delete(n);
     }),
@@ -87,7 +94,9 @@ describe('Screen asset loading: onBeforeScreenChange', () => {
   });
 
   it('loads required bundles before showing the target screen', async () => {
-    const manager = createScreenManager(buildManagerOptions(assets, screenAssets));
+    const manager = createScreenManager(
+      buildManagerOptions(assets, screenAssets),
+    );
 
     await manager.goto('start');
     expect(assets.loadBundle).toHaveBeenCalledWith('theme-branding');
@@ -95,7 +104,9 @@ describe('Screen asset loading: onBeforeScreenChange', () => {
   });
 
   it('loads all required bundles for game screen', async () => {
-    const manager = createScreenManager(buildManagerOptions(assets, screenAssets));
+    const manager = createScreenManager(
+      buildManagerOptions(assets, screenAssets),
+    );
 
     await manager.goto('game');
     expect(assets.loadBundle).toHaveBeenCalledWith('core-ui');
@@ -103,7 +114,9 @@ describe('Screen asset loading: onBeforeScreenChange', () => {
   });
 
   it('background-loads optional bundles', async () => {
-    const manager = createScreenManager(buildManagerOptions(assets, screenAssets));
+    const manager = createScreenManager(
+      buildManagerOptions(assets, screenAssets),
+    );
 
     await manager.goto('game');
     expect(assets.backgroundLoadBundle).toHaveBeenCalledWith('audio-sfx');
@@ -111,7 +124,9 @@ describe('Screen asset loading: onBeforeScreenChange', () => {
 
   it('does not re-load already loaded required bundles', async () => {
     assets.loaded.add('core-ui');
-    const manager = createScreenManager(buildManagerOptions(assets, screenAssets));
+    const manager = createScreenManager(
+      buildManagerOptions(assets, screenAssets),
+    );
 
     await manager.goto('game');
     expect(assets.loadBundle).not.toHaveBeenCalledWith('core-ui');
@@ -120,14 +135,18 @@ describe('Screen asset loading: onBeforeScreenChange', () => {
 
   it('does not re-load already loaded optional bundles', async () => {
     assets.loaded.add('audio-sfx');
-    const manager = createScreenManager(buildManagerOptions(assets, screenAssets));
+    const manager = createScreenManager(
+      buildManagerOptions(assets, screenAssets),
+    );
 
     await manager.goto('game');
     expect(assets.backgroundLoadBundle).not.toHaveBeenCalledWith('audio-sfx');
   });
 
   it('handles screen with no asset config gracefully', async () => {
-    const manager = createScreenManager(buildManagerOptions(assets, screenAssets));
+    const manager = createScreenManager(
+      buildManagerOptions(assets, screenAssets),
+    );
 
     // 'loading' has no screenAssets entry
     await expect(manager.goto('start')).resolves.toBeUndefined();
@@ -147,7 +166,9 @@ describe('Screen asset loading: onScreenChange (unload)', () => {
   });
 
   it('unloads bundles when leaving a screen that the next screen does not need', async () => {
-    const manager = createScreenManager(buildManagerOptions(assets, screenAssets));
+    const manager = createScreenManager(
+      buildManagerOptions(assets, screenAssets),
+    );
 
     await manager.goto('game');
     assets.unloadBundles.mockClear();
@@ -162,7 +183,9 @@ describe('Screen asset loading: onScreenChange (unload)', () => {
   });
 
   it('preserves shared bundles when transitioning between screens', async () => {
-    const manager = createScreenManager(buildManagerOptions(assets, screenAssets));
+    const manager = createScreenManager(
+      buildManagerOptions(assets, screenAssets),
+    );
 
     await manager.goto('start');
     assets.unloadBundles.mockClear();
@@ -177,7 +200,9 @@ describe('Screen asset loading: onScreenChange (unload)', () => {
   });
 
   it('does not call unloadBundles when leaving a screen with no bundles', async () => {
-    const manager = createScreenManager(buildManagerOptions(assets, screenAssets));
+    const manager = createScreenManager(
+      buildManagerOptions(assets, screenAssets),
+    );
 
     // loading → start: loading has no bundles configured
     await manager.goto('start');
@@ -193,7 +218,9 @@ describe('Screen transitions and asset lifecycle', () => {
       game: { required: ['core-ui', 'scene-level1'], optional: ['audio-sfx'] },
       results: { required: ['theme-branding', 'core-ui'] },
     };
-    const manager = createScreenManager(buildManagerOptions(assets, screenAssets));
+    const manager = createScreenManager(
+      buildManagerOptions(assets, screenAssets),
+    );
 
     expect(manager.current()).toBe('loading');
 
@@ -218,9 +245,11 @@ describe('Screen transitions and asset lifecycle', () => {
 
   it('going to same screen is a no-op', async () => {
     const assets = createMockAssets();
-    const manager = createScreenManager(buildManagerOptions(assets, {
-      start: { required: ['theme-branding'] },
-    }));
+    const manager = createScreenManager(
+      buildManagerOptions(assets, {
+        start: { required: ['theme-branding'] },
+      }),
+    );
 
     await manager.goto('start');
     const callCount = assets.loadBundle.mock.calls.length;

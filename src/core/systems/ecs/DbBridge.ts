@@ -5,8 +5,9 @@
  * Games call setActiveDb(db) on create and setActiveDb(null) on destroy.
  * app.tsx reads activeDb() to pass to the Inspector component.
  */
-import { createSignal, createRoot } from 'solid-js';
+
 import type { Database } from '@adobe/data/ecs';
+import { createRoot, createSignal } from 'solid-js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyDatabase = Database<any, any, any, any, any, any, any, any>;
@@ -36,7 +37,7 @@ const [activeInspectorActions, setActiveInspectorActions] = createRoot(() => {
 
 export {
   activeDb,
-  setActiveDb,
   activeInspectorActions,
+  setActiveDb,
   setActiveInspectorActions,
 };

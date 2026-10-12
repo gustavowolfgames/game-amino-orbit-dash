@@ -1,4 +1,7 @@
-import { ErrorBoundary as SolidErrorBoundary, type ParentProps } from 'solid-js';
+import {
+  type ParentProps,
+  ErrorBoundary as SolidErrorBoundary,
+} from 'solid-js';
 import { useGameTracking } from '~/game/setup/tracking';
 import { errorReporter } from './reporter';
 import type { ErrorSeverity } from './types';
@@ -17,7 +20,7 @@ export function Boundary(props: BoundaryProps) {
     errorReporter.capture(
       error,
       { extra: { boundary: props.name ?? 'unknown' } },
-      props.severity ?? 'error'
+      props.severity ?? 'error',
     );
 
     trackError({

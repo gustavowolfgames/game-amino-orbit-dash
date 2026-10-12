@@ -22,7 +22,10 @@ export function validateOverride(raw: unknown): BrandOverride | null {
  * pins; `scale` merges entry by entry. `fonts` is not merged — the loader resolves it to the
  * families actually registered.
  */
-export function mergeOverride(base: BrandOverride, override: BrandOverride): BrandOverride {
+export function mergeOverride(
+  base: BrandOverride,
+  override: BrandOverride,
+): BrandOverride {
   const { fonts: _fonts, scale, roles, ...rest } = override;
   const out: Record<string, unknown> = { ...base };
   delete out.fonts;

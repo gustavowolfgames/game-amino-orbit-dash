@@ -48,8 +48,9 @@ export interface TuningPanelConfig {
   position: 'left' | 'center' | 'right';
 }
 
-import type { ViewportMode, ViewportConfig } from '@wolfgames/components/core';
-export type { ViewportMode, ViewportConfig };
+import type { ViewportConfig, ViewportMode } from '@wolfgames/components/core';
+
+export type { ViewportConfig, ViewportMode };
 
 export interface ScaffoldTuning {
   version: string;
@@ -82,7 +83,10 @@ export interface TuningLoadResult<T> {
   source: TuningSource;
 }
 
-export interface TuningState<S extends ScaffoldTuning, G extends GameTuningBase> {
+export interface TuningState<
+  S extends ScaffoldTuning,
+  G extends GameTuningBase,
+> {
   // Stores for fine-grained reactivity - access paths directly (e.g., tuning.game.grid.tileSize)
   // Only effects that access specific paths will re-run when those paths change
   scaffold: Store<S>;
@@ -115,7 +119,13 @@ export interface TuningState<S extends ScaffoldTuning, G extends GameTuningBase>
 // TWEAKPANE BINDING TYPES
 // ============================================
 
-export type BindingType = 'number' | 'boolean' | 'string' | 'color' | 'select' | 'range';
+export type BindingType =
+  | 'number'
+  | 'boolean'
+  | 'string'
+  | 'color'
+  | 'select'
+  | 'range';
 
 export interface BindingMeta {
   type: BindingType;

@@ -1,4 +1,4 @@
-import { GetAssetClientCommand, type AssetClient } from '@wolfgames/client';
+import { type AssetClient, GetAssetClientCommand } from '@wolfgames/client';
 import type { Manifest } from '@wolfgames/components/core';
 import {
   ManifestProvider,
@@ -6,7 +6,7 @@ import {
   useGameConfig,
   useSignal,
 } from '@wolfgames/components/solid';
-import { createResource, Show, type ParentComponent } from 'solid-js';
+import { createResource, type ParentComponent, Show } from 'solid-js';
 import { assetSeed } from '../../../../assets/registry';
 import { resolveManifestWithClient } from './cdn-manifest';
 
@@ -27,7 +27,9 @@ const DEFAULT_CDN_PATH = 'chapters/default.json';
  * Replaces GameManifestProvider, whose storage-config cdnBase disagrees with
  * the AssetClient's base outside deployed builds.
  */
-export const CdnManifestProvider: ParentComponent<CdnManifestProviderProps> = (props) => {
+export const CdnManifestProvider: ParentComponent<CdnManifestProviderProps> = (
+  props,
+) => {
   const configState = useConfigState();
   const config = useGameConfig();
   const gameKit = useSignal(configState.gameKit);
@@ -52,7 +54,10 @@ export const CdnManifestProvider: ParentComponent<CdnManifestProviderProps> = (p
     } catch (error) {
       // Same fail-open posture as AssetClient.init(): a resolver problem must
       // not brick boot — render from the untouched local manifest instead.
-      console.warn('[CdnManifestProvider] AssetClient unavailable — using local manifest.', error);
+      console.warn(
+        '[CdnManifestProvider] AssetClient unavailable — using local manifest.',
+        error,
+      );
       return null;
     }
   });
@@ -69,7 +74,11 @@ export const CdnManifestProvider: ParentComponent<CdnManifestProviderProps> = (p
       <ManifestProvider
         manifest={resolved()}
         defaultGameData={props.defaultGameData}
-        fetchUrl={isFrozen ? null : config.buildDataUrl(props.cdnPath ?? DEFAULT_CDN_PATH)}
+        fetchUrl={
+          isFrozen
+            ? null
+            : config.buildDataUrl(props.cdnPath ?? DEFAULT_CDN_PATH)
+        }
       >
         {props.children}
       </ManifestProvider>

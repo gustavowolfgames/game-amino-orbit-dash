@@ -22,7 +22,7 @@
 import { useConfigState, useSignal } from '@wolfgames/components/solid';
 import { resetBrand } from '~/game/brand';
 import { seedActivePack } from '~/game/content';
-import { VaultHostBridge, type VaultGameContext } from '~/integrations/vault';
+import { type VaultGameContext, VaultHostBridge } from '~/integrations/vault';
 import { getEditions, loadContent } from './content';
 
 export function VaultContentBridge() {

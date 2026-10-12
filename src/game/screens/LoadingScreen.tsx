@@ -1,12 +1,16 @@
+import {
+  useConfigState,
+  useManifest,
+  useSignal,
+} from '@wolfgames/components/solid';
 import { createMemo, createSignal, onMount } from 'solid-js';
-import { useScreen } from '~/core/systems/screens';
+import { type ScaffoldTuning, useTuning } from '~/core';
 import { useAssets, useLoadingState } from '~/core/systems/assets';
-import { useConfigState, useManifest, useSignal } from '@wolfgames/components/solid';
-import { useTuning, type ScaffoldTuning } from '~/core';
-import type { GameTuning } from '~/game/tuning';
-import { gameConfig, GAME_TITLE } from '~/game/config';
+import { useScreen } from '~/core/systems/screens';
+import { GAME_TITLE, gameConfig } from '~/game/config';
 import { loadContent } from '~/game/setup/content';
 import { useGameTracking } from '~/game/setup/tracking';
+import type { GameTuning } from '~/game/tuning';
 import { IntroSting } from './components/IntroSting';
 
 export function LoadingScreen() {
@@ -28,7 +32,9 @@ export function LoadingScreen() {
     .filter((b) => b.name.startsWith('boot-splash'))
     .map((b) => b.name);
   const titleBootBundles = m.bundles
-    .filter((b) => b.name.startsWith('boot-') && !b.name.startsWith('boot-splash'))
+    .filter(
+      (b) => b.name.startsWith('boot-') && !b.name.startsWith('boot-splash'),
+    )
     .map((b) => b.name);
   const themeBundles = bundlesByPrefix('theme-');
   const coreBundles = bundlesByPrefix('core-');

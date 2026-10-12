@@ -10,8 +10,8 @@
  * - unload methods delegate to facade
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Manifest, LoadingState } from '@wolfgames/components/core';
+import type { LoadingState, Manifest } from '@wolfgames/components/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockLoadingState: LoadingState = {
   loading: [],
@@ -41,9 +41,21 @@ const mockFacade = {
   unloadScene: vi.fn(),
   startBackgroundLoading: vi.fn(async () => {}),
   loadingState: vi.fn(() => mockLoadingState),
-  loadingStateSignal: { get: vi.fn(() => mockLoadingState), set: vi.fn(), subscribe: vi.fn(() => () => {}) },
-  ready: { get: vi.fn(() => false), set: vi.fn(), subscribe: vi.fn(() => () => {}) },
-  gpuReady: { get: vi.fn(() => false), set: vi.fn(), subscribe: vi.fn(() => () => {}) },
+  loadingStateSignal: {
+    get: vi.fn(() => mockLoadingState),
+    set: vi.fn(),
+    subscribe: vi.fn(() => () => {}),
+  },
+  ready: {
+    get: vi.fn(() => false),
+    set: vi.fn(),
+    subscribe: vi.fn(() => () => {}),
+  },
+  gpuReady: {
+    get: vi.fn(() => false),
+    set: vi.fn(),
+    subscribe: vi.fn(() => () => {}),
+  },
   dom: {
     getFrameURL: vi.fn(async () => 'blob:mock'),
     get: vi.fn(() => null),
@@ -72,7 +84,10 @@ vi.mock('~/core/systems/manifest/context', () => ({
     manifest: () => ({
       cdnBase: '/assets',
       bundles: [
-        { name: 'boot-splash', assets: [{ alias: 'spinner', src: 'spinner.png' }] },
+        {
+          name: 'boot-splash',
+          assets: [{ alias: 'spinner', src: 'spinner.png' }],
+        },
       ],
     }),
   })),
@@ -101,7 +116,9 @@ describe('AssetProvider context shape', () => {
 
     for (const method of requiredMethods) {
       expect(mockFacade).toHaveProperty(method);
-      expect(typeof (mockFacade as Record<string, unknown>)[method]).toBe('function');
+      expect(typeof (mockFacade as Record<string, unknown>)[method]).toBe(
+        'function',
+      );
     }
   });
 
@@ -218,13 +235,24 @@ describe('useAssets contract', () => {
 
     // Verify the facade has the base methods the context would wrap
     const facadeMethods = [
-      'loadBundle', 'backgroundLoadBundle', 'preloadScene',
-      'loadBoot', 'loadCore', 'loadTheme', 'loadAudio', 'loadScene',
-      'initGpu', 'unloadBundle', 'unloadBundles', 'unloadScene',
+      'loadBundle',
+      'backgroundLoadBundle',
+      'preloadScene',
+      'loadBoot',
+      'loadCore',
+      'loadTheme',
+      'loadAudio',
+      'loadScene',
+      'initGpu',
+      'unloadBundle',
+      'unloadBundles',
+      'unloadScene',
     ];
 
     for (const key of facadeMethods) {
-      expect(typeof (mockFacade as Record<string, unknown>)[key]).toBe('function');
+      expect(typeof (mockFacade as Record<string, unknown>)[key]).toBe(
+        'function',
+      );
     }
   });
 });

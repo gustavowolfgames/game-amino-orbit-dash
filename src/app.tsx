@@ -1,11 +1,11 @@
 import { parseEnvironment } from '@wolfgames/client';
 import {
   AnalyticsProvider,
+  DesignBleed,
   DevOnly,
   GameConfigProvider,
-  useAnalyticsService,
-  DesignBleed,
   GameShell,
+  useAnalyticsService,
   ViewportProvider,
   ViewportToggle,
 } from '@wolfgames/components/solid';
@@ -38,8 +38,8 @@ import { EmbedHook } from '~/game/EmbedHook';
 import { GameSettingsMenu } from '~/game/screens/components/GameSettingsMenu';
 import { createLoadingTracker } from '~/game/setup/loading-tracker';
 import { createSessionTracker } from '~/game/setup/session-tracker';
-import { AttractGate, EmbedProvider } from '~/integrations/embed';
 import { VaultContentBridge } from '~/game/setup/vault-content';
+import { AttractGate, EmbedProvider } from '~/integrations/embed';
 
 const environment = parseEnvironment(import.meta.env.VITE_APP_ENV);
 

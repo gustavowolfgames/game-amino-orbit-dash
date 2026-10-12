@@ -28,35 +28,59 @@ function fail(message: string): never {
 }
 
 const [packArg, outArg] = process.argv.slice(2);
-if (!packArg || !outArg) fail('usage: bun run decompose:content <pack.json> <out-dir>');
+if (!packArg || !outArg)
+  fail('usage: bun run decompose:content <pack.json> <out-dir>');
 
 const raw: unknown = JSON.parse(readFileSync(resolve(packArg), 'utf8'));
 const pack = ContentPackDef(raw);
-if (pack instanceof type.errors) fail(`${packArg} is not a pack: ${pack.summary}`);
-if (pack.blocks.length === 0 || pack.blocks.some((b) => b.levels.length === 0)) {
-  fail(`${packArg} needs at least one block, and every block at least one level`);
+if (pack instanceof type.errors)
+  fail(`${packArg} is not a pack: ${pack.summary}`);
+if (
+  pack.blocks.length === 0 ||
+  pack.blocks.some((b) => b.levels.length === 0)
+) {
+  fail(
+    `${packArg} needs at least one block, and every block at least one level`,
+  );
 }
 
 const bundle = decomposePack(pack);
 for (const schema of SCHEMA_KEYS) {
-  for (const [key, data] of Object.entries(bundle.schemas[schema]?.entries ?? {})) {
+  for (const [key, data] of Object.entries(
+    bundle.schemas[schema]?.entries ?? {},
+  )) {
     const out = registry[schema].schema.schema(data);
-    if (out instanceof type.errors) fail(`${schema}/${key} fails its schema: ${out.summary}`);
+    if (out instanceof type.errors)
+      fail(`${schema}/${key} fails its schema: ${out.summary}`);
   }
 }
 
 const back = assemblePack(bundle);
-if (!isDeepStrictEqual(back, pack)) fail(`round trip failed: ${typeof back === 'string' ? back : 'pack differs'}`);
+if (!isDeepStrictEqual(back, pack))
+  fail(
+    `round trip failed: ${typeof back === 'string' ? back : 'pack differs'}`,
+  );
 
 const outDir = resolve(outArg);
 mkdirSync(outDir, { recursive: true });
 const batch = (schema: string) =>
-  Object.entries(bundle.schemas[schema]?.entries ?? {}).map(([key, data]) => ({ key, data }));
-const pointers = Object.fromEntries(SCHEMA_KEYS.map((s) => [s, batch(s).map((e) => e.key)]));
+  Object.entries(bundle.schemas[schema]?.entries ?? {}).map(([key, data]) => ({
+    key,
+    data,
+  }));
+const pointers = Object.fromEntries(
+  SCHEMA_KEYS.map((s) => [s, batch(s).map((e) => e.key)]),
+);
 for (const schema of SCHEMA_KEYS) {
-  writeFileSync(join(outDir, `${schema}.batch.json`), `${JSON.stringify(batch(schema), null, 2)}\n`);
+  writeFileSync(
+    join(outDir, `${schema}.batch.json`),
+    `${JSON.stringify(batch(schema), null, 2)}\n`,
+  );
 }
-writeFileSync(join(outDir, 'pack-entries.json'), `${JSON.stringify(pointers, null, 2)}\n`);
+writeFileSync(
+  join(outDir, 'pack-entries.json'),
+  `${JSON.stringify(pointers, null, 2)}\n`,
+);
 
 const counts = SCHEMA_KEYS.map((s) => `${s}=${pointers[s].length}`).join(' ');
 console.log(`ok: pack=${pack.id} ${counts} round-trip=match`);

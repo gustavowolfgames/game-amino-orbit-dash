@@ -25,7 +25,11 @@ export interface ErrorEvent {
 
 // Error reporter interface
 export interface ErrorReporter {
-  capture(error: Error, context?: Partial<ErrorContext>, severity?: ErrorSeverity): void;
+  capture(
+    error: Error,
+    context?: Partial<ErrorContext>,
+    severity?: ErrorSeverity,
+  ): void;
   setUser(userId: string): void;
   setScreen(screen: string): void;
   addBreadcrumb(message: string, data?: Record<string, unknown>): void;

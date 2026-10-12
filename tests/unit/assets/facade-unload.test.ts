@@ -15,44 +15,61 @@
  * - dispose cleans up all resources
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@wolfgames/components/core', () => {
-  const createAssetFacade = vi.fn(({ loaders }: { loaders?: Record<string, unknown> }) => {
-    const loaded = new Set<string>();
-    const unloaded = new Set<string>();
-    return {
-      loadBundle: vi.fn(async (name: string) => { loaded.add(name); unloaded.delete(name); }),
-      loadBundles: vi.fn(async (names: string[]) => { for (const n of names) { loaded.add(n); unloaded.delete(n); } }),
-      backgroundLoadBundle: vi.fn(async () => {}),
-      preloadScene: vi.fn(async () => {}),
-      loadBoot: vi.fn(async () => { loaded.add('boot-splash'); }),
-      loadCore: vi.fn(async () => { loaded.add('core-ui'); }),
-      loadTheme: vi.fn(async () => { loaded.add('theme-branding'); }),
-      loadAudio: vi.fn(async () => { loaded.add('audio-sfx'); }),
-      loadScene: vi.fn(async (name: string) => { loaded.add(`scene-${name}`); }),
-      initGpu: vi.fn(async () => {}),
-      getLoadedBundles: vi.fn(() => [...loaded]),
-      isLoaded: vi.fn((name: string) => loaded.has(name)),
-      unloadBundle: vi.fn((name: string) => { loaded.delete(name); unloaded.add(name); }),
-      unloadBundles: vi.fn((names: string[]) => { for (const n of names) { loaded.delete(n); unloaded.add(n); } }),
-      unloadScene: vi.fn((sceneName: string) => {
-        const name = `scene-${sceneName}`;
-        loaded.delete(name);
-        unloaded.add(name);
-      }),
-      startBackgroundLoading: vi.fn(async () => {}),
-      loadingState: vi.fn(() => ({
-        loading: [],
-        loaded: [...loaded],
-        backgroundLoading: [],
-        unloaded: [...unloaded],
-        errors: {},
-        bundleProgress: {},
-        progress: 0,
-      })),
-      loadingStateSignal: {
-        get: vi.fn(() => ({
+  const createAssetFacade = vi.fn(
+    ({ loaders }: { loaders?: Record<string, unknown> }) => {
+      const loaded = new Set<string>();
+      const unloaded = new Set<string>();
+      return {
+        loadBundle: vi.fn(async (name: string) => {
+          loaded.add(name);
+          unloaded.delete(name);
+        }),
+        loadBundles: vi.fn(async (names: string[]) => {
+          for (const n of names) {
+            loaded.add(n);
+            unloaded.delete(n);
+          }
+        }),
+        backgroundLoadBundle: vi.fn(async () => {}),
+        preloadScene: vi.fn(async () => {}),
+        loadBoot: vi.fn(async () => {
+          loaded.add('boot-splash');
+        }),
+        loadCore: vi.fn(async () => {
+          loaded.add('core-ui');
+        }),
+        loadTheme: vi.fn(async () => {
+          loaded.add('theme-branding');
+        }),
+        loadAudio: vi.fn(async () => {
+          loaded.add('audio-sfx');
+        }),
+        loadScene: vi.fn(async (name: string) => {
+          loaded.add(`scene-${name}`);
+        }),
+        initGpu: vi.fn(async () => {}),
+        getLoadedBundles: vi.fn(() => [...loaded]),
+        isLoaded: vi.fn((name: string) => loaded.has(name)),
+        unloadBundle: vi.fn((name: string) => {
+          loaded.delete(name);
+          unloaded.add(name);
+        }),
+        unloadBundles: vi.fn((names: string[]) => {
+          for (const n of names) {
+            loaded.delete(n);
+            unloaded.add(n);
+          }
+        }),
+        unloadScene: vi.fn((sceneName: string) => {
+          const name = `scene-${sceneName}`;
+          loaded.delete(name);
+          unloaded.add(name);
+        }),
+        startBackgroundLoading: vi.fn(async () => {}),
+        loadingState: vi.fn(() => ({
           loading: [],
           loaded: [...loaded],
           backgroundLoading: [],
@@ -61,26 +78,45 @@ vi.mock('@wolfgames/components/core', () => {
           bundleProgress: {},
           progress: 0,
         })),
-        set: vi.fn(),
-        subscribe: vi.fn(() => () => {}),
-      },
-      ready: { get: vi.fn(() => false), set: vi.fn(), subscribe: vi.fn(() => () => {}) },
-      gpuReady: { get: vi.fn(() => false), set: vi.fn(), subscribe: vi.fn(() => () => {}) },
-      dom: {
-        getFrameURL: vi.fn(async () => 'blob:mock'),
-        get: vi.fn(() => null),
-        getImage: vi.fn(() => null),
-        getSheet: vi.fn(() => null),
-        getSpritesheet: vi.fn(() => null),
-      },
-      getLoader: vi.fn(() => null),
-      dispose: vi.fn(),
-      coordinator: {},
-      _loaders: loaders,
-      _loaded: loaded,
-      _unloaded: unloaded,
-    };
-  });
+        loadingStateSignal: {
+          get: vi.fn(() => ({
+            loading: [],
+            loaded: [...loaded],
+            backgroundLoading: [],
+            unloaded: [...unloaded],
+            errors: {},
+            bundleProgress: {},
+            progress: 0,
+          })),
+          set: vi.fn(),
+          subscribe: vi.fn(() => () => {}),
+        },
+        ready: {
+          get: vi.fn(() => false),
+          set: vi.fn(),
+          subscribe: vi.fn(() => () => {}),
+        },
+        gpuReady: {
+          get: vi.fn(() => false),
+          set: vi.fn(),
+          subscribe: vi.fn(() => () => {}),
+        },
+        dom: {
+          getFrameURL: vi.fn(async () => 'blob:mock'),
+          get: vi.fn(() => null),
+          getImage: vi.fn(() => null),
+          getSheet: vi.fn(() => null),
+          getSpritesheet: vi.fn(() => null),
+        },
+        getLoader: vi.fn(() => null),
+        dispose: vi.fn(),
+        coordinator: {},
+        _loaders: loaders,
+        _loaded: loaded,
+        _unloaded: unloaded,
+      };
+    },
+  );
 
   return {
     createAssetFacade,
@@ -116,8 +152,8 @@ vi.mock('@wolfgames/components/pixi', () => {
   return { createPixiLoader };
 });
 
-import { createCoordinatorFacade } from '~/core/systems/assets/facade';
 import type { Manifest } from '@wolfgames/components/core';
+import { createCoordinatorFacade } from '~/core/systems/assets/facade';
 
 const testManifest: Manifest = {
   cdnBase: '/assets',

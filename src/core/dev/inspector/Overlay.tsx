@@ -1,12 +1,21 @@
-import { For, createSignal, createEffect, onCleanup } from 'solid-js';
 import type { Database } from '@adobe/data/ecs';
-import { readEntityPosition, type InspectorEntity } from './bridge';
+import { createEffect, createSignal, For, onCleanup } from 'solid-js';
+import { type InspectorEntity, readEntityPosition } from './bridge';
 
 /** Colors assigned to entities for visual identification */
 const ENTITY_COLORS = [
-  '#4caf50', '#2196f3', '#ff9800', '#e91e63',
-  '#9c27b0', '#00bcd4', '#ffeb3b', '#ff5722',
-  '#8bc34a', '#3f51b5', '#f44336', '#009688',
+  '#4caf50',
+  '#2196f3',
+  '#ff9800',
+  '#e91e63',
+  '#9c27b0',
+  '#00bcd4',
+  '#ffeb3b',
+  '#ff5722',
+  '#8bc34a',
+  '#3f51b5',
+  '#f44336',
+  '#009688',
 ];
 
 export function entityColor(id: number): string {
@@ -39,17 +48,23 @@ export function InspectorOverlay(props: OverlayProps) {
     const result: Line[] = [];
 
     // Find the game viewport container
-    const ref = props.canvasRef
-      ?? document.querySelector('canvas')
-      ?? document.querySelector('.fixed.inset-0 > .relative.overflow-hidden')
-      ?? document.getElementById('app');
+    const ref =
+      props.canvasRef ??
+      document.querySelector('canvas') ??
+      document.querySelector('.fixed.inset-0 > .relative.overflow-hidden') ??
+      document.getElementById('app');
 
     const refRect = ref
       ? ref.getBoundingClientRect()
-      : { left: 0, top: 0, width: window.innerWidth - 320, height: window.innerHeight };
+      : {
+          left: 0,
+          top: 0,
+          width: window.innerWidth - 320,
+          height: window.innerHeight,
+        };
 
     for (const numId of props.expandedEntities) {
-      const entity = props.entities.find(e => e.id === numId);
+      const entity = props.entities.find((e) => e.id === numId);
       if (!entity) continue;
 
       const pos = readEntityPosition(props.db, numId);

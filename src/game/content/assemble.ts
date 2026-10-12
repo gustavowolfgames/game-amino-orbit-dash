@@ -15,7 +15,8 @@ import { type BlockEntry, BlocksDef } from '../../../schemas/blocks/schema';
 import type { AssembledPack, ContentPack } from './content-pack';
 import type { PackBundle } from './dynamic-client';
 
-const entriesOf = (bundle: PackBundle, schema: string) => bundle.schemas[schema]?.entries ?? {};
+const entriesOf = (bundle: PackBundle, schema: string) =>
+  bundle.schemas[schema]?.entries ?? {};
 
 /**
  * Join the bundle into the pack this game plays, or say why it cannot.
@@ -28,7 +29,8 @@ export function assemblePack(bundle: PackBundle): AssembledPack | string {
   const blocks: BlockEntry[] = [];
   for (const [key, raw] of Object.entries(entriesOf(bundle, 'blocks'))) {
     const out = BlocksDef(raw);
-    if (out instanceof type.errors) return `block "${key}" is not a block entry (${out.summary})`;
+    if (out instanceof type.errors)
+      return `block "${key}" is not a block entry (${out.summary})`;
     blocks.push(out);
   }
   if (blocks.length === 0) return 'it holds no block entry';
@@ -39,7 +41,8 @@ export function assemblePack(bundle: PackBundle): AssembledPack | string {
   for (const block of blocks) {
     const levels: unknown[] = [];
     for (const key of block.levels) {
-      if (!(key in levelEntries)) return `level "${key}" of block "${block.id}" is not in the bundle`;
+      if (!(key in levelEntries))
+        return `level "${key}" of block "${block.id}" is not in the bundle`;
       levels.push(levelEntries[key]);
     }
     assembled.blocks.push({ id: block.id, name: block.name, levels });
@@ -48,7 +51,8 @@ export function assemblePack(bundle: PackBundle): AssembledPack | string {
 }
 
 /** The `levels` entry key for the n-th level (1-based) of a block. */
-export const levelKey = (blockId: string, n: number): string => `${blockId}-${n}`;
+export const levelKey = (blockId: string, n: number): string =>
+  `${blockId}-${n}`;
 
 /**
  * Split an authored pack into the entries a publish creates. Levels are keyed by their block's
@@ -60,10 +64,18 @@ export function decomposePack(pack: ContentPack): PackBundle {
   const levels: Record<string, unknown> = {};
   pack.blocks.forEach((block, i) => {
     const keys = block.levels.map((_, n) => levelKey(block.id, n + 1));
-    blocks[block.id] = { id: block.id, name: block.name, order: i + 1, levels: keys };
+    blocks[block.id] = {
+      id: block.id,
+      name: block.name,
+      order: i + 1,
+      levels: keys,
+    };
     keys.forEach((k, n) => {
       levels[k] = block.levels[n];
     });
   });
-  return { packKey: pack.id, schemas: { blocks: { entries: blocks }, levels: { entries: levels } } };
+  return {
+    packKey: pack.id,
+    schemas: { blocks: { entries: blocks }, levels: { entries: levels } },
+  };
 }

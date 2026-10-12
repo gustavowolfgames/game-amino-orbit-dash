@@ -5,8 +5,7 @@
  * archetype membership, and system info. This bridge reads the Database
  * and presents it in a format the Inspector can render.
  */
-import type { Database } from '@adobe/data/ecs';
-import { Entity } from '@adobe/data/ecs';
+import type { Database, Entity } from '@adobe/data/ecs';
 
 /** A component field with name, value, and type info */
 export type FieldInfo = {
@@ -39,7 +38,9 @@ export type InspectorResource = {
  * Read all entities from a Database for Inspector display.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function readEntities(db: Database<any, any, any, any, any, any, any, any>): InspectorEntity[] {
+export function readEntities(
+  db: Database<any, any, any, any, any, any, any, any>,
+): InspectorEntity[] {
   const entities: InspectorEntity[] = [];
 
   // Get all archetypes from the database
@@ -85,7 +86,9 @@ export function readEntities(db: Database<any, any, any, any, any, any, any, any
  * Read all resources from a Database.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function readResources(db: Database<any, any, any, any, any, any, any, any>): InspectorResource[] {
+export function readResources(
+  db: Database<any, any, any, any, any, any, any, any>,
+): InspectorResource[] {
   const resources: InspectorResource[] = [];
   const res = db.resources;
   if (res && typeof res === 'object') {
@@ -100,7 +103,9 @@ export function readResources(db: Database<any, any, any, any, any, any, any, an
  * Read system info from a Database.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function readSystems(db: Database<any, any, any, any, any, any, any, any>): InspectorSystem[] {
+export function readSystems(
+  db: Database<any, any, any, any, any, any, any, any>,
+): InspectorSystem[] {
   const systems: InspectorSystem[] = [];
   if (db.system?.functions) {
     for (const [name, fn] of Object.entries(db.system.functions)) {
@@ -114,7 +119,9 @@ export function readSystems(db: Database<any, any, any, any, any, any, any, any>
  * Get all archetype names and their component lists.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function readArchetypes(db: Database<any, any, any, any, any, any, any, any>): Record<string, string[]> {
+export function readArchetypes(
+  db: Database<any, any, any, any, any, any, any, any>,
+): Record<string, string[]> {
   const result: Record<string, string[]> = {};
   for (const [name, arch] of Object.entries(db.archetypes)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -128,7 +135,10 @@ export function readArchetypes(db: Database<any, any, any, any, any, any, any, a
  * Used by the Overlay to get up-to-date positions every frame.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function readEntityPosition(db: Database<any, any, any, any, any, any, any, any>, entityId: number): [number, number] | null {
+export function readEntityPosition(
+  db: Database<any, any, any, any, any, any, any, any>,
+  entityId: number,
+): [number, number] | null {
   const data = db.read(entityId as unknown as Entity);
   if (!data) return null;
   const rec = data as Record<string, unknown>;
@@ -144,14 +154,16 @@ export function readEntityPosition(db: Database<any, any, any, any, any, any, an
 /**
  * Get the position of an entity if it has a position-like component.
  */
-export function getEntityPosition(entity: InspectorEntity): [number, number] | null {
-  const posField = entity.fields.find(f => f.name === 'position');
+export function getEntityPosition(
+  entity: InspectorEntity,
+): [number, number] | null {
+  const posField = entity.fields.find((f) => f.name === 'position');
   if (posField && Array.isArray(posField.value) && posField.value.length >= 2) {
     return [posField.value[0], posField.value[1]];
   }
   // Fallback: look for x/y fields
-  const x = entity.fields.find(f => f.name === 'x');
-  const y = entity.fields.find(f => f.name === 'y');
+  const x = entity.fields.find((f) => f.name === 'x');
+  const y = entity.fields.find((f) => f.name === 'y');
   if (x && y && typeof x.value === 'number' && typeof y.value === 'number') {
     return [x.value, y.value];
   }
@@ -162,7 +174,9 @@ export function getEntityPosition(entity: InspectorEntity): [number, number] | n
  * Get a display name for an entity.
  */
 export function getEntityName(entity: InspectorEntity): string {
-  const keyField = entity.fields.find(f => f.name === 'spriteKey' || f.name === 'key' || f.name === 'name');
+  const keyField = entity.fields.find(
+    (f) => f.name === 'spriteKey' || f.name === 'key' || f.name === 'name',
+  );
   if (keyField && typeof keyField.value === 'string' && keyField.value) {
     return keyField.value;
   }

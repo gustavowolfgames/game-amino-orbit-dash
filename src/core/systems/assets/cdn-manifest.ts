@@ -20,8 +20,13 @@ export type AssetResolver = Pick<AssetClient<string>, 'list' | 'url' | 'has'>;
  * split correct when the base itself contains `/assets/` (the frozen
  * localAssetBase does).
  */
-export function splitAssetUrl(url: string): { base: string; rel: string } | null {
-  const i = Math.max(url.lastIndexOf('/assets/'), url.lastIndexOf('/json-data/'));
+export function splitAssetUrl(
+  url: string,
+): { base: string; rel: string } | null {
+  const i = Math.max(
+    url.lastIndexOf('/assets/'),
+    url.lastIndexOf('/json-data/'),
+  );
   if (i < 0) return null;
   return { base: url.slice(0, i), rel: url.slice(i + 1) };
 }
@@ -32,9 +37,13 @@ export function splitAssetUrl(url: string): { base: string; rel: string } | null
  * the manifest is returned untouched, so boot stays fully local with zero CDN
  * requests.
  */
-export function resolveManifestWithClient(manifest: Manifest, client: AssetResolver): Manifest {
+export function resolveManifestWithClient(
+  manifest: Manifest,
+  client: AssetResolver,
+): Manifest {
   const names = client.list();
-  const probe = names.length > 0 ? splitAssetUrl(client.url(names[0] as string)) : null;
+  const probe =
+    names.length > 0 ? splitAssetUrl(client.url(names[0] as string)) : null;
   if (!probe) return manifest;
   return {
     ...manifest,
@@ -49,7 +58,9 @@ export function resolveManifestWithClient(manifest: Manifest, client: AssetResol
         // unannotated, so they keep following cdnBase when the environment
         // resolver or a frozen build rewrites it.
         if (!client.has(asset.src)) {
-          return manifest.localBase ? { ...asset, base: manifest.localBase } : asset;
+          return manifest.localBase
+            ? { ...asset, base: manifest.localBase }
+            : asset;
         }
         const split = splitAssetUrl(client.url(asset.src));
         return split ? { ...asset, src: split.rel } : asset;

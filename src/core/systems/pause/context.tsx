@@ -1,6 +1,12 @@
-import { createContext, useContext, onMount, onCleanup, type ParentProps } from 'solid-js';
-import { pauseState, type PauseState } from './state';
+import {
+  createContext,
+  onCleanup,
+  onMount,
+  type ParentProps,
+  useContext,
+} from 'solid-js';
 import { initPauseKeyboard } from './keyboard';
+import { type PauseState, pauseState } from './state';
 
 const PauseContext = createContext<PauseState>();
 

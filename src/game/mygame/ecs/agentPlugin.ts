@@ -16,7 +16,7 @@
  * on a schema is silently ignored.
  */
 
-import { Schema } from '@adobe/data/schema';
+import type { Schema } from '@adobe/data/schema';
 import { AgenticService } from '@adobe/data/service';
 import { Database, Observe } from '~/core/systems/ecs';
 import { ORBITER_COUNT } from '../demo/config';
@@ -63,13 +63,21 @@ const tapParamSchema = {
 const startParamSchema = {
   type: 'object',
   properties: {
-    orbiterCount: { type: 'integer', minimum: 1, description: 'How many orbs to ring the centre.' },
+    orbiterCount: {
+      type: 'integer',
+      minimum: 1,
+      description: 'How many orbs to ring the centre.',
+    },
   },
 } as const satisfies Schema;
 
 /** A compact, agent-friendly view of the ring (no ECS internals). */
 function ringSummary(db: GameDatabase) {
-  return readOrbiters(db).map((o) => ({ color: o.color, x: o.position[0], y: o.position[1] }));
+  return readOrbiters(db).map((o) => ({
+    color: o.color,
+    x: o.position[0],
+    y: o.position[1],
+  }));
 }
 
 export function createGameAgentService(db: GameDatabase): AgenticService {
@@ -89,14 +97,35 @@ export function createGameAgentService(db: GameDatabase): AgenticService {
 
   return AgenticService.create({
     interface: {
-      role: { type: 'state', schema: { type: 'string' }, description: 'Role and objective' },
-      phase: { type: 'state', schema: phaseSchema, description: 'Current game phase' },
-      score: { type: 'state', schema: { type: 'integer' }, description: 'Points scored this run' },
-      remaining: { type: 'state', schema: { type: 'integer' }, description: 'Orbs left to collect' },
-      orbiters: { type: 'state', schema: ringSchema, description: 'Every orb in the ring' },
+      role: {
+        type: 'state',
+        schema: { type: 'string' },
+        description: 'Role and objective',
+      },
+      phase: {
+        type: 'state',
+        schema: phaseSchema,
+        description: 'Current game phase',
+      },
+      score: {
+        type: 'state',
+        schema: { type: 'integer' },
+        description: 'Points scored this run',
+      },
+      remaining: {
+        type: 'state',
+        schema: { type: 'integer' },
+        description: 'Orbs left to collect',
+      },
+      orbiters: {
+        type: 'state',
+        schema: ringSchema,
+        description: 'Every orb in the ring',
+      },
       tap: {
         type: 'action',
-        description: 'Queue a tap at design-space (x, y) — collects the nearest orb within reach',
+        description:
+          'Queue a tap at design-space (x, y) — collects the nearest orb within reach',
         parameters: [tapParamSchema],
       },
       start: {

@@ -16,17 +16,15 @@
  */
 
 import { Assets, type Texture } from 'pixi.js';
-
+import fieldUrl from '../assets/generated/bg-game.webp?url';
+import titleBgUrl from '../assets/generated/bg-title.webp?url';
 // Gameplay art — one neutral orb (tinted per colour index at render time) and
 // the game-field background.
 import orbUrl from '../assets/generated/piece-orb.webp?url';
-import fieldUrl from '../assets/generated/bg-game.webp?url';
-
+import playUrl from '../assets/generated/ui-button_play.webp?url';
 // Start-screen art — the title wordmark, the round play button, and the
 // title-screen background.
 import titleUrl from '../assets/generated/ui-title.webp?url';
-import playUrl from '../assets/generated/ui-button_play.webp?url';
-import titleBgUrl from '../assets/generated/bg-title.webp?url';
 
 export interface GameTextures {
   /** Neutral orb, tinted per colour index (theme `pieces` order) by the renderer. */

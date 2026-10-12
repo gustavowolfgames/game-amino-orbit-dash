@@ -60,7 +60,8 @@ export function onActivePackChange(fn: (pack: ActivePack) => void): () => void {
 /** The level at 0-based `index`, wrapping so "play again" past the end loops the pack. */
 export function levelAt(index: number): ResolvedLevel {
   const { levels } = active;
-  const i = ((Math.trunc(index) % levels.length) + levels.length) % levels.length;
+  const i =
+    ((Math.trunc(index) % levels.length) + levels.length) % levels.length;
   return levels[i];
 }
 

@@ -35,7 +35,11 @@ export interface EntryClient {
    * when none is bound — which is every ordinary boot of a game with nothing published.
    */
   getPack(packKey: string): Promise<PackBundle>;
-  getEntry(key: string, entryKey: string, options?: { fallbackToDefault?: boolean }): Promise<unknown>;
+  getEntry(
+    key: string,
+    entryKey: string,
+    options?: { fallbackToDefault?: boolean },
+  ): Promise<unknown>;
 }
 
 /** The SDK's own "no pack bound under that key" rejection, as opposed to a network failure. */

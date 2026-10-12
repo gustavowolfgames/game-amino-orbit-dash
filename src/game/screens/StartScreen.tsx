@@ -1,19 +1,18 @@
-import { onMount, onCleanup, Show } from 'solid-js';
-import { Portal } from 'solid-js/web';
 import { useRendererHost } from '@wolfgames/components/solid';
-import { useScreen, type ScreenId } from '~/core/systems/screens';
+import { onCleanup, onMount, Show } from 'solid-js';
+import { Portal } from 'solid-js/web';
+import { type ScaffoldTuning, useTuning } from '~/core';
 import { useAssets } from '~/core/systems/assets';
-import { useTuning, type ScaffoldTuning } from '~/core';
-import { useGameTracking } from '~/game/setup/tracking';
-
-import type { GameTuning } from '~/game/tuning';
-
+import { type ScreenId, useScreen } from '~/core/systems/screens';
 // Game-specific start screen — swap this import for a different game
 import { setupStartScreen } from '~/game/mygame/screens/startView';
+import { useGameTracking } from '~/game/setup/tracking';
+import type { GameTuning } from '~/game/tuning';
 
 export default function StartScreen() {
   const { goto } = useScreen();
-  const { coordinator, initGpu, unlockAudio, loadCore, loadAudio, loadBundle } = useAssets();
+  const { coordinator, initGpu, unlockAudio, loadCore, loadAudio, loadBundle } =
+    useAssets();
   const tuning = useTuning<ScaffoldTuning, GameTuning>();
   const { trackGameStart } = useGameTracking();
   let containerRef: HTMLDivElement | undefined;
@@ -22,7 +21,9 @@ export default function StartScreen() {
 
   // Setup game-specific start screen controller
   const startScreen = setupStartScreen({
-    goto: (screen) => { void goto(screen as ScreenId); },
+    goto: (screen) => {
+      void goto(screen as ScreenId);
+    },
     coordinator,
     initGpu,
     unlockAudio,

@@ -31,7 +31,14 @@
  * Both carry `position`/`color`/`spriteKey`, so never select on those alone.
  */
 
-import { Database, type Entity, F32, I32, Observe, Vec2 } from '~/core/systems/ecs';
+import {
+  Database,
+  type Entity,
+  F32,
+  I32,
+  Observe,
+  Vec2,
+} from '~/core/systems/ecs';
 import {
   CENTER,
   DESIGN_H,
@@ -57,7 +64,10 @@ export interface TapIntent {
 
 /** Derive an orbiter's design-space position from its angle + ring radius. */
 function orbiterPos(angle: number, radius: number): [number, number] {
-  return [CENTER[0] + Math.cos(angle) * radius, CENTER[1] + Math.sin(angle) * radius];
+  return [
+    CENTER[0] + Math.cos(angle) * radius,
+    CENTER[1] + Math.sin(angle) * radius,
+  ];
 }
 
 // ── Plugin ────────────────────────────────────────────────────────────────
@@ -105,13 +115,21 @@ export const gamePlugin = Database.Plugin.create({
   },
   archetypes: {
     /** A collectible orb circling the centre. Selected by `angle`. */
-    Orbiter: ['angle', 'orbitRadius', 'orbitSpeed', 'color', 'position', 'spriteKey'],
+    Orbiter: [
+      'angle',
+      'orbitRadius',
+      'orbitSpeed',
+      'color',
+      'position',
+      'spriteKey',
+    ],
     /** A drifting orb that bounces off the walls. Selected by `velocity`. */
     Mover: ['velocity', 'color', 'position', 'spriteKey'],
   },
   computed: {
     /** Reactive "is the run over" flag — handy for the Inspector / agents. */
-    finished: (db) => Observe.withMap(db.observe.resources.phase, (p) => p === 'won'),
+    finished: (db) =>
+      Observe.withMap(db.observe.resources.phase, (p) => p === 'won'),
   },
   transactions: {
     /**
@@ -173,7 +191,11 @@ export const gamePlugin = Database.Plugin.create({
     advanceOrbiters(store, { dtSec }: { dtSec: number }) {
       if (store.resources.phase !== 'playing') return;
       for (const e of store.select(['angle'])) {
-        const o = store.read(e) as { angle: number; orbitRadius: number; orbitSpeed: number } | null;
+        const o = store.read(e) as {
+          angle: number;
+          orbitRadius: number;
+          orbitSpeed: number;
+        } | null;
         if (!o) continue;
         const angle = o.angle + o.orbitSpeed * dtSec;
         store.update(e, { angle, position: orbiterPos(angle, o.orbitRadius) });
@@ -192,12 +214,25 @@ export const gamePlugin = Database.Plugin.create({
           velocity: [number, number];
         } | null;
         if (!m) continue;
-        let [x, y] = [m.position[0] + m.velocity[0] * dtSec, m.position[1] + m.velocity[1] * dtSec];
+        let [x, y] = [
+          m.position[0] + m.velocity[0] * dtSec,
+          m.position[1] + m.velocity[1] * dtSec,
+        ];
         let [vx, vy] = m.velocity;
-        if (x < minX) { x = minX; vx = -vx; }
-        else if (x > maxX) { x = maxX; vx = -vx; }
-        if (y < minY) { y = minY; vy = -vy; }
-        else if (y > maxY) { y = maxY; vy = -vy; }
+        if (x < minX) {
+          x = minX;
+          vx = -vx;
+        } else if (x > maxX) {
+          x = maxX;
+          vx = -vx;
+        }
+        if (y < minY) {
+          y = minY;
+          vy = -vy;
+        } else if (y > maxY) {
+          y = maxY;
+          vy = -vy;
+        }
         store.update(e, { position: [x, y], velocity: [vx, vy] });
       }
     },
@@ -228,7 +263,10 @@ export const gamePlugin = Database.Plugin.create({
       store.archetypes.Mover.insert({
         color,
         position: [x, y],
-        velocity: [Math.cos(drawA.angle) * MOVER_SPEED, Math.sin(drawA.angle) * MOVER_SPEED],
+        velocity: [
+          Math.cos(drawA.angle) * MOVER_SPEED,
+          Math.sin(drawA.angle) * MOVER_SPEED,
+        ],
         spriteKey: `mover-${color}`,
       });
     },
@@ -238,7 +276,10 @@ export const gamePlugin = Database.Plugin.create({
       store.delete(entity);
       store.resources.score += POINTS_PER_COLLECT;
       store.resources.remaining = Math.max(0, store.resources.remaining - 1);
-      if (store.resources.remaining === 0 && store.resources.phase === 'playing') {
+      if (
+        store.resources.remaining === 0 &&
+        store.resources.phase === 'playing'
+      ) {
         store.resources.phase = 'won';
       }
     },

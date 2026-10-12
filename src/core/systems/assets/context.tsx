@@ -1,11 +1,10 @@
-import { createContext, useContext } from 'solid-js';
-import type { Accessor, ParentProps } from 'solid-js';
 import type { LoadingState } from '@wolfgames/components/core';
-import { useSignal } from '@wolfgames/components/solid';
-import type { ProgressCallback } from './types';
-import { createCoordinatorFacade } from './facade';
+import { useManifest, useSignal } from '@wolfgames/components/solid';
+import type { Accessor, ParentProps } from 'solid-js';
+import { createContext, useContext } from 'solid-js';
 import type { AssetCoordinatorFacade } from './facade';
-import { useManifest } from '@wolfgames/components/solid';
+import { createCoordinatorFacade } from './facade';
+import type { ProgressCallback } from './types';
 
 /**
  * Scaffold-specific asset context.

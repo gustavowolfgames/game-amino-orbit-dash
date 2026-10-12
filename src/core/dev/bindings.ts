@@ -1,8 +1,16 @@
-import type { Pane, FolderApi, BindingParams } from 'tweakpane';
-import type { TuningState, ScaffoldTuning, GameTuningBase } from '../systems/tuning/types';
-import { isGamePathWired, isScaffoldPathWired, areAllChildrenWired } from './tuningRegistry';
 import gsap from 'gsap';
+import type { BindingParams, FolderApi, Pane } from 'tweakpane';
+import type {
+  GameTuningBase,
+  ScaffoldTuning,
+  TuningState,
+} from '../systems/tuning/types';
 import { EasingPicker } from './EasingPicker';
+import {
+  areAllChildrenWired,
+  isGamePathWired,
+  isScaffoldPathWired,
+} from './tuningRegistry';
 
 // Use any for Pane methods due to @tweakpane/core type definition issues
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,7 +31,10 @@ const SECTION_COLORS = {
 };
 
 /** Style a folder with section colors */
-function styleSectionFolder(element: HTMLElement, section: 'scaffold' | 'game'): void {
+function styleSectionFolder(
+  element: HTMLElement,
+  section: 'scaffold' | 'game',
+): void {
   const colors = SECTION_COLORS[section];
   element.style.borderLeft = `3px solid ${colors.border}`;
   element.style.marginLeft = '0';
@@ -52,7 +63,11 @@ function styleUnwiredBinding(element: HTMLElement): void {
  * Create an SVG easing curve visualization element.
  * Has headroom above for overshoot (back/elastic easings).
  */
-function createEasingCurveSvg(easing: string, width = 200, height = 80): SVGSVGElement {
+function createEasingCurveSvg(
+  easing: string,
+  width = 200,
+  height = 80,
+): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('width', String(width));
@@ -161,7 +176,10 @@ function formatLabel(key: string): string {
 /**
  * Infer binding parameters from key name patterns
  */
-function inferBindingParams(key: string, value: number): Partial<BindingParams> {
+function inferBindingParams(
+  key: string,
+  value: number,
+): Partial<BindingParams> {
   const keyLower = key.toLowerCase();
 
   // Volume/alpha: 0-1 range
@@ -210,7 +228,11 @@ function inferBindingParams(key: string, value: number): Partial<BindingParams> 
   }
 
   // Count: 0-20
-  if (keyLower.includes('count') || keyLower.includes('min') || keyLower.includes('max')) {
+  if (
+    keyLower.includes('count') ||
+    keyLower.includes('min') ||
+    keyLower.includes('max')
+  ) {
     return { min: 0, max: 20, step: 1 };
   }
 
@@ -250,7 +272,7 @@ function addResetButton(
   defaultValue: unknown,
   currentObj: Record<string, unknown>,
   key: string,
-  onUpdate: (value: unknown) => void
+  onUpdate: (value: unknown) => void,
 ): void {
   setTimeout(() => {
     // Create reset button
@@ -303,10 +325,12 @@ function createBinding(
   key: string,
   value: unknown,
   onUpdate: (value: unknown) => void,
-  options: { fullPath: string; isScaffold: boolean; defaultValue: unknown }
+  options: { fullPath: string; isScaffold: boolean; defaultValue: unknown },
 ): void {
   const { fullPath, isScaffold, defaultValue } = options;
-  const isWired = isScaffold ? isScaffoldPathWired(fullPath) : isGamePathWired(fullPath);
+  const isWired = isScaffold
+    ? isScaffoldPathWired(fullPath)
+    : isGamePathWired(fullPath);
 
   const label = formatLabel(key);
   const obj = { [key]: value };
@@ -415,7 +439,10 @@ function createBinding(
     }
 
     // Panel position dropdown
-    if (key === 'position' && (value === 'left' || value === 'center' || value === 'right')) {
+    if (
+      key === 'position' &&
+      (value === 'left' || value === 'center' || value === 'right')
+    ) {
       const binding = parent.addBinding(obj, key, {
         label,
         options: { Left: 'left', Center: 'center', Right: 'right' },
@@ -427,10 +454,17 @@ function createBinding(
     }
 
     // Viewport mode dropdown
-    if (key === 'mode' && (value === 'small' || value === 'large' || value === 'none')) {
+    if (
+      key === 'mode' &&
+      (value === 'small' || value === 'large' || value === 'none')
+    ) {
       const binding = parent.addBinding(obj, key, {
         label,
-        options: { 'Small (430px)': 'small', 'Large (768px)': 'large', 'None (full)': 'none' },
+        options: {
+          'Small (430px)': 'small',
+          'Large (768px)': 'large',
+          'None (full)': 'none',
+        },
       });
       binding.on('change', (ev: { value: string }) => onUpdate(ev.value));
       applyUnwiredStyle(binding);
@@ -455,18 +489,21 @@ function createBinding(
       // Create a container that mimics Tweakpane row styling
       const container = document.createElement('div');
       container.className = 'tp-lblv';
-      container.style.cssText = 'display: flex; align-items: center; padding: 2px 4px;';
+      container.style.cssText =
+        'display: flex; align-items: center; padding: 2px 4px;';
 
       // Label
       const labelEl = document.createElement('div');
       labelEl.className = 'tp-lblv_l';
-      labelEl.style.cssText = 'flex: 1; font-size: 11px; color: rgba(255, 255, 255, 0.7);';
+      labelEl.style.cssText =
+        'flex: 1; font-size: 11px; color: rgba(255, 255, 255, 0.7);';
       labelEl.textContent = label;
       container.appendChild(labelEl);
 
       // Picker container
       const pickerContainer = document.createElement('div');
-      pickerContainer.style.cssText = 'flex: 1.5; display: flex; align-items: center;';
+      pickerContainer.style.cssText =
+        'flex: 1.5; display: flex; align-items: center;';
 
       const picker = new EasingPicker(value as string, (newValue) => {
         onUpdate(newValue);
@@ -508,7 +545,8 @@ function createBinding(
 
       // Inject into parent folder
       setTimeout(() => {
-        const parentEl = parent.element.querySelector('.tp-fldv_c') || parent.element;
+        const parentEl =
+          parent.element.querySelector('.tp-fldv_c') || parent.element;
         parentEl.appendChild(container);
       }, 0);
 
@@ -569,7 +607,7 @@ function bindObjectToPane(
     isScaffold: boolean;
     defaults: Record<string, unknown>;
     onResetFolder?: (folderPath: string) => void;
-  }
+  },
 ): void {
   const { pathPrefix = '', isScaffold, defaults, onResetFolder } = options;
 
@@ -642,11 +680,17 @@ function bindObjectToPane(
       const defaultValue = getValueByPath(defaults, path);
 
       // Create binding for primitive values
-      createBinding(parent, key, value, (newValue) => onUpdate(path, newValue), {
-        fullPath: path,
-        isScaffold,
-        defaultValue,
-      });
+      createBinding(
+        parent,
+        key,
+        value,
+        (newValue) => onUpdate(path, newValue),
+        {
+          fullPath: path,
+          isScaffold,
+          defaultValue,
+        },
+      );
     }
   }
 }
@@ -654,16 +698,23 @@ function bindObjectToPane(
 /**
  * Bind tuning state to Tweakpane
  */
-export function bindTuningToPane<S extends ScaffoldTuning, G extends GameTuningBase>(
+export function bindTuningToPane<
+  S extends ScaffoldTuning,
+  G extends GameTuningBase,
+>(
   pane: Pane,
   state: TuningState<S, G>,
   options: {
     scaffoldFolder?: string;
     gameFolder?: string;
     onChange?: () => void;
-  } = {}
+  } = {},
 ): void {
-  const { scaffoldFolder = 'Scaffold', gameFolder = 'Game', onChange } = options;
+  const {
+    scaffoldFolder = 'Scaffold',
+    gameFolder = 'Game',
+    onChange,
+  } = options;
 
   // Create main folders with color coding
   const scaffoldPane = pane.addFolder({
@@ -683,14 +734,24 @@ export function bindTuningToPane<S extends ScaffoldTuning, G extends GameTuningB
   // Helper to reset a folder (all values under a path)
   const resetFolder = (folderPath: string, isScaffold: boolean): void => {
     const defaults = isScaffold ? state.scaffoldDefaults : state.gameDefaults;
-    const folderDefaults = getValueByPath(defaults as Record<string, unknown>, folderPath);
+    const folderDefaults = getValueByPath(
+      defaults as Record<string, unknown>,
+      folderPath,
+    );
 
     if (folderDefaults && typeof folderDefaults === 'object') {
       // Recursively reset all values in this folder
-      const resetRecursive = (obj: Record<string, unknown>, pathPrefix: string): void => {
+      const resetRecursive = (
+        obj: Record<string, unknown>,
+        pathPrefix: string,
+      ): void => {
         for (const [key, value] of Object.entries(obj)) {
           const fullPath = pathPrefix ? `${pathPrefix}.${key}` : key;
-          if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+          if (
+            value !== null &&
+            typeof value === 'object' &&
+            !Array.isArray(value)
+          ) {
             resetRecursive(value as Record<string, unknown>, fullPath);
           } else {
             if (isScaffold) {
@@ -722,7 +783,7 @@ export function bindTuningToPane<S extends ScaffoldTuning, G extends GameTuningB
       isScaffold: true,
       defaults: state.scaffoldDefaults as Record<string, unknown>,
       onResetFolder: (path) => resetFolder(path, true),
-    }
+    },
   );
 
   // Bind game tuning
@@ -737,17 +798,17 @@ export function bindTuningToPane<S extends ScaffoldTuning, G extends GameTuningB
       isScaffold: false,
       defaults: state.gameDefaults as Record<string, unknown>,
       onResetFolder: (path) => resetFolder(path, false),
-    }
+    },
   );
 }
 
 /**
  * Add preset control buttons to Tweakpane
  */
-export function addPresetControls<S extends ScaffoldTuning, G extends GameTuningBase>(
-  pane: Pane,
-  state: TuningState<S, G>
-): void {
+export function addPresetControls<
+  S extends ScaffoldTuning,
+  G extends GameTuningBase,
+>(pane: Pane, state: TuningState<S, G>): void {
   const presetsFolder = pane.addFolder({ title: 'Actions', expanded: false });
 
   // Save button
@@ -774,8 +835,10 @@ export function addPresetControls<S extends ScaffoldTuning, G extends GameTuning
 
   // Regenerate Level button (if function is available on window)
   if (typeof window !== 'undefined' && (window as any).regenerateLevel) {
-    presetsFolder.addButton({ title: '🔄 Regenerate Level' }).on('click', () => {
-      (window as any).regenerateLevel();
-    });
+    presetsFolder
+      .addButton({ title: '🔄 Regenerate Level' })
+      .on('click', () => {
+        (window as any).regenerateLevel();
+      });
   }
 }

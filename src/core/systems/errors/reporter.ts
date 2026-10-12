@@ -1,5 +1,9 @@
-import { captureException, setUser as setSentryUser, addBreadcrumb as addSentryBreadcrumb } from '../../lib/sentry';
-import type { ErrorContext, ErrorSeverity, ErrorReporter } from './types';
+import {
+  addBreadcrumb as addSentryBreadcrumb,
+  captureException,
+  setUser as setSentryUser,
+} from '../../lib/sentry';
+import type { ErrorContext, ErrorReporter, ErrorSeverity } from './types';
 
 // Dedupe rapid-fire errors
 const recentErrors = new Map<string, number>();
@@ -33,7 +37,7 @@ function shouldReport(error: Error): boolean {
 // Current context state
 let currentScreen = 'unknown';
 let currentUserId: string | undefined;
-let sessionId = crypto.randomUUID();
+const sessionId = crypto.randomUUID();
 
 function buildContext(partial?: Partial<ErrorContext>): ErrorContext {
   return {
@@ -46,7 +50,11 @@ function buildContext(partial?: Partial<ErrorContext>): ErrorContext {
 }
 
 export const errorReporter: ErrorReporter = {
-  capture(error: Error, context?: Partial<ErrorContext>, severity: ErrorSeverity = 'error') {
+  capture(
+    error: Error,
+    context?: Partial<ErrorContext>,
+    severity: ErrorSeverity = 'error',
+  ) {
     if (!shouldReport(error)) return;
 
     const fullContext = buildContext(context);
@@ -85,15 +93,16 @@ export function setupGlobalErrorHandlers() {
     errorReporter.capture(
       event.error ?? new Error(event.message),
       { extra: { filename: event.filename, lineno: event.lineno } },
-      'fatal'
+      'fatal',
     );
   });
 
   // Unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
-    const error = event.reason instanceof Error
-      ? event.reason
-      : new Error(String(event.reason));
+    const error =
+      event.reason instanceof Error
+        ? event.reason
+        : new Error(String(event.reason));
 
     errorReporter.capture(error, {}, 'error');
   });

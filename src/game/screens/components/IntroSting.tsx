@@ -24,9 +24,9 @@
  * rules because the design is still settling. See intro-sting/README.md.
  */
 
-import { createSignal, createEffect, onCleanup, onMount, Show } from 'solid-js';
-import gsap from 'gsap';
 import { LoaderBar } from '@wolfgames/components/modules/prefabs/screen-content-loader';
+import gsap from 'gsap';
+import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js';
 import { GAME_FONT_FAMILY } from '~/game/config';
 // Single source of truth for the sting markup is the design sandbox at repo-root
 // `intro-sting/wolf-sting.svg` (previewable via intro-sting/preview.html). On promotion
@@ -89,7 +89,12 @@ export function IntroSting(props: IntroStingProps) {
     // Brand background fades in as the wordmark finishes assembling.
     if (bgRef) {
       tweens.push(
-        gsap.to(bgRef, { opacity: 1, duration: 0.5, delay: BG_IN_SEC, ease: 'power1.out' }),
+        gsap.to(bgRef, {
+          opacity: 1,
+          duration: 0.5,
+          delay: BG_IN_SEC,
+          ease: 'power1.out',
+        }),
       );
     }
     // Game title is brought in as the lockup drops + shrinks to its footer.
@@ -98,7 +103,13 @@ export function IntroSting(props: IntroStingProps) {
         gsap.fromTo(
           titleRef,
           { opacity: 0, y: 28 },
-          { opacity: 1, y: 0, duration: 0.6, delay: TITLE_IN_SEC, ease: 'power2.out' },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            delay: TITLE_IN_SEC,
+            ease: 'power2.out',
+          },
         ),
       );
     }
