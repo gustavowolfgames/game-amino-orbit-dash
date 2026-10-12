@@ -14,6 +14,7 @@ Framework shell — providers, hooks, systems, dev tools. No deps on `modules/` 
 | GPU/Pixi texture loader | `@wolfgames/components/pixi` (re-exported via systems/assets/index.ts) | |
 | Screen navigation, transitions | systems/screens/context.tsx | `useScreen()` |
 | Screen manager logic | systems/screens/manager.ts | |
+| Analytics core sends (screen views, caught errors), supplied by the game | systems/tracking/context.tsx | `useCoreTracking()` |
 | Audio playback, state, volumes | systems/audio/context.tsx | `useAudio()` |
 | BaseAudioManager (extend per game) | systems/audio/base-manager.ts | |
 | Sound definitions & utils | systems/audio/types.ts, utils.ts | |

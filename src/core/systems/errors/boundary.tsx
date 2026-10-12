@@ -2,7 +2,7 @@ import {
   type ParentProps,
   ErrorBoundary as SolidErrorBoundary,
 } from 'solid-js';
-import { useGameTracking } from '~/game/setup/tracking';
+import { useCoreTracking } from '~/core/systems/tracking';
 import { errorReporter } from './reporter';
 import type { ErrorSeverity } from './types';
 
@@ -14,7 +14,7 @@ interface BoundaryProps extends ParentProps {
 }
 
 export function Boundary(props: BoundaryProps) {
-  const { trackError } = useGameTracking();
+  const { trackError } = useCoreTracking();
 
   const handleError = (error: Error, reset: () => void) => {
     errorReporter.capture(
@@ -55,6 +55,7 @@ export function GlobalBoundary(props: ParentProps) {
               We've been notified and are looking into it.
             </p>
             <button
+              type="button"
               onClick={() => window.location.reload()}
               class="px-6 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-200 transition-colors"
             >
@@ -90,6 +91,7 @@ export function ScreenBoundary(props: ScreenBoundaryProps) {
             </p>
             <div class="flex gap-4 justify-center">
               <button
+                type="button"
                 onClick={reset}
                 class="px-6 py-3 bg-white text-black rounded-lg font-medium hover:bg-gray-200 transition-colors"
               >
@@ -97,6 +99,7 @@ export function ScreenBoundary(props: ScreenBoundaryProps) {
               </button>
               {props.onNavigate && (
                 <button
+                  type="button"
                   onClick={props.onNavigate}
                   class="px-6 py-3 bg-transparent border border-white rounded-lg font-medium hover:bg-white/10 transition-colors"
                 >
@@ -132,6 +135,7 @@ export function AssetBoundary(props: AssetBoundaryProps) {
             </p>
             <div class="flex gap-4 justify-center">
               <button
+                type="button"
                 onClick={() => {
                   props.onRetry?.();
                   reset();
@@ -142,6 +146,7 @@ export function AssetBoundary(props: AssetBoundaryProps) {
               </button>
               {props.onSkip && (
                 <button
+                  type="button"
                   onClick={props.onSkip}
                   class="px-6 py-3 bg-transparent border border-white rounded-lg font-medium hover:bg-white/10 transition-colors"
                 >

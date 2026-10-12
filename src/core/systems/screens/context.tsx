@@ -7,7 +7,7 @@ import {
   useContext,
 } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
-import { useGameTracking } from '~/game/setup/tracking';
+import { useCoreTracking } from '~/core/systems/tracking';
 import { useAssets } from '../assets';
 import { ScreenBoundary } from '../errors/boundary';
 import { errorReporter } from '../errors/reporter';
@@ -16,7 +16,7 @@ import {
   type ScreenManager,
   type ScreenManagerOptions,
 } from './manager';
-import type { ScreenAssetConfig, ScreenId } from './types';
+import type { ScreenId } from './types';
 
 const ScreenContext = createContext<ScreenManager>();
 
@@ -25,7 +25,7 @@ interface ScreenProviderProps extends ParentProps {
 }
 
 export function ScreenProvider(props: ScreenProviderProps) {
-  const { trackScreenView, trackScreenExit } = useGameTracking();
+  const { trackScreenView, trackScreenExit } = useCoreTracking();
   const assets = useAssets();
   let screenEnteredAt = Date.now();
 
@@ -104,8 +104,7 @@ interface ScreenRendererProps {
 }
 
 export function ScreenRenderer(props: ScreenRendererProps) {
-  const { current, transition, getTransitionClass, transitionConfig, goto } =
-    useScreen();
+  const { current, getTransitionClass, transitionConfig, goto } = useScreen();
 
   const handleNavigateToStart = () => {
     goto('start');

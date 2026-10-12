@@ -34,10 +34,12 @@ import { activeDb } from '~/core/systems/ecs/DbBridge';
 import { createExampleWorld } from '~/core/systems/ecs/ExamplePlugin';
 import '~/game/setup/flags'; // registers flag config at module load
 import { useAssetCoordinator } from '~/core/systems/assets';
+import { CoreTrackingProvider } from '~/core/systems/tracking';
 import { EmbedHook } from '~/game/EmbedHook';
 import { GameSettingsMenu } from '~/game/screens/components/GameSettingsMenu';
 import { createLoadingTracker } from '~/game/setup/loading-tracker';
 import { createSessionTracker } from '~/game/setup/session-tracker';
+import { useGameTracking } from '~/game/setup/tracking';
 import { VaultContentBridge } from '~/game/setup/vault-content';
 import { AttractGate, EmbedProvider } from '~/integrations/embed';
 
@@ -49,6 +51,13 @@ const handleResetProgress = () => {
 };
 
 /** Wires session lifecycle events (start, pause, resume, end) */
+/** Hands the game's tracking to core (screen views, caught errors); core never imports game code. */
+const GameTrackingBridge: ParentComponent = (props) => (
+  <CoreTrackingProvider tracking={useGameTracking()}>
+    {props.children}
+  </CoreTrackingProvider>
+);
+
 function SessionTrackerBridge() {
   const service = useAnalyticsService();
   const cleanup = createSessionTracker(service, gameConfig.initialScreen);
@@ -92,16 +101,20 @@ export default function App() {
       <GameConfigProvider debug>
         <AnalyticsProvider userId={getResolvedPlayerId() ?? undefined}>
           <SessionTrackerBridge />
-          <GlobalBoundary>
-            <TuningProvider gameDefaults={GAME_DEFAULTS}>
-              <DevOnly>
-                <Show when={activeDb()} fallback={<Inspector db={exampleDB} />}>
-                  {(db) => <Inspector db={db()} />}
-                </Show>
-              </DevOnly>
-              <FeatureFlagProvider>
-                <TuningViewportBridge>
-                  {/* The three scaling layers, composed: the viewport frame, the
+          <GameTrackingBridge>
+            <GlobalBoundary>
+              <TuningProvider gameDefaults={GAME_DEFAULTS}>
+                <DevOnly>
+                  <Show
+                    when={activeDb()}
+                    fallback={<Inspector db={exampleDB} />}
+                  >
+                    {(db) => <Inspector db={db()} />}
+                  </Show>
+                </DevOnly>
+                <FeatureFlagProvider>
+                  <TuningViewportBridge>
+                    {/* The three scaling layers, composed: the viewport frame, the
                       renderer host (frame-sized, outside the DOM transform), and
                       the one design transform every screen below is authored
                       against. See @wolfgames/components docs/standards/components.md
@@ -111,25 +124,25 @@ export default function App() {
                       the DOM layer: left interactive, this layer absorbs every tap
                       and the game renders perfectly while responding to nothing.
                       Each fully-DOM screen opts back in on its own root. */}
-                  <GameShell>
-                    {/* Viewport Toggle - dev only; self-positions via Portal */}
-                    <DevOnly>
-                      <ViewportToggle />
-                    </DevOnly>
-                    <PauseProvider>
-                      <CdnManifestProvider
-                        manifest={manifest}
-                        defaultGameData={defaultGameData}
-                      >
-                        <AssetProvider>
-                          <LoadingTrackerBridge />
-                          <ScreenProvider
-                            options={{
-                              initialScreen: gameConfig.initialScreen,
-                              screenAssets: gameConfig.screenAssets,
-                            }}
-                          >
-                            {/* Corner chrome belongs on the edge of the VIEW, not
+                    <GameShell>
+                      {/* Viewport Toggle - dev only; self-positions via Portal */}
+                      <DevOnly>
+                        <ViewportToggle />
+                      </DevOnly>
+                      <PauseProvider>
+                        <CdnManifestProvider
+                          manifest={manifest}
+                          defaultGameData={defaultGameData}
+                        >
+                          <AssetProvider>
+                            <LoadingTrackerBridge />
+                            <ScreenProvider
+                              options={{
+                                initialScreen: gameConfig.initialScreen,
+                                screenAssets: gameConfig.screenAssets,
+                              }}
+                            >
+                              {/* Corner chrome belongs on the edge of the VIEW, not
                                 the edge of the canvas. `position: fixed` does not
                                 do that here — a transformed ancestor becomes the
                                 containing block for fixed descendants, so `fixed`
@@ -141,43 +154,44 @@ export default function App() {
                                 Inside ScreenProvider so the menu can hide itself
                                 on the `game` screen, where the in-game Pixi panel
                                 owns settings (ENG-4127). */}
-                            <DesignBleed zIndex={9999}>
-                              {/* `pointer-events: auto` per control: the bleed
+                              <DesignBleed zIndex={9999}>
+                                {/* `pointer-events: auto` per control: the bleed
                                   layer spans the whole frame and deliberately
                                   takes no events, or it would eat every tap meant
                                   for the game below. */}
-                              <div
-                                style={{
-                                  position: 'absolute',
-                                  top: '8px',
-                                  right: '8px',
-                                  'pointer-events': 'auto',
-                                }}
-                              >
-                                <GameSettingsMenu
-                                  onResetProgress={handleResetProgress}
-                                />
-                              </div>
-                            </DesignBleed>
-                            {/* Vault runtime + Daily Editions (contentId →
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    top: '8px',
+                                    right: '8px',
+                                    'pointer-events': 'auto',
+                                  }}
+                                >
+                                  <GameSettingsMenu
+                                    onResetProgress={handleResetProgress}
+                                  />
+                                </div>
+                              </DesignBleed>
+                              {/* Vault runtime + Daily Editions (contentId →
                                 Content Pack); inert outside a Vault. Must stay
                                 inside ScreenProvider — reads useScreen() to hold
                                 `ready` until playable. */}
-                            <VaultContentBridge />
-                            <AttractGate
-                              hook={(engage) => <EmbedHook engage={engage} />}
-                            >
-                              <ScreenRenderer screens={gameConfig.screens} />
-                            </AttractGate>
-                          </ScreenProvider>
-                        </AssetProvider>
-                      </CdnManifestProvider>
-                    </PauseProvider>
-                  </GameShell>
-                </TuningViewportBridge>
-              </FeatureFlagProvider>
-            </TuningProvider>
-          </GlobalBoundary>
+                              <VaultContentBridge />
+                              <AttractGate
+                                hook={(engage) => <EmbedHook engage={engage} />}
+                              >
+                                <ScreenRenderer screens={gameConfig.screens} />
+                              </AttractGate>
+                            </ScreenProvider>
+                          </AssetProvider>
+                        </CdnManifestProvider>
+                      </PauseProvider>
+                    </GameShell>
+                  </TuningViewportBridge>
+                </FeatureFlagProvider>
+              </TuningProvider>
+            </GlobalBoundary>
+          </GameTrackingBridge>
         </AnalyticsProvider>
       </GameConfigProvider>
     </EmbedProvider>
