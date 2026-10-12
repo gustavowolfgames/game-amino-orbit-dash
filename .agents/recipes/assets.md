@@ -20,13 +20,19 @@ Line art, UI, and text need `role: "ui-text"` on the tool that makes them. That 
 
 Stage files in `assets/src/`, which is gitignored. Rename them to `docs/reference/asset-naming.md`. Do not compress them first. Publish encodes images on the way up, so a file you squashed first gets squashed twice. Very large files skip the encoder, so shrink those yourself. The size limit is in `docs/reference/asset-pipeline.md`.
 
-Packed PNG sheets go in as they are. Publish finds each sheet through its atlas JSON and keeps it lossless at full size. A sheet you add with `assets_set` from a local file needs `role: "atlas"`, because `assets_set` does not read the JSON.
+Packed PNG sheets go in as they are. Publish finds each sheet through its atlas JSON and keeps it lossless at full size. A sheet you add with `assets_set` from a local file needs `role: "atlas"`, because `assets_set` does not read the JSON. Atlas JSON that Pixi loads goes under `assets/src/json-data/`. DOM atlases and audio-sprite JSON stay at the top level.
 
 Publish with `assets_publish`. `bun run assets:publish` does the same from a terminal. The `wolf-dev` CLI behind the `assets:*` scripts refuses to run without an interactive terminal, so agents use the MCP tools. It writes `assets/asset-manifest.cdn.json` and `assets/registry.ts`. Commit both. Do not commit the media. Publish keeps no originals, so keep your own copy of anything you made.
 
 Assets land under `gameSlug` in `wolf-game-kit.json`. It must equal the Nucleo slug. If it still says `mygame`, stop and set the real slug. The `projectId` argument on asset-gen tools defaults to that slug. Pass it only to reach another project's assets.
 
 Freeze the draft with `assets_release` before a build that players will run.
+
+### Load
+
+Register bundles in `src/game/asset-manifest.ts`, with lockfile keys as the `src` values. The CDN manifest provider resolves them at boot. Never put a `media.<env>.wolf.games` URL in `src/`. `check:assets` fails on one.
+
+Do not land code that references an asset that does not exist yet. A placeholder needs the user's approval, and each one is flagged for replacement.
 
 ### Size
 
