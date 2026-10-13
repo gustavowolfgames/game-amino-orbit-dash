@@ -27,7 +27,7 @@ Match the task, then open that file.
 - Levels, questions, cards, or a content pack. Open `.agents/recipes/content.md`.
 - A daily edition, a vault schedule, or Games Manager config. Open `.agents/recipes/dynamic-data.md`.
 - An analytics event. Open `.agents/recipes/analytics.md`.
-- Images, audio, or VFX. Open `.agents/recipes/assets.md`.
+- Images, audio, VFX, or the settings menu's volume and music. Open `.agents/recipes/assets.md`.
 - You are about to say the change works. Open `.agents/recipes/verify.md`.
 
 If the task changes what the game is, update `docs/GAME-DESIGN.md` in the same change.

@@ -58,6 +58,7 @@ import { loadGameTextures } from '../render/textures';
 import type { GameDatabase, GamePhase } from '../sim/plugin';
 import { stepWorld } from '../sim/schedule';
 import { getGameWorld } from '../world';
+import { type AudioSettings, bindAudioSettings } from './audioSettings';
 
 /** Delay (s) before handing off to results, so the last frame reads. */
 const END_PAUSE = 0.9;
@@ -164,13 +165,12 @@ export const setupGame: SetupGame = (
       /* audio optional */
     }
   };
-  const stopMusic = () => {
-    try {
-      audio()?.stop('audio-music');
-    } catch {
-      /* audio optional */
-    }
-  };
+  // The settings menu's volume and music toggle, applied to the engine
+  // (./audioSettings.ts). Music starts through it, never by playing directly.
+  const music = bindAudioSettings(
+    audio,
+    deps.audio as AudioSettings | undefined,
+  );
 
   // ── Layout ────────────────────────────────────────────────────────────────
   const layout = () => {
@@ -258,7 +258,7 @@ export const setupGame: SetupGame = (
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
-          tryPlay('audio-music', 'loop'); // audio unlocked on the start-screen tap
+          music.startMusic(); // audio unlocked on the start-screen tap; respects the toggle
 
           engine = createTickerEngine();
           stopSim = startFixedStepLoop(engine, (dt) => {
@@ -285,7 +285,7 @@ export const setupGame: SetupGame = (
 
     destroy() {
       destroyed = true;
-      stopMusic();
+      music.stopMusic();
       stopSim?.();
       stopRender?.();
       stopSim = stopRender = null;

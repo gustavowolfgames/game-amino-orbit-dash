@@ -10,6 +10,8 @@ Open `.agents/skills/game-controller/SKILL.md` and follow it. `setupGame` wires 
 
 Pixi calls are `.agents/skills/pixi-gameplay/SKILL.md`.
 
+Music and the settings menu's volume go through `bindAudioSettings` (`./audioSettings.ts`); the assets recipe says how. Start music with `music.startMusic()`, never by playing the music channel directly.
+
 ## Verify
 
 `bun run check:agent` passes. If it reports that `gameController.ts` is over its line cap, move the new code out. Do not raise the cap.
