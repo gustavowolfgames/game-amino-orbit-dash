@@ -1,6 +1,7 @@
-import { onMount, onCleanup, Show } from 'solid-js';
+import { createSignal, onMount, onCleanup, Show } from 'solid-js';
 import { Portal } from 'solid-js/web';
-import { useRendererHost } from '@wolfgames/components/solid';
+import { useManifest, useRendererHost } from '@wolfgames/components/solid';
+import { Logo } from '~/core/ui/Logo';
 import { useScreen, type ScreenId } from '~/core/systems/screens';
 import { useAssets } from '~/core/systems/assets';
 import { useTuning, type ScaffoldTuning } from '~/core';
@@ -10,6 +11,8 @@ import type { GameTuning } from '~/game/tuning';
 
 // Game-specific start screen — swap this import for a different game
 import { setupStartScreen } from '~/game/mygame/screens/startView';
+import { cssScaleOf, placeTitleLogo, titleArt, titleBgMatch } from './components/titleFrame';
+import { useSpaceKey } from './useSpaceKey';
 
 export default function StartScreen() {
   const { goto } = useScreen();
@@ -17,6 +20,11 @@ export default function StartScreen() {
   const tuning = useTuning<ScaffoldTuning, GameTuning>();
   const { trackGameStart } = useGameTracking();
   let containerRef: HTMLDivElement | undefined;
+  let stillRef: HTMLDivElement | undefined;
+  let stillLogoRef: HTMLImageElement | undefined;
+  let stillBgRef: HTMLImageElement | undefined;
+  const [pixiReady, setPixiReady] = createSignal(false);
+  const title = titleArt(useManifest().manifest());
   // Frame-sized mount outside the DOM design transform — see components.md §9.2b.
   const rendererHost = useRendererHost();
 
@@ -31,13 +39,30 @@ export default function StartScreen() {
     loadBundle,
     tuning,
     analytics: { trackGameStart },
+    onReady: () => setPixiReady(true),
   });
 
+  /** Line the still up with the title screen's first frame. */
+  function fitStill() {
+    if (!stillRef) return;
+    const box = stillRef.getBoundingClientRect();
+    const k = cssScaleOf(stillRef);
+    if (stillLogoRef) placeTitleLogo(stillLogoRef, box, k);
+    if (stillBgRef?.naturalWidth) {
+      const { scale, y } = titleBgMatch(box, { width: stillBgRef.naturalWidth, height: stillBgRef.naturalHeight }, k);
+      stillBgRef.style.transform = `translateY(${y}px) scale(${scale})`;
+    }
+  }
+
   onMount(() => {
+    fitStill();
     if (containerRef) startScreen.init(containerRef);
   });
 
   onCleanup(() => startScreen.destroy());
+
+  // Space starts the game, the same as tapping play (and never toggles the scaffold's pause).
+  useSpaceKey(() => startScreen.play?.());
 
   return (
     // `design-box-span` spans the frame box, not the 390×844 canvas: `fixed
@@ -61,12 +86,39 @@ export default function StartScreen() {
       <Show when={rendererHost()}>
         {(host) => (
           <Portal mount={host()}>
+            {/* A still of the title's first frame (the loader's reveal ends on it), under
+                the canvas until Pixi has drawn — so the handoff never flashes empty. */}
+            <Show when={!pixiReady()}>
+              <div class="absolute inset-0 pointer-events-none" ref={(el) => (stillRef = el)}>
+                <img
+                  src={title.background}
+                  alt=""
+                  aria-hidden="true"
+                  class="absolute inset-0 h-full w-full object-cover"
+                  ref={(el) => (stillBgRef = el)}
+                  onLoad={fitStill}
+                />
+                <img
+                  src={title.logo}
+                  alt=""
+                  aria-hidden="true"
+                  class="absolute"
+                  style={{ transform: 'translateY(-50%)' }}
+                  ref={(el) => (stillLogoRef = el)}
+                />
+              </div>
+            </Show>
             <div ref={containerRef} class="absolute inset-0" />
           </Portal>
         )}
       </Show>
 
-      {/* DOM UI Layer removed, Pixi SpriteButton handles play now */}
+      {/* WolfGames logo at bottom centre, as on the game screen. The loader's reveal fades
+          the same logo in at this spot, so it carries straight through the handoff.
+          pointer-events-none keeps the root pass-through (see above). */}
+      <div class="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-none">
+        <Logo />
+      </div>
     </div>
   );
 }

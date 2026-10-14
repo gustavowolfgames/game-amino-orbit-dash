@@ -90,6 +90,8 @@ export interface StartScreenDeps {
   loadBundle?: (name: string, onProgress?: (p: number) => void) => Promise<void>;
   tuning: { scaffold: ScaffoldTuning; game: GameTuningBase };
   analytics: { trackGameStart: (params: { start_source: string; is_returning_player: boolean }) => void };
+  /** Called once the start screen has drawn its first frame (the host can drop a stand-in). */
+  onReady?: () => void;
 }
 
 export interface StartScreenController {
@@ -99,6 +101,8 @@ export interface StartScreenController {
   destroy: () => void;
   /** Background color for the screen wrapper */
   backgroundColor: string;
+  /** Optional: start the game as the play button does (keyboard: Space / Enter in StartScreen). */
+  play?: () => void;
 }
 
 export type SetupStartScreen = (deps: StartScreenDeps) => StartScreenController;

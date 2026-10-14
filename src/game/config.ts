@@ -7,7 +7,7 @@
 
 import { lazy, type Component } from 'solid-js';
 import type { ViewportMode } from '@wolfgames/components/core';
-import type { ScreenId, ScreenAssetConfig } from '~/core/systems/screens/types';
+import type { ScreenId, ScreenAssetConfig, TransitionConfig } from '~/core/systems/screens/types';
 import { LoadingScreen } from './screens/LoadingScreen';
 import { ResultsScreen } from './screens/ResultsScreen';
 
@@ -61,6 +61,8 @@ export interface GameConfig {
    *  than blocking. Intended for playable ad units where a start screen is
    *  not required. Default: false. */
   skipStartScreen?: boolean;
+  /** The app-wide fade between screens. Default: 300 ms fade out, then in. */
+  screenTransition?: TransitionConfig;
 }
 
 export const gameConfig: GameConfig = {
@@ -71,4 +73,7 @@ export const gameConfig: GameConfig = {
     results: ResultsScreen,
   },
   initialScreen: 'loading',
+  // No app-wide fade: the loader reveals straight into the title's first frame, the
+  // title fades its own art out on Play, and a run restarts on the game screen.
+  screenTransition: { type: 'none', duration: 0 },
 };

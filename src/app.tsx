@@ -127,6 +127,7 @@ export default function App() {
                             options={{
                               initialScreen: gameConfig.initialScreen,
                               screenAssets: gameConfig.screenAssets,
+                              transition: gameConfig.screenTransition,
                             }}
                           >
                             {/* Corner chrome belongs on the edge of the VIEW, not
