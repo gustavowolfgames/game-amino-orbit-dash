@@ -16,9 +16,3 @@ export function nextRng(state: number): number {
 export function rngFloat(state: number): number {
   return state / 0x100000000;
 }
-
-/** Advance the state and return an angle in [0, 2π). */
-export function nextAngle(state: number): { state: number; angle: number } {
-  const s = nextRng(state);
-  return { state: s, angle: rngFloat(s) * Math.PI * 2 };
-}

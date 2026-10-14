@@ -77,21 +77,20 @@ The plugin is the single definition of what exists in the game world. Properties
 ```typescript
 const gamePlugin = Database.Plugin.create({
   components: { ... },     // per-entity data (position, velocity, spriteKey, …)
-  resources: { ... },      // global state (level, goal, score, phase, elapsedMs, frameDeltaMs, rng, pendingTaps)
+  resources: { ... },      // global state (level, goal, score, phase, elapsedMs, frameDeltaMs, rng, events)
   archetypes: { ... },     // entity templates (Tile, Piece, Body, …)
   computed: {
     stars: ...,            // derived from score + thresholds
   },
   transactions: {
     startRun: ...,         // start/restart a level
-    addScore: ...,         // resource mutations
+    tap: ...,              // the template's example move (emits `scored`, `phase`)
+    setPhase: ...,         // resource mutations (emits `phase`)
     advanceTime: ...,      // inject dt (real-time)
-    submitTap: ...,        // queue input as intent
+    clearEvents: ...,      // empties the event queue (drainEvents)
     // the game's own: spawn, move, clear, … (called by systems)
   },
-  systems: {
-    game_initialize: { create: () => {} },  // init-only for the turn-based starter; real-time games add per-frame systems here
-  },
+  // no `systems` block: per-frame systems are plain functions in sim/systems/ (SYSTEM_ORDER), run by stepWorld
 });
 ```
 
@@ -105,11 +104,10 @@ A turn function encapsulates one turn: read a snapshot, run pure rules, write re
 
 ```typescript
 export function applyTap(db: GameDatabase, args: { col: number; row: number }) {
-  const state = readStateFromEcs(db);          // 1. snapshot
+  const state = readBoard(db);                 // 1. snapshot (a plain reader next to the plugin)
   const ruling = evaluateTap(state, args);     // 2. pure rule
   if (!ruling.valid) return { ...ruling };
-  db.transactions.clearTile({ col, row });     // 3. write via transactions
-  db.transactions.addScore(ruling.points);
+  db.transactions.clearTile({ col, row, points: ruling.points }); // 3. write (and emit) via transactions
   return { ...ruling };                        // 4. metadata for the controller/GSAP
 }
 ```
@@ -148,7 +146,7 @@ Use it when state changes **without** an event (velocity, timers, physics). The 
 | Piece | Role |
 |---|---|
 | `sim/schedule.ts` — `stepWorld(db, dt)` | One tick: `advanceTime({dt})` then every system in `SYSTEM_ORDER`. |
-| `sim/systems/` | Pure `db => void` systems + `SYSTEM_ORDER`. Ships empty; its README shows a goal system and a tap system. |
+| `sim/systems/` | Pure `db => void` systems + `SYSTEM_ORDER`. Ships empty; its README shows a goal system and an input-queue system. |
 | `engine/` — `createTickerEngine()` | The frame-clock seam (`EngineHandle`) over `gsap.ticker`. The sim never imports an engine; no raw `requestAnimationFrame`. |
 | `engine/fixedStep.ts` — `startFixedStepLoop` | The "Fix Your Timestep" accumulator: variable frame deltas → N steps of a **fixed** `dt`, spiral-of-death clamp, render `alpha`. |
 
@@ -157,15 +155,17 @@ const engine = createTickerEngine();
 const stop = startFixedStepLoop(engine, (dt) => stepWorld(db, dt));  // fixed dt in → stable, replayable
 ```
 
-**Input as intent.** A real-time game does not resolve a turn inside the pointer callback; it queues one: `input/pointer.ts` calls `db.transactions.submitTap({ x, y })`. Next step a system drains `pendingTaps`, keeping input on the deterministic timeline. A turn-based game can resolve the turn in a transaction called from input instead.
+**Input as intent.** A real-time game does not resolve a turn inside the pointer callback; it queues one (`db.transactions.submitSwipe(...)` appends to a `pendingSwipes` resource, `input/README.md`). Next step the first system drains it, keeping input on the deterministic timeline. A turn-based game resolves the turn in a transaction called from input instead — the template's `tap` does.
+
+**Events out.** What the player should hear or see happen (a hit, a clear, a lap) is emitted as an event inside the transaction (`emit(store, { type: 'hit', ... })`, `sim/events.ts`). The controller drains the queue once a frame (`drainEvents(db)`) and runs it through a cue table (`screens/cues.ts`) for sound, aria and HUD — it never diffs counters frame to frame.
 
 **External physics engines (matter.js, etc.)** plug in as one per-frame system, not a second source of truth: (1) push pending ECS→engine changes, (2) step with the fixed `dt` (`Matter.Engine.update(engine, FIXED_DT)`), (3) write body positions/angles back into ECS. Full detail in [`ecs/README.md`](../../src/game/mygame/sim/README.md).
 
-**Determinism holds either way.** `dt` and input arrive as injected resources (`frameDeltaMs`, `pendingTap`), so `stepWorld(db, FIXED_DT)` replays exactly in a headless test — the same reason `applyTap(db, {col,row})` is reproducible on its own.
+**Determinism holds either way.** `dt` and input arrive as injected resources (`frameDeltaMs`, an intent queue), so `stepWorld(db, FIXED_DT)` replays exactly in a headless test — the same reason `applyTap(db, {col,row})` is reproducible on its own.
 
 ### Writing from a system — observable vs hot-path
 
-Only **committed transactions notify observers** — direct `db.store` column writes do not. So anything the HUD/DOM must react to (score, lives, phase) goes through `db.transactions.*`; reserve direct in-place column writes (`col.set(i, …)`) for the hot per-row work (position/velocity integration) that runs on every entity every frame and has no observer. The template's `systemMovement`/`systemOrbit` integrate through transactions for clarity — drop to direct column writes only when a profiler says per-entity transaction overhead matters.
+Only **committed transactions notify observers** — direct `db.store` column writes do not. So anything the HUD/DOM must react to (score, lives, phase) goes through `db.transactions.*`; reserve direct in-place column writes (`col.set(i, …)`) for the hot per-row work (position/velocity integration) that runs on every entity every frame and has no observer. Integrate through transactions first, for clarity — drop to direct column writes only when a profiler says per-entity transaction overhead matters.
 
 ### Spawning/despawning inside a system — iterate tail→head
 
@@ -181,13 +181,14 @@ This is about **archetype storage rows** (the packed column slots), not game-boa
 TURN-BASED (default)                         REAL-TIME (opt-in)
 User tap                                     engine.onFrame(realDt)
   └─ applyTurn(db, {x,y})                      └─ startFixedStepLoop → stepWorld(db, FIXED_DT)
-       ├─ readStateFromEcs()  (snapshot)            ├─ advanceTime({dt})
+       ├─ readBoard()         (snapshot)            ├─ advanceTime({dt})
        ├─ evaluateTap()       (pure rule)           └─ SYSTEM_ORDER:
-       ├─ db.transactions.*   (write)                    ├─ systemTaps  (drain pendingTaps)
+       ├─ db.transactions.*   (write + emit)             ├─ systemSwipes (drain the intent queue)
        └─ return metadata     (GSAP)                     ├─ systemMove  (integrate velocity)
                                                          └─ systemGoal  (win at the goal)
   ↓                                            ↓
-db.observe.resources.* → HUD / aria / DOM screens (read ECS; never a second write path)
+db.observe.resources.* → HUD / DOM screens (read ECS; never a second write path)
+drainEvents(db) once a frame → cue table → sound / aria / one-shot effects
 computed.* auto-update · setActiveDb(db) → Inspector (dev)
 ```
 

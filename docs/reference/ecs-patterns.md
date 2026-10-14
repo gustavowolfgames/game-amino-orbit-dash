@@ -16,9 +16,13 @@ A screen reads the world. It never writes a second copy.
 
 ## Input as intent
 
-A real-time game queues input and resolves it on the fixed step. In the template, a tap calls `db.transactions.submitTap({ x, y })` (`src/game/mygame/input/pointer.ts`), which appends to the `pendingTaps` resource. Next step, a tap system reads the queue, calls a transaction per tap, then `clearTaps` (`src/game/mygame/sim/systems/README.md`). Input stays on the deterministic timeline, so `stepWorld` replays in a test.
+A real-time game queues input and resolves it on the fixed step: a transaction appends to an intent resource (`pendingSwipes`), and next step the first system reads the queue, calls a transaction per item, then clears it (`src/game/mygame/input/README.md`, `src/game/mygame/sim/systems/README.md`). Input stays on the deterministic timeline, so `stepWorld` replays in a test.
 
-A turn-based game skips the queue. The input handler calls a turn function directly and no frame loop runs. See the cadence section of `.agents/recipes/ecs.md`.
+A turn-based game skips the queue. The input handler calls a transaction or turn function directly — the template's `tap` (`src/game/mygame/input/pointer.ts` → `db.transactions.tap`) does — and no system runs.
+
+## Events out
+
+Feedback reacts to events, not to counters diffed frame to frame. A transaction calls `emit(store, { type: 'hit', ... })` (`src/game/mygame/sim/events.ts`); the event union is the `GameEvent` map in `plugin.ts`. The controller drains the bounded queue once a frame with `drainEvents(db)` and runs it through `createCues` (`src/game/mygame/screens/cues.ts`). See the cadence section of `.agents/recipes/ecs.md`.
 
 ## Turn functions
 
@@ -26,7 +30,7 @@ A turn function reads a snapshot, runs a pure rule, writes through transactions,
 
 ```ts
 export function applyMove(db: GameDatabase, move: Move) {
-  const before = readStateFromEcs(db);
+  const before = readBoard(db); // a plain reader next to the plugin
   const ruling = evaluateMove(before, move); // pure
   if (!ruling.valid) return ruling;
   db.transactions.commitMove(ruling);
@@ -34,9 +38,9 @@ export function applyMove(db: GameDatabase, move: Move) {
 }
 ```
 
-Export it as a plain function, not an entry in the plugin's `actions` block. The `actions` generic is unconstrained, so outside callers get no argument or return types. Transactions called inside stay typed. `readStateFromEcs` in `src/game/mygame/sim/readStateFromEcs.ts` is the snapshot pattern.
+Export it as a plain function, not an entry in the plugin's `actions` block. The `actions` generic is unconstrained, so outside callers get no argument or return types. Transactions called inside stay typed. A snapshot reader is a plain function over `db.resources` and `db.select([...])`.
 
-Agents and bots drive the same path. `src/game/mygame/agent/agentPlugin.ts` extends the game plugin with an `AgenticService` whose `tap` and `start` actions call `submitTap` and `startRun`.
+Agents and bots drive the same path. `src/game/mygame/agent/agentPlugin.ts` declares the game's states and actions with `createAgentService`, and its `tap` and `start` actions call the `tap` and `startRun` transactions.
 
 ## Whole-snapshot reducer
 
@@ -68,7 +72,7 @@ Deleting from a live selection skips entities, because the table fills the hole 
 
 ## System order
 
-`SYSTEM_ORDER` in `src/game/mygame/sim/systems/index.ts` is a flat list, empty until the game adds its systems, for example `systemTaps`, `systemMove`, `systemCollide`, `systemGoal`. Order is the contract: collision runs after movement so it sees positions written this step. When the graph branches, `@adobe/data` systems can declare `schedule: { before, after }` instead.
+`SYSTEM_ORDER` in `src/game/mygame/sim/systems/index.ts` is a flat list, empty until the game adds its systems, for example `systemSwipes`, `systemMove`, `systemCollide`, `systemGoal`. Order is the contract: collision runs after movement so it sees positions written this step. When the graph branches, `@adobe/data` systems can declare `schedule: { before, after }` instead.
 
 ## External physics
 

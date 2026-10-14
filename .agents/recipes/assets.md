@@ -50,13 +50,13 @@ The only committed files under `public/assets/` are the ones this template alrea
 
 ### Settings menu: volume and music
 
-The gear menu (`src/game/screens/components/GameSettingsMenu.tsx`, from the components recipe) has a **Sounds** slider and a **Music** toggle. They only save settings (core `audioState`: `volume()` 0–1 and `musicEnabled()`); `src/game/mygame/screens/audioSettings.ts` applies them. `bindAudioSettings(audio, deps.audio)` in `setupGame` turns volume into the engine's master volume and music on/off into play/stop of the `audio-music` channel, on load and on every change.
+The gear menu (`src/game/screens/components/GameSettingsMenu.tsx`, from the components recipe) has a **Sounds** slider and a **Music** toggle. They only save settings (core `audioState`: `volume()` 0–1 and `musicEnabled()`); `createGameAudio` in `src/game/mygame/screens/gameAudio.ts` applies them. In `setupGame`, `createGameAudio(() => deps.coordinator.audio, { sfx, music, settings: deps.audio })` turns volume into the engine's master volume and music on/off into play/stop of the current track, on load and on every change.
 
-- Start music with `music.startMusic()` once the scene is up, and `music.stopMusic()` in `destroy()`. Never `play('audio-music', …)` directly: that ignores the toggle.
-- Play effects through the controller's `tryPlay`. The master volume covers them; per-sound loudness is the `volume` option on `play`.
-- A second music track (a title theme, a boss loop) is its own `bindAudioSettings(audio, deps.audio, 'audio-music-boss')`.
+- List every channel the game plays in `sfx` and `music` (the `audio-*` aliases in `src/game/asset-manifest.ts`). A name not listed does not compile.
+- Start music with `audio.music('audio-music')` once the scene is up, and `audio.stopAll()` in `destroy()`. Never play the music channel directly: that ignores the toggle. A second track (a boss loop) is another `music` entry; `audio.music('audio-music-boss')` swaps to it.
+- Play effects from the cue table (`src/game/mygame/screens/cues.ts`) or `audio.play('sfx-pop', { volume: 0.7 })`. The master volume covers them; per-sound loudness is `volume`.
 
-An older game without `audioSettings.ts` (its menu changes nothing): copy the file from this template, then in `gameController.ts` add `const music = bindAudioSettings(audio, deps.audio as AudioSettings | undefined);` after the `audio` helper, replace its `tryPlay('audio-music', 'loop')` with `music.startMusic()` and its `stopMusic()` in `destroy()` with `music.stopMusic()`. `tests/unit/audio-settings.test.ts` covers the binding.
+An older game without `gameAudio.ts` (its menu changes nothing): copy `gameAudio.ts` from this template, replace its controller's audio helper with `createGameAudio`, its music start with `audio.music(...)` and its stop with `audio.stopAll()`. `tests/unit/game-audio.test.ts` covers it.
 
 ## Verify
 

@@ -1,36 +1,27 @@
 /**
- * agentPlugin — the game world plus an `AgenticService` (@adobe/data/service).
+ * agentPlugin — this game, as states an agent reads and actions it calls.
  *
- * Extends the base `gamePlugin` with a `services.agent` that exposes the game as
- * observable **states** and conditionally available **actions**. Any agent
- * runtime (MCP, an LLM loop, an in-app bot, a test harness) reads the states and
- * calls `db.services.agent.execute(action, input)` to drive the game headlessly.
- *
- * A game replaces the role text and adds its own states (the board, the pieces)
- * and actions (move, rotate, send); `./README.md` shows one of each. `tap`
- * follows "input as intent": it queues a tap that a per-frame system drains on
- * the next `stepWorld`.
- *
- * Nullable states MUST use `Schema.Nullable(schema)`: a bare `nullable: true`
- * on a schema is silently ignored.
+ * The per-game part is only the declaration in `createGameAgentService`: the
+ * role text, the states (what a player sees) and the actions (what a player
+ * can do). `./createAgentService.ts` turns it into an `AgenticService`, and the
+ * plugin below registers it as `db.services.agent` on top of the game world.
+ * Actions call the same transactions the player's input does, so an agent
+ * plays by the same rules. `./README.md` shows how to add one of each.
  */
 
 import type { Schema } from '@adobe/data/schema';
-import { AgenticService } from '@adobe/data/service';
+import type { AgenticService } from '@adobe/data/service';
 import { Database, Observe } from '~/core/systems/ecs';
 import { DEFAULT_SEED } from '../config';
 import { type GameDatabase, gamePlugin } from '../sim/plugin';
-
-const roleText =
-  'You are playing a game built on this template. Read `phase`, `score` and `goal`. ' +
-  'Call `tap` ({ x, y }) with a design-space point to act, and `start` to restart the level.';
+import { createAgentService } from './createAgentService';
 
 const phaseSchema = {
   type: 'string',
   enum: ['idle', 'playing', 'won', 'lost'],
 } as const satisfies Schema;
 
-const tapParamSchema = {
+const pointSchema = {
   type: 'object',
   required: ['x', 'y'],
   properties: {
@@ -40,59 +31,42 @@ const tapParamSchema = {
 } as const satisfies Schema;
 
 export function createGameAgentService(db: GameDatabase): AgenticService {
-  const phase = db.observe.resources.phase;
-  const canTap = Observe.withMap(phase, (p) => p === 'playing');
-
-  return AgenticService.create({
-    interface: {
-      role: {
-        type: 'state',
-        schema: { type: 'string' },
-        description: 'Role and objective',
-      },
+  const r = db.observe.resources;
+  return createAgentService({
+    role:
+      'You are playing a game built on this template. Read `phase`, `score` and `goal`. ' +
+      'Call `tap` ({ x, y }) with a design-space point to score, and `start` to restart the level.',
+    states: {
       phase: {
-        type: 'state',
         schema: phaseSchema,
         description: 'Current game phase',
+        value: r.phase,
       },
       score: {
-        type: 'state',
         schema: { type: 'integer' },
         description: 'Points scored this run',
+        value: r.score,
       },
       goal: {
-        type: 'state',
         schema: { type: 'integer' },
         description: "The level's target (0 = none)",
+        value: r.goal,
       },
+    },
+    actions: {
       tap: {
-        type: 'action',
-        description: 'Queue a tap at design-space (x, y)',
-        parameters: [tapParamSchema],
+        description: 'Tap at design-space (x, y)',
+        input: pointSchema,
+        when: Observe.withMap(r.phase, (p) => p === 'playing'),
+        run: (p) => db.transactions.tap(p),
       },
       start: {
-        type: 'action',
         description: 'Restart the current level',
-        parameters: [{ type: 'object', properties: {} }],
+        run: () => {
+          const { level, packId, goal } = db.resources;
+          db.transactions.startRun({ seed: DEFAULT_SEED, level, packId, goal });
+        },
       },
-    },
-    implementation: {
-      role: Observe.fromConstant(roleText),
-      phase,
-      score: db.observe.resources.score,
-      goal: db.observe.resources.goal,
-      tap: async (input: { x: number; y: number }) => {
-        db.transactions.submitTap({ x: input.x, y: input.y });
-      },
-      start: async () => {
-        const { level, packId, goal } = db.resources;
-        db.transactions.startRun({ seed: DEFAULT_SEED, level, packId, goal });
-      },
-    },
-    conditional: {
-      // `tap` is only offered while a run is live: execute() returns an
-      // ActionError outside of that.
-      tap: canTap,
     },
   });
 }

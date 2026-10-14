@@ -16,6 +16,8 @@ The controller may do four things.
 
 Drawing, hit tests, HUD text, pops, and VFX go in sibling modules next to the controller. Input calls a transaction such as `submitFire`. The render function copies ECS into display objects. It does not score, spawn rules, or pick the next level.
 
+Sound, screen-reader text and one-shot effects come from the sim's events: `render` calls `cues(drainEvents(db), db.resources.elapsedMs)` once a frame, and the cue table (`createCues`, `src/game/mygame/screens/cues.ts`) maps each event type to a sound, a line and a hook. Audio goes through `createGameAudio` (`src/game/mygame/screens/gameAudio.ts`). Do not keep a "heard last frame" snapshot and diff counters; emit an event from the transaction instead. `src/game/mygame/screens/README.md` shows the wiring.
+
 The template's controller is thin: the renderer, the level flow, the fixed-step loop and the HUD. Keep it that way: views go in `src/game/mygame/render/`, input in `src/game/mygame/input/`, rules in `src/game/mygame/sim/`. The same file in game-amino-sort grew to thousands of lines with audio, blur, atlas packing, image cards, and a Solid store. Do not copy it.
 
 `scripts/check-agent-surface.mjs` fails when a new game's `gameController.ts` grows past `CONTROLLER_MAX_LINES` (400). Move the new function into a sibling module. Do not raise the cap.

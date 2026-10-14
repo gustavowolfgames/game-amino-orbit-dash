@@ -1,25 +1,43 @@
 # agent: the game as states and actions
 
-`agentPlugin.ts` exposes the game to an agent (a bot, a test harness, an MCP
-client): **states** it can read and **actions** it can call with
-`db.services.agent.execute(action, input)`. It ships with `phase`, `score`,
-`goal`, `tap` and `start`.
+An agent (a bot, a test harness, an MCP client) reads **states** and calls
+**actions** with `db.services.agent.execute(action, input)`.
+
+- `createAgentService.ts` is generic: it turns a declaration into an
+  `AgenticService` (@adobe/data). Leave it as is.
+- `agentPlugin.ts` is this game's declaration (`createGameAgentService`) and the
+  plugin that registers it on the world. It ships with the states `role`,
+  `phase`, `score`, `goal` and the actions `tap` and `start`.
 
 When the game has a board or pieces, add a state for what a player sees and an
-action for what a player can do. Both go in `createGameAgentService`:
+action for what a player can do, in `createGameAgentService`:
 
 ```ts
-// in agentPlugin.ts: interface
-pieces: { type: 'state', schema: piecesSchema, description: 'Every piece on the board' },
-swap: { type: 'action', description: 'Swap two adjacent pieces', parameters: [swapParamSchema] },
-
-// implementation
-pieces: Observe.withMap(db.observe.resources.score, () => readPieces(db)),
-swap: async (input: { a: number; b: number }) => db.transactions.submitSwap(input),
+states: {
+  // …
+  pieces: { schema: piecesSchema, description: 'Every piece on the board', value: piecesObserve },
+},
+actions: {
+  // …
+  swap: {
+    description: 'Swap two adjacent pieces',
+    input: swapSchema,                       // `as const satisfies Schema`
+    when: Observe.withMap(r.phase, (p) => p === 'playing'),
+    run: (s) => db.transactions.swap(s),     // `s` is typed from swapSchema
+  },
+},
 ```
 
-Rewrite `roleText` to say what the game is and how to win. Actions queue
-intents like the player's input does, so an agent plays by the same rules.
-Offer an action only when it is legal (`conditional`), and use
-`Schema.Nullable(schema)` for a state that can be empty: a bare
-`nullable: true` is silently ignored.
+- A state's `value` is an Observe whose type matches its `schema` (it does not
+  compile otherwise). Most are `db.observe.resources.<name>`; derive one with
+  `Observe.withMap(...)`.
+- A state that can be empty uses `Schema.Nullable(schema)`: a bare
+  `nullable: true` is silently ignored.
+- An action takes at most one input object. With no `input` it takes `{}`.
+  `when` offers it only while true; outside that `execute` returns an
+  ActionError.
+- Actions call the same transactions as the player's input, so an agent plays
+  by the same rules.
+
+Rewrite `role` to say what the game is and how to win. Test new states and
+actions in `tests/unit/schedule.test.ts` (`createGameAgentWorld()`).

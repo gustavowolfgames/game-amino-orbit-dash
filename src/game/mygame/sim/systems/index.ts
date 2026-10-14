@@ -8,7 +8,7 @@
  * `resources.frameDeltaMs` (injected by `stepWorld`), never from wall-clock time.
  *
  * Empty until the game adds its systems: usually an input system first (drain
- * `pendingTaps`), then movement, spawning, collisions. `./README.md` shows one.
+ * an intent queue), then movement, spawning, collisions. `./README.md` shows one.
  * A turn-based game can leave this empty and resolve turns on input instead.
  */
 
