@@ -26,7 +26,7 @@ Do not drive gameplay with `requestAnimationFrame`, `setInterval`, or `setTimeou
 
 Do not edit `src/core/`. It is scaffold synced from template-amino with `bun run amino:sync`. If the scaffold lacks something, keep the change in `src/game/` or raise it on template-amino.
 
-Install with bun. Do not commit `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. Do not put cortex `setup.mjs` on `postinstall` or `predev`.
+Install with bun. Do not commit `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. Do not add a `postinstall` or `predev` step that writes rules or agent files.
 
 Screens sit on the design canvas. Do not use `100vh`, `window.innerHeight`, or `position: fixed` in a screen. The layout rules are in `.agents/recipes/components.md`.
 

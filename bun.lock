@@ -9,7 +9,6 @@
         "@sentry/solid": "^10.72.0",
         "@wolfgames/client": "^0.1.62",
         "@wolfgames/components": "^2.4.2",
-        "@wolfgames/cortex": "^0.5.0",
         "arktype": "^2.2.3",
         "gsap": "^3.15.0",
         "howler": "^2.2.4",
@@ -394,8 +393,6 @@
 
     "@wolfgames/components": ["@wolfgames/components@2.4.3", "https://npm.pkg.github.com/download/@wolfgames/components/2.4.3/48f4d85722c93ed545ad601cfa6a5bbfa6874504", { "dependencies": { "@wolfgames/client": "^0.1.40", "@wolfgames/tokens": "^0.1.0", "arktype": "^2.1.29", "chalk": "^5.6.2" }, "peerDependencies": { "@wolfgames/vfx": "^0.3.0", "gsap": "^3.14.0", "howler": "^2.2.0", "pixi.js": "^8.0.0", "solid-js": "^1.8.0", "tweakpane": "^4.0.0" } }, "sha512-gqItQnLfCmZhUt03sikGQnAmXlxx3U9myEGXed9A8e4mA5rxscahNOcD3Bc50qeuEvZ46xjSaLdZbadpW21DjQ=="],
 
-    "@wolfgames/cortex": ["@wolfgames/cortex@0.5.0", "https://npm.pkg.github.com/download/@wolfgames/cortex/0.5.0/457bfe451b59bc12778172ee856cfa4f29c82930", { "dependencies": { "yaml": "2.6.1" } }, "sha512-CsaoVPyDNKz9sqYFc+oRjOHKr6SqD1Ctxg/v5Dx2beFyhnLIhg24W0BC2F06Hr++Uxtk+hKt+xyjWKH1GX88ZA=="],
-
     "@wolfgames/game-dev": ["@wolfgames/game-dev@0.1.2", "https://npm.pkg.github.com/download/@wolfgames/game-dev/0.1.2/b8334c82bc04f976f81421a97cb747764e946688", { "dependencies": { "@wolfgames/shared": "^0.6.14" }, "peerDependencies": { "@ianvs/prettier-plugin-sort-imports": "^4.0.0", "vite": ">=5.0.0" } }, "sha512-IdgGVpb21vXJXDcr80BjcwiJJWePkP8mzfvcPjtkfndxyz//isF7P+3K5M8NQ9oIdjmlOEjbfbrLQ1V/ahqXrQ=="],
 
     "@wolfgames/shared": ["@wolfgames/shared@0.6.14", "https://npm.pkg.github.com/download/@wolfgames/shared/0.6.14/a9c44ee0ff0698e5b1ca3f7913f3891233a05654", { "dependencies": { "arktype": "^2.1.29", "uuid": "^13.0.0" } }, "sha512-TZdTzFa7Q5psZaPorMM0BJu9d35uavVXdtG6DKfawpAzJS5i+SKYkwAL+vXTZYkhS2i4tyK0FYcgIJCTv8neiA=="],
@@ -705,8 +702,6 @@
     "@wolfgames/client/@wolfgames/shared": ["@wolfgames/shared@0.7.4", "https://npm.pkg.github.com/download/@wolfgames/shared/0.7.4/ee6e50a582ce3ae9720e3a812ec327303a9e673b", { "dependencies": { "arktype": "^2.1.29", "uuid": "^13.0.0" } }, "sha512-Q2xY5a6WkZf73h6d5/P8+O8byLfPMAzmOYr5GaYOPBl/c1MMVmnfA2Gtvnaeaw81KTPj9zAlzMPjl6d7x747qA=="],
 
     "@wolfgames/components/@wolfgames/client": ["@wolfgames/client@0.1.52", "https://npm.pkg.github.com/download/@wolfgames/client/0.1.52/b330396e947c2885158ff9be801c91a025b4f7bb", { "dependencies": { "@sentry/browser": "^10.38.0", "@wolfgames/shared": "^0.6.24", "arktype": "^2.1.29", "jose": "^6.2.3", "uuid": "^13.0.0" }, "peerDependencies": { "posthog-js": "^1.0.0" } }, "sha512-e3ScdB4FLxW1m8EhkrKEf+oHNil9Viq95UTETo7JjVr4dHqQMET/7PBzx0dAzWSBpb9lKyRv2UU6snIQlur+ag=="],
-
-    "@wolfgames/cortex/yaml": ["yaml@2.6.1", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-7r0XPzioN/Q9kXBro/XPnA6kznR73DHq+GXh5ON7ZozRO6aMjbmiBuKste2wslTFkC5d1dw0GooOCepZXJ2SAg=="],
 
     "babel-plugin-jsx-dom-expressions/@babel/helper-module-imports": ["@babel/helper-module-imports@7.18.6", "", { "dependencies": { "@babel/types": "^7.18.6" } }, "sha512-0NFvs3VkuSYbFi1x2Vd6tKrywq+z/cLeYC/RJNFrIX/30Bf5aiGYbtvGXolEktzJH8o5E5KJ3tT+nkxuuZFVlA=="],
 

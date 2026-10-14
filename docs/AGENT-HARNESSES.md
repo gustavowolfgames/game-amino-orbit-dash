@@ -7,49 +7,38 @@ truth** and no duplicated instructions.
 
 `AGENTS.md` is the canonical instruction file (an open standard read by most
 tools). Every other tool either reads it natively or points to it via an
-import or symlink. **Never copy instructions between files — point at
-`AGENTS.md`.**
+import. **Never copy instructions between files — point at `AGENTS.md`.**
+The only other instruction file in the repo is `CLAUDE.md`, a one-line import.
 
 ## Instructions: what each tool reads
 
 | Tool | Reads | Status here |
 | --- | --- | --- |
-| **Zed** (primary) | **one** instruction file, first match wins — `.rules`, `.cursorrules`, `.windsurfrules`, `.clinerules`, `.github/copilot-instructions.md`, `AGENT.md`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` ([docs](https://zed.dev/docs/ai/instructions)). Reads **no** directories. | resolves `AGENTS.md`. ⚠ Reads no rule dirs — cortex's generated trees are inert for Zed; rules reach it only via `AGENTS.md` content. ⚠ A leftover Cursor-era rules file (position 2) would silently outrank `AGENTS.md` — delete it if present. |
-| **Claude Code** | `CLAUDE.md` → points to `AGENTS.md` + imports `@.claude/rules.md` | wired |
+| **Zed** (primary) | **one** instruction file, first match wins — `.rules`, `.cursorrules`, `.windsurfrules`, `.clinerules`, `.github/copilot-instructions.md`, `AGENT.md`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` ([docs](https://zed.dev/docs/ai/instructions)). Reads **no** directories. | resolves `AGENTS.md`. ⚠ Reads no rule dirs — guidance reaches it only via `AGENTS.md` content. ⚠ A leftover Cursor-era rules file (position 2) would silently outrank `AGENTS.md` — delete it if present. |
+| **Claude Code** | `CLAUDE.md` (not `AGENTS.md`) | `CLAUDE.md` imports `@AGENTS.md` — wired |
 | **Codex** | `AGENTS.md` natively | nothing to add |
-| **Gemini CLI** | `GEMINI.md` by default (`DEFAULT_CONTEXT_FILENAME`); reads `AGENTS.md` only when `contextFileName` is configured | `GEMINI.md` → `AGENTS.md` symlink committed, so Gemini loads the canonical file |
+| **Gemini CLI** | `GEMINI.md` by default (`DEFAULT_CONTEXT_FILENAME`); reads `AGENTS.md` only when `contextFileName` is configured | no `GEMINI.md` committed — set `contextFileName` to `AGENTS.md` in your Gemini settings |
 | Aider | `CONVENTIONS.md` via `.aider.conf.yml` | add if adopted |
 | Copilot / VS Code | `.github/copilot-instructions.md` | add if adopted |
 
 Tool-specific tweaks go **below** the import in that tool's own file — never
 by forking `AGENTS.md`.
 
-## Rules & skills: cortex keeps both harnesses in sync
+## Rules & skills: tracked files, nothing generated
 
-This template does not hand-maintain `.agents/` rule dirs or `.claude/`. The
-`@wolfgames/cortex` package symlinks the same rule/skill/command sources into
-both on every `bun install`. There are **no per-harness rule directories**:
-pack rules are single-source, one file per rule, `.md` preferred (with
-`description`/`globs`/`alwaysApply` frontmatter) and legacy `.mdc` still
-tolerated (some `guardrails/**` sources are `.mdc`, and `setup.mjs` still
-accepts `.mdc` from `local/rules/`). The same source links into both sides:
+There is no rule pack and no install step that writes agent files. Everything
+an agent reads is a tracked, hand-written file:
 
 ```
-.agents/rules/    ← <pack>/rules/*.md            (tool-agnostic)
-.claude/rules/    ←        〃
-.agents/skills/   ← <pack>/skills/<name>/        (same targets both sides)
-.claude/skills/   ←        〃
-.claude/rules.md  ← generated @-import index of all alwaysApply rules
+AGENTS.md            the router (the one instruction file)
+CLAUDE.md            @AGENTS.md (Claude Code's entry point)
+.agents/recipes/     opened on demand, one per task
+.agents/skills/      longer Pixi and controller guidance the recipes point at
 ```
 
-Consequences:
-
-- A new harness that reads `.agents/`-style or `.claude/`-style context gets
-  it for free after `bun install`.
-- Project-only context goes in `local/` (tracked), never directly in the
-  generated folders.
-- `docs/cortex-inventory.md` (generated) lists every active rule/skill/command
-  and where it came from.
+Project instructions go in a recipe. `bun run check:agent` fails if `CLAUDE.md`
+stops importing `AGENTS.md` or if an install or dev script is added that would
+write agent files.
 
 ## MCP: wolf-game-kit (asset generation)
 
@@ -71,8 +60,7 @@ use the documented local fallback — see
 Permission rules can't be shared across tools — each harness has its own
 schema. The *policy* below is the single source of truth (tool-agnostic
 prose); each tool's config implements it. Claude Code's implementation is
-committed at `.claude/settings.json` (safe alongside cortex, which wipes only
-`.claude/{rules,skills,commands}`).
+committed at `.claude/settings.json`.
 
 - **Auto-allow (run unattended):** reads/searches, builds, tests, linters,
   formatters, dependency installs, dev-server runs, and file deletes
@@ -86,8 +74,7 @@ committed at `.claude/settings.json` (safe alongside cortex, which wipes only
 ## Adding a new harness
 
 1. Find its instruction file → symlink or point it to `AGENTS.md`.
-2. Check whether cortex's generated `.agents/` or `.claude/` layout already
-   feeds it; if not, add a target to cortex's `setup.mjs` rather than
-   hand-copying rules.
+2. If it can't import or read `AGENTS.md`, give it a one-line file that
+   points there (like `CLAUDE.md`) — never a copy of the instructions.
 3. Map its permission/approval mechanism to the policy above.
 4. Add a row to the table above so this doc stays in sync.

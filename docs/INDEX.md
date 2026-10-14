@@ -52,7 +52,6 @@ Routing table for everything in `docs/`. Start from what you're trying to do.
 | [schemas/manifest.schema.json](schemas/manifest.schema.json) | Asset manifest JSON schema |
 | [guides/naming-convention.schema.json](guides/naming-convention.schema.json) | Asset naming JSON schema |
 | [core/scaffold-update-check.yml](core/scaffold-update-check.yml) | GH Actions template — copy into game repos to get scaffold-update notifications |
-| `cortex-inventory.md` (generated) | Every active AI rule/skill/command and its origin — regenerated on install |
 | GameKit API | See the game-sdk repo — auth, analytics, assets, Sentry, data CRUD |
 
 ## Factory Commands

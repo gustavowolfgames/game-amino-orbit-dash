@@ -50,22 +50,7 @@ Desktop.ini
 assets/src/*
 !assets/src/.gitkeep
 
-# Cortex output (only when agentSurface.cortex is on; scripts/agent-surface.mjs runs cortex setup).
-# .agents/skills/ is ignored per entry, not as a folder, so the recipes' own skills below stay
-# tracked: a copy made with `git add -A` (nucleo game create) keeps them.
-.agents/rules/
-.agents/skills/*
-!.agents/skills/game-controller/
-!.agents/skills/pixi-gameplay/
-.agents/commands/
-.claude/rules/
-.claude/skills/
-.claude/commands/
-.claude/hooks/
-.claude/rules.md
-docs/cortex-inventory.md
-
-# Cursor support is deprecated — cortex 0.5.0 reroutes generated scaffolding to .agents/ and .claude/.
+# Editor folders
 .cursor/
 
 # Cache

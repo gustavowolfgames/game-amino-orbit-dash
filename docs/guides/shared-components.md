@@ -396,8 +396,7 @@ Create a module when:
 
 New shared modules are authored in the
 [wolfgames/game-components](https://github.com/wolfgames/game-components)
-repo, not here — this repo no longer has a `src/modules/` tier. The flow
-(cortex `component-authoring` rule has the full version):
+repo, not here — this repo no longer has a `src/modules/` tier. The flow:
 
 1. **Incubate in your game** — build it under `src/game/[gamename]/` with the
    standard module shape (`index.ts`, `defaults.ts`, `tuning.ts`,

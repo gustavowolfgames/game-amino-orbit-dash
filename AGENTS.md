@@ -2,7 +2,7 @@
 
 This file is loaded for you. Open a recipe when the task reaches it, not all of them up front.
 
-This game is SolidJS and Pixi 8. Gameplay state lives in the `@adobe/data` ECS world behind `getGameWorld()` in `src/game/mygame/world.ts`. Wolf packages are `@wolfgames/components` and `@wolfgames/client`. wolf-game-kit publishes assets. Cortex rules are not installed here, and `bun install` must not write rules.
+This game is SolidJS and Pixi 8. Gameplay state lives in the `@adobe/data` ECS world behind `getGameWorld()` in `src/game/mygame/world.ts`. Wolf packages are `@wolfgames/components` and `@wolfgames/client`. wolf-game-kit publishes assets. `bun install` must not write rules or agent files.
 
 ## Always
 
@@ -44,4 +44,4 @@ Install with `bun install`. Start the dev server with `bun run dev`. Before you 
 
 ## Boundaries
 
-Do not edit `src/core/`. Do not put cortex `setup.mjs` back on `postinstall` or `predev`. Recipes link to `docs/reference/` when a task needs more depth. Open those only from a recipe.
+Do not edit `src/core/`. Do not add a `postinstall` or `predev` step that writes rules or agent files. Recipes link to `docs/reference/` when a task needs more depth. Open those only from a recipe.

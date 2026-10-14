@@ -6,7 +6,8 @@
 //   2. The orb sample is replaced, not left beside the new game: once a new game
 //      exists, no file may still carry the sample's names.
 //   3. A new game's controller stays thin (CONTROLLER_MAX_LINES).
-//   4. The agent surface matches its toggles (package.json "agentSurface").
+//   4. AGENTS.md is the one agent entry point: CLAUDE.md imports it, and nothing runs
+//      on install or dev to write agent files.
 //   5. Every repo path the router, recipes and skills cite exists (or is a path the
 //      recipes tell you to create).
 //   6. A new game does not keep the template's slug: wolf-game-kit.json gameSlug is the
@@ -102,18 +103,14 @@ if (newGame) {
   }
 }
 
-// 4. The agent surface matches its toggles (package.json "agentSurface", applied by
-//    scripts/agent-surface.mjs on postinstall/predev). Cortex never runs directly.
+// 4. AGENTS.md is the one agent entry point. CLAUDE.md only imports it (Claude Code
+//    loads CLAUDE.md, not AGENTS.md), and nothing on install or dev writes agent files.
 const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
-const surface = { recipes: true, cortex: false, systems: false, ...(pkg.agentSurface ?? {}) };
-for (const k of ['postinstall', 'predev']) {
-  const cmd = pkg.scripts?.[k] ?? '';
-  if (cmd.includes('cortex')) fail(`package.json ${k} runs cortex setup directly — use scripts/agent-surface.mjs`);
-}
 const claudeMd = existsSync(path.join(root, 'CLAUDE.md')) ? readFileSync(path.join(root, 'CLAUDE.md'), 'utf8') : '';
-if (surface.recipes !== claudeMd.includes('@AGENTS.md')) fail('CLAUDE.md does not match agentSurface.recipes — run bun run agent:surface');
-if (surface.cortex !== claudeMd.includes('@.claude/rules.md')) fail('CLAUDE.md does not match agentSurface.cortex — run bun run agent:surface');
-if (!surface.cortex && existsSync(path.join(root, '.claude/rules.md'))) fail('cortex is off but .claude/rules.md exists — run bun run agent:surface');
+if (!claudeMd.includes('@AGENTS.md')) fail('CLAUDE.md must import @AGENTS.md (the router)');
+for (const k of ['preinstall', 'postinstall', 'predev']) {
+  if (pkg.scripts?.[k]) fail(`package.json "${k}" is set — install and dev must not run setup steps (agent files are tracked, not generated)`);
+}
 
 // 5. Cited paths exist.
 const docs = [path.join(root, 'AGENTS.md')].filter((f) => existsSync(f));
