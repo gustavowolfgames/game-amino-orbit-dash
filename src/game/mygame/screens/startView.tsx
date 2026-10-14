@@ -10,6 +10,10 @@
  * button, title background) — bundled .webp loaded via Vite ?url + Pixi Assets
  * in render/textures.ts. Layout, animations, and events are independent of the
  * source, so swapping art for your game is a one-line texture change.
+ *
+ * The loader (IntroSting, reveal mode) ends on this screen's first frame: the
+ * background and logo are already up when it mounts, and only the play button
+ * pops in. The layout both share lives in screens/components/titleFrame.ts.
  */
 
 import { Application, Container, type Ticker } from 'pixi.js';
@@ -24,6 +28,7 @@ import { getTheme } from '~/game/brand';
 import { whenContentSettled } from '~/game/setup/content';
 import { createPixiBackdrop } from '../../screens/PixiBackdrop';
 import { loadStartTextures } from '../render/textures';
+import { TITLE_BG, TITLE_BUTTON, TITLE_LOGO } from '../../screens/components/titleFrame';
 import { exposePixiApp } from '~/core/dev/pixiDevtools';
 import type { PixiLoader } from '~/core/systems/assets';
 import type {
@@ -38,12 +43,12 @@ import type { GameTuning } from '~/game/tuning/types';
    positions scale by s = 844/932 ≈ 0.9056, bottom-anchored positions keep their
    bottom offset, and the scale math itself now lives in the one place that owns
    it. See docs/standards/components.md §9. */
-const LOGO_Y = 163;             // 180 × s — logo centre from canvas top
-const BTN_Y = DESIGN_CANVAS.height - 152; // unchanged 152 px from the bottom
-const LOGO_WIDTH = 320;         // "YOUR GAME" placeholder wordmark
+const LOGO_Y = TITLE_LOGO.y;    // 180 × s — logo centre from canvas top (shared with the loader: titleFrame)
+const BTN_Y = TITLE_BUTTON.y;   // 152 px from the bottom (shared with the loader: titleFrame)
+const LOGO_WIDTH = TITLE_LOGO.width; // the wordmark's width — set it in titleFrame
 // The play button art is a complete round disc with its own play glyph —
 // render it square at natural aspect, no 9-slice, no label.
-const BUTTON_SIZE = 150;
+const BUTTON_SIZE = TITLE_BUTTON.size;
 
 export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): StartScreenController => {
   let app:           Application       | null = null;
@@ -51,11 +56,18 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
   let bg:            DynamicBackground | null = null;
   let logo:          SpriteLogoTitle   | null = null;
   let playBtn:       SpriteButton      | null = null;
+  let btnHolder:     Container         | null = null;
   let root:          DesignLayer       | null = null;
   let cleanupResize: (() => void)      | null = null;
+  /** The play button's action, once init has built it (keyboard start goes through it too). */
+  let playNow:       (() => void)      | null = null;
 
   return {
     backgroundColor: getTheme().ground,
+
+    play() {
+      playNow?.();
+    },
 
     init(container: HTMLDivElement) {
       let loading = false;
@@ -75,9 +87,10 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
           },
         });
         if (logo)    tl.to(logo,    { alpha: 0, y: logo.y - 60,    duration: 0.35, ease: 'power2.in' }, 0);
-        if (playBtn) tl.to(playBtn, { alpha: 0, y: playBtn.y + 60, duration: 0.3,  ease: 'power2.in' }, 0.05);
+        if (btnHolder) tl.to(btnHolder, { alpha: 0, y: btnHolder.y + 60, duration: 0.3,  ease: 'power2.in' }, 0.05);
         if (bg)      tl.to(bg,      { alpha: 0, duration: 0.5,     ease: 'power2.in' }, 0.1);
       };
+      playNow = () => { void onPlay(); };
 
       void (async () => {
         try {
@@ -113,10 +126,12 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
           layers: [{
             texture: bgTex,
             depth: 0.2,
-            motion: { type: 'kenBurns', zoom: 0.08, panX: 30, panY: 20, period: 20 },
+            // Phase −π/2: the zoom starts at zero, so the first frame is the one the
+            // loader's reveal ends on (screens/components/titleFrame.ts: TITLE_BG).
+            motion: { type: 'kenBurns', zoom: 0.08, panX: 30, panY: TITLE_BG.panY, period: 20, phase: -Math.PI / 2 },
           }],
+          overscan: TITLE_BG.overscan,
         });
-        bg.alpha = 0;
         app.stage.addChild(bg as any);
 
         // ── Design-scale root and layers ───────────────────────────────────
@@ -138,14 +153,19 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
         const sc = (deps.tuning.game as GameTuning).startScreen;
 
         // ── SpriteLogoTitle ────────────────────────────────────────────────
+        // A breath starts at its smallest (−amount); phase π/2 starts it at rest size, the
+        // size the loader's reveal ends on, so the logo doesn't snap smaller at the handoff.
+        const logoMotion = MOTION_PRESETS[sc.logoMotion];
         logo = new SpriteLogoTitle({
           source: { type: 'sprite', texture: logoTex },
           width: LOGO_WIDTH,
-          motion: MOTION_PRESETS[sc.logoMotion],
+          motion: logoMotion.breathe
+            ? { ...logoMotion, breathe: { ...logoMotion.breathe, phase: Math.PI / 2 } }
+            : logoMotion,
         });
+        // Already in place: the loader's reveal ends on this frame (IntroSting, reveal mode).
         logo.x = DESIGN_CANVAS.width / 2;
-        logo.y = LOGO_Y + 45; // offset below for entrance rise
-        logo.alpha = 0;
+        logo.y = LOGO_Y;
         backgroundLayer.addChild(logo as any);
 
         // ── SpriteButton ───────────────────────────────────────────────────
@@ -159,16 +179,26 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
           onClick: () => { void onPlay(); },
           idleMotion: sc.buttonMotion,
         });
-        playBtn.x = DESIGN_CANVAS.width / 2;
-        playBtn.y = BTN_Y + 72; // offset below for entrance rise
-        playBtn.alpha = 0;
-        uiLayer.addChild(playBtn as any);
+        // The button pops in place at the spot the loader parked the WolfGames logo while
+        // loading (titleFrame: TITLE_BUTTON), so the player's eye is already on it. It sits in
+        // a holder: its idle motion owns its own scale, the entrance scales the holder.
+        btnHolder = new Container();
+        btnHolder.x = TITLE_BUTTON.x;
+        btnHolder.y = BTN_Y;
+        btnHolder.alpha = 0;
+        btnHolder.scale.set(0.6);
+        btnHolder.addChild(playBtn as any);
+        uiLayer.addChild(btnHolder);
 
         // ── Entrance animation ─────────────────────────────────────────────
         const tl = gsap.timeline();
-        tl.to(bg,      { alpha: 1, duration: 0.8, ease: 'power2.out' }, 0);
-        tl.to(logo,    { alpha: 1, y: LOGO_Y, duration: 0.55, ease: 'power3.out' }, 0.25);
-        tl.to(playBtn, { alpha: 1, y: BTN_Y,  duration: 0.45, ease: 'power3.out' }, 0.45);
+        // The background and logo are already up (the loader revealed them); only the
+        // play button pops in.
+        tl.to(btnHolder, { alpha: 1, duration: 0.2, ease: 'power1.out' }, 0);
+        tl.to(btnHolder.scale, { x: 1, y: 1, duration: 0.45, ease: 'back.out(1.8)' }, 0);
+        // The host shows a stand-in of this frame until Pixi has drawn it once.
+        // (Two ticks: listeners run before that tick's render.)
+        app.ticker.addOnce(() => app?.ticker.addOnce(() => deps.onReady?.()));
 
         // ── Ticker + resize ────────────────────────────────────────────────
         app.ticker.add((ticker: Ticker) => bg?.tick(ticker.deltaMS / 1000));
@@ -188,13 +218,19 @@ export const setupStartScreen: SetupStartScreen = (deps: StartScreenDeps): Start
     },
 
     destroy() {
+      playNow = null;
       cleanupResize?.();
       cleanupResize = null;
       gsap.killTweensOf(logo);
       gsap.killTweensOf(playBtn);
+      if (btnHolder) {
+        gsap.killTweensOf(btnHolder);
+        gsap.killTweensOf(btnHolder.scale);
+      }
       gsap.killTweensOf(bg);
       logo?.destroy();    logo    = null;
       playBtn?.destroy(); playBtn = null;
+      btnHolder?.destroy(); btnHolder = null;
       bg?.destroy();      bg      = null;
       root?.destroy({ children: true }); root = null;
 

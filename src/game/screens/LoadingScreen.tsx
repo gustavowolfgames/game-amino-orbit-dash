@@ -8,6 +8,7 @@ import { gameConfig, GAME_TITLE } from '~/game/config';
 import { loadContent } from '~/game/setup/content';
 import { useGameTracking } from '~/game/setup/tracking';
 import { IntroSting } from './components/IntroSting';
+import { titleArt } from './components/titleFrame';
 
 export function LoadingScreen() {
   const { goto } = useScreen();
@@ -19,6 +20,8 @@ export function LoadingScreen() {
   const gameKit = useSignal(useConfigState().gameKit);
 
   const m = manifest();
+  // The title screen's own art: the loader reveals into it (blurred, dark → colour → logo → sharp).
+  const title = titleArt(m);
   const bundlesByPrefix = (prefix: string) =>
     m.bundles.filter((b) => b.name.startsWith(prefix)).map((b) => b.name);
 
@@ -73,6 +76,10 @@ export function LoadingScreen() {
     // Content Pack + brand sheet (Dynamic Data), in parallel with the bundles. Never rejects,
     // and is bounded — a slow or empty CDN costs the published content, never the boot.
     const content = loadContent(gameKit());
+    // The next screen's code, fetched while the loader plays: a lazy screen fetched only at the
+    // handoff leaves a dark frame between the loader and the title's first frame.
+    const nextScreen = gameConfig.screens[skipToGame ? 'game' : 'start'] as { preload?: () => Promise<unknown> };
+    const nextScreenReady = nextScreen.preload?.();
     try {
       if (skipToGame) {
         trackStartScreenSkipped({ skip_source: skipSource });
@@ -93,6 +100,7 @@ export function LoadingScreen() {
         await assets.loadTheme();
       }
       await content;
+      await nextScreenReady;
       setAssetsReady(true);
     } catch (err) {
       console.error('Failed to load initial assets:', err);
@@ -111,6 +119,9 @@ export function LoadingScreen() {
       <IntroSting
         progress={progress}
         title={GAME_TITLE}
+        backgroundSrc={title.background}
+        logoSrc={title.logo}
+        reveal={!skipToGame}
         exitSignal={assetsReady}
         onExitComplete={() => goto(skipToGame ? 'game' : 'start')}
       />
