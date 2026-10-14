@@ -132,7 +132,7 @@ game code or the manifest.** The `check:assets` script fails any hardcoded
 1. Download batch results into `assets/src/_staging/` (scratch space).
 2. Review; discard rejects.
 3. Rename approved files per
-   [naming-convention.md](../guides/naming-convention.md) —
+   [asset-naming.md](../reference/asset-naming.md) —
    `bg-forest_day.webp`, `character-host_idle.webp`, `sfx-mygame.json`,
    `music-mygame_a.webm`.
 4. Move them up into `assets/src/`. **Placement decides sidecar rewriting:**
@@ -174,8 +174,8 @@ touched.
 **Where assets land is decided by `gameSlug`** — the id in
 `wolf-game-kit.json` (`games/<gameSlug>/` on the CDN; the key was called
 `projectId` before). It must equal the game's Nucleo slug; if it's still the
-template placeholder `mygame`, stop and set the real one first ([newgame
-checklist](../factory/newgame.md), Step 1).
+template placeholder `mygame`, stop and set the real one first
+([`.agents/recipes/new-game.md`](../../.agents/recipes/new-game.md)).
 
 The `projectId` argument on the asset-gen tools is a different thing: it
 defaults to this same slug, and you pass it only to reach another project's
@@ -283,7 +283,7 @@ export const manifest: Manifest = {
 their content-hashed CDN paths and sets `cdnBase` from the shared
 `AssetClient`; srcs not in the lockfile (bundled chrome, local-mode files)
 fall back to `localBase`. Nothing in this file changes per environment (see
-[manifest-contract.md](manifest-contract.md)).
+[manifest-contract.md](../reference/manifest-contract.md)).
 
 ### Bundle prefix → loader
 

@@ -5,7 +5,7 @@
  *     kind/prefix consistency, asset path structure)
  *  2. Scaffold-specific rules (local extensions, reserved prefixes, path format)
  *
- * See docs/recipes/manifest-contract.md.
+ * See docs/reference/manifest-contract.md.
  *
  * Usage:
  *   bun run scripts/check-manifest.ts           # validate manifest from game config
@@ -169,7 +169,7 @@ async function main(): Promise<void> {
   if (unique.length > 0) {
     console.error("check:manifest — Validation failed:\n");
     for (const e of unique) console.error("  " + e);
-    console.error("\nSee docs/recipes/manifest-contract.md.");
+    console.error("\nSee docs/reference/manifest-contract.md.");
     process.exit(1);
   }
 

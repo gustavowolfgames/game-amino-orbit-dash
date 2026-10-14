@@ -4,7 +4,6 @@ Hand-written agent notes. Nothing here is generated on install, and agents do no
 
 - `recipes/` holds what `AGENTS.md` opens, one file per task. Each has When, Do, Verify, and Example.
 - `skills/` holds the longer Pixi and controller guidance the recipes point at.
-- `specs/` is where a large feature plan goes. Copy `specs/SPEC.template.md` to `specs/<feature>.md`.
 - `decisions.tsv` logs each structural change to this repo with its evidence.
 
 ## Harnesses

@@ -37,7 +37,6 @@ AGENTS.md                  the router: task → which recipe to open (always loa
 │   ├── systems.md           @wolfgames/game-systems steer (opt-in, off)
 │   └── verify.md            before saying "it works"
 ├── skills/                longer Pixi and controller guidance the recipes point at
-├── specs/                 large feature plans (copy SPEC.template.md)
 └── decisions.tsv          every structural change, with its evidence
 ```
 
@@ -88,7 +87,7 @@ for `@wolfgames/*` (see [Setup](#setup) below).
 
 ```bash
 git clone <repo-url>
-bun install     # also wires AI rules/skills into .agents/ and .claude/
+bun install
 bun run dev     # http://localhost:5173
 ```
 
@@ -119,13 +118,13 @@ structure, boundaries, workflow, and the self-maintenance mandate.
 `@wolfgames/*` packages live on GitHub Packages. [`.npmrc`](.npmrc) reads
 `NODE_AUTH_TOKEN` from your shell:
 
-1. Create a classic token with `read:packages` at
+1. Create a **classic** token (not fine-grained) with `read:packages` at
    https://github.com/settings/tokens (or run `gh auth token`).
 2. Add `export NODE_AUTH_TOKEN="ghp_..."` to `~/.zshrc` and reload.
 3. Verify with `echo $NODE_AUTH_TOKEN`.
 
-Full walkthrough (including the Cursor non-interactive-shell gotcha):
-[`docs/guides/game-kit-setup.md`](docs/guides/game-kit-setup.md).
+`401` on install means the token isn't set in that shell; `403` means a
+fine-grained token or a missing `read:packages` scope.
 
 ### MCP servers
 
@@ -197,7 +196,7 @@ Dependency rule: `core/` never imports from `game/`. Reusable building blocks
 come from [`@wolfgames/components`](https://github.com/wolfgames/game-components)
 (see [shared-components guide](docs/guides/shared-components.md)).
 
-Full picture: [`docs/core/architecture.md`](docs/core/architecture.md).
+Full picture: [`docs/reference/architecture.md`](docs/reference/architecture.md).
 
 ## Tech stack
 
@@ -217,10 +216,10 @@ Everything routes through [`docs/INDEX.md`](docs/INDEX.md). Highlights:
 | Topic | Doc |
 |-------|-----|
 | Design source of truth | [docs/GAME-DESIGN.md](docs/GAME-DESIGN.md) |
-| Creating a new game | [docs/guides/new-game.md](docs/guides/new-game.md) |
+| Creating a new game | [.agents/recipes/new-game.md](.agents/recipes/new-game.md) |
 | Best practices (required) | [docs/standards/best-practices.md](docs/standards/best-practices.md) |
 | Guardrails (required) | [docs/standards/guardrails.md](docs/standards/guardrails.md) |
-| Asset naming | [docs/guides/naming-convention.md](docs/guides/naming-convention.md) |
-| Debugging | [docs/guides/debugging.md](docs/guides/debugging.md) |
+| Asset naming | [docs/reference/asset-naming.md](docs/reference/asset-naming.md) |
+| Debugging | [docs/reference/debugging.md](docs/reference/debugging.md) |
 | Agent harness support | [docs/AGENT-HARNESSES.md](docs/AGENT-HARNESSES.md) |
 | Team learnings | [docs/LEARNINGS.md](docs/LEARNINGS.md) |

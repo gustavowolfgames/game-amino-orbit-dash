@@ -2,7 +2,7 @@
 
 Reusable building blocks that sit between core (framework) and game (specific).
 
-> **Shared modules live in [`wolfgames/game-components`](https://github.com/wolfgames/game-components), not in this repo** — the catalog is at `node_modules/@wolfgames/components/src/modules/INDEX.md`. Module paths below are relative to game-components. See [writing-a-module.md](writing-a-module.md) and [shared-components.md](../guides/shared-components.md).
+> **Shared modules live in [`wolfgames/game-components`](https://github.com/wolfgames/game-components), not in this repo** — the catalog is at `node_modules/@wolfgames/components/src/modules/INDEX.md`. Module paths below are relative to game-components. See [shared-components.md](../guides/shared-components.md).
 
 ## Purpose
 
@@ -167,7 +167,7 @@ The game provides the generic type and configuration; the module provides the im
 
 ## How Modules Integrate with the Tuning Panel
 
-Any module that exports a `tuning.ts` file with the standard shape automatically appears in the **Modules** section (green) of the [Tuning Panel](../core/entry-points.md):
+Any module that exports a `tuning.ts` file with the standard shape automatically appears in the **Modules** section (green) of the Tuning Panel (backtick in dev, `src/core/dev/`):
 
 ```typescript
 // src/modules/primitives/sprite-button/tuning.ts
@@ -332,4 +332,3 @@ defaults.ts ──► tuning.ts (schema) ──► TuningPanel (UI)
 
 ## Related Documentation
 
-- [Writing a Module](./writing-a-module.md) -- Step-by-step guide to creating a new module

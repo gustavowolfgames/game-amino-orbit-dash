@@ -3,7 +3,7 @@
  * Asset pipeline checks. Exits 1 on any violation.
  *
  * 1. Naming — filenames in public/assets/ AND assets/src/ must follow the naming
- *    convention (docs/guides/naming-convention.md, naming-convention.schema.json).
+ *    convention (docs/reference/asset-naming.md).
  *    assets/src/_staging/ (raw downloads) and markdown docs are skipped.
  * 2. Size budget — game media over 200KB must NOT live in public/assets/; it belongs
  *    in assets/src/ and on the CDN (docs/recipes/asset-pipeline.md). Exempt: fonts/,
@@ -228,7 +228,7 @@ function main(): void {
       if (suggested && suggested !== basename) console.error(`    → suggest: ${suggested}`);
     }
     console.error(
-      "\nSee docs/guides/naming-convention.md and docs/recipes/manifest-contract.md.\n"
+      "\nSee docs/reference/asset-naming.md and docs/reference/manifest-contract.md.\n"
     );
   }
 

@@ -115,7 +115,7 @@ animation, and events are independent of the source.
 ## Assets Needed
 
 Generate via the wolf-game-kit MCP, stage in `assets/src/`, and publish — see
-[`local/rules/asset-pipeline.md`](../local/rules/asset-pipeline.md). Do not commit
+[`.agents/recipes/assets.md`](../.agents/recipes/assets.md). Do not commit
 game media to the repo (the committed placeholder `.webp` under
 `src/game/mygame/assets/generated/` are the sanctioned template stand-ins, loaded
 self-contained via Vite `?url`). Replace them with your game's art at the same

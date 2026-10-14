@@ -296,8 +296,8 @@ invariants:
   accordingly. The browser caps live WebGL contexts (~8–16 on desktop, fewer on
   mobile) — prefer in-canvas layering (Pixi containers, a Three.js viewport
   inside the existing canvas) and reach for a second real context only when the
-  engines genuinely differ. Justify it, and hold the mobile FPS targets in
-  [performance.md](performance.md). Avoid on mobile-first titles.
+  engines genuinely differ. Justify it, and hold the mobile FPS targets (60 fps
+  on modern phones, 30 on older ones). Avoid on mobile-first titles.
 - Only one layer owns pointer input for a given region (decorative upper layers
   set pointer-events to `none`). Don't stack two interactive layers.
 
