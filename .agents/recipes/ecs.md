@@ -15,6 +15,7 @@ Write state only inside `db.transactions`. A DOM screen may read the world to re
 - **Things on the board are entities.** A grid cell, a falling piece's blocks, a body, a projectile: each is a row in an archetype with its own components (`col`, `row`, `color`, ...) and a `spriteKey`, so the Inspector can name it. Do not keep the board as one array or matrix inside a resource.
 - **Resources are global values only:** score, phase, level, moves or lines left, the rng state, the active piece's pose.
 - **Replace a whole board in one transaction** (clear and rebuild): delete every entity of the archetype, then insert the new state. Pure rule code can work on a plain array copy (`readStateFromEcs`), as long as the result is written back as entities.
+- **Entity ids are reused.** A deleted entity's id comes back for the next insert, often as another kind. A renderer that keeps a view per entity id must treat an id whose kind changed, or a new run (a `runId` resource bumped by the start transaction), as a new entity and rebuild its view.
 - Plugin property order is fixed: `extends`, `services`, `components`, `resources`, `archetypes`, `computed`, `transactions`, `actions`, `systems`.
 
 ### Pick the cadence from the game
