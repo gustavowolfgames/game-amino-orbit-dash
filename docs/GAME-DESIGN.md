@@ -65,6 +65,10 @@ possible, every seam a real game needs:
 - **Win.** Collect all `ORBITER_COUNT` orbiters (`remaining` hits 0) to win. The
   run ends and hands off to the results screen. There is no lose condition — this
   is a template demo, not a challenge.
+- **Progress.** Each run plays one level of the active Content Pack; a win
+  advances to the next. The level to resume on is saved on the device
+  (`src/game/setup/progress.ts`), so a reload lands on the same level. A new
+  pack (a Vault edition) resets it, and winning the pack's last level clears it.
 
 ## Tuning
 
