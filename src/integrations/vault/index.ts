@@ -1,10 +1,7 @@
-export { VaultHostBridge, type VaultHostBridgeProps } from './host-bridge';
-export {
-  latestVaultContext,
-  vaultHostFields,
-  type VaultHostFields,
-} from './host-context';
-
+export type {
+  ScheduledContentMetadata,
+  VaultGameContext,
+} from '@wolfgames/client';
 // SDK content/lifecycle primitives a game-specific consumer needs, alongside
 // the <VaultHostBridge> onContext / catalog props.
 export {
@@ -12,7 +9,14 @@ export {
   reportContentCompleted,
   reportGameCompleted,
 } from '@wolfgames/client';
-export type {
-  ScheduledContentMetadata,
-  VaultGameContext,
-} from '@wolfgames/client';
+export {
+  awaitFirstVaultContext,
+  firstVaultContext,
+  watchFirstVaultContext,
+} from './first-context';
+export { VaultHostBridge, type VaultHostBridgeProps } from './host-bridge';
+export {
+  latestVaultContext,
+  type VaultHostFields,
+  vaultHostFields,
+} from './host-context';
