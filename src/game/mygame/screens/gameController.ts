@@ -18,7 +18,8 @@
  * Content: each run plays one level of the active Content Pack (`levelAt`,
  * src/game/content) — the bundled pack, or a published one (`?wolfPack=`, a
  * Vault edition). Winning advances to the pack's next level; winning its last
- * level reports the edition complete to the Vault.
+ * level hands off to the Vault served mode (`completeActivePack`, src/game/setup/
+ * served-session.ts): report the run, load the next unlocked edition, or exit a daily.
  *
  * Rendering: a fixed design box (DESIGN_W×DESIGN_H) scaled to fit the viewport
  * ("contain"), with a cover-fit background. Every orb is the neutral `piece-orb`
@@ -43,7 +44,7 @@ import { ParticleBurst } from '@wolfgames/components/modules/primitives/particle
 import { setActiveInspectorActions } from '~/core/systems/ecs';
 import { getTheme } from '~/game/brand';
 import { getActivePack, isLastLevel, levelAt } from '~/game/content';
-import { inVault, reportContentCompleted, reportGameCompleted } from '~/integrations/vault';
+import { completeActivePack } from '~/game/setup/served-session';
 import type { Entity } from '~/core/systems/ecs';
 import type { GameController, GameControllerDeps, SetupGame } from '~/game/mygame-contract';
 import { loadGameTextures, type GameTextures } from '../render/textures';
@@ -204,7 +205,7 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     if (phase === 'playing' || phase === handledPhase) return;
     handledPhase = phase;
     if (phase === 'won') {
-      if (db && isLastLevel(db.resources.level)) reportPackCompleted();
+      if (db && isLastLevel(db.resources.level)) completeActivePack();
       tryPlay('sfx-clear');
       showBanner('YOU WIN!');
       setAriaText('You collected every orb.');
@@ -239,17 +240,6 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     const level = levelAt(index);
     db.transactions.startDemo({ ...level, level: index, packId: pack.id });
     setAriaText(`Level ${index + 1} of ${pack.levels.length}. Tap the drifting orbs to collect them.`);
-  };
-
-  /**
-   * The pack's last level was won: the edition is done. A Vault-selected pack reports its
-   * `contentId`; the default run reports the game. Both are deduped per session by the SDK.
-   */
-  const reportPackCompleted = () => {
-    if (!inVault()) return;
-    const { contentId } = getActivePack();
-    if (contentId) reportContentCompleted(contentId);
-    else reportGameCompleted();
   };
 
   /** Play a sound if the audio bundle provides it; silently no-op otherwise. */

@@ -111,9 +111,19 @@ success and names the reason on a fallback.
    (`schemas/catalog/examples/aminoecspure.json`).
 2. Enable Daily Editions for the game on the client, run the manager **Harvest**, and Apply. The
    harvest boots the game hidden; the game answers its catalog as `content_catalog`.
-3. The Vault sends the chosen edition as `contentId` = the pack key; the game loads that pack
-   (and its brand), plays it from level 1, and reports `reportContentCompleted(contentId)` when its
-   last level is won. A Vault "default" drops the edition and its brand.
+3. The Vault's selection picks a **served mode** (`resolveServedMode`,
+   `src/game/content/served-mode.ts`; driven by `src/game/setup/served-session.ts`):
+
+   | Vault `content` | Mode | Plays | When the pack's last level is won |
+   |---|---|---|---|
+   | `{ type: 'default' }` | default | the deployment's own pack (the creative team's content) | `reportGameCompleted()` |
+   | `{ contentId: '<pack key>' }` | daily | that edition, from level 1 | `reportContentCompleted(contentId)` once — the Vault takes the player back |
+   | `{ contentId: 'unlocked_editions' }` | unlocked | every edition with `availableFrom <= today` (UTC), oldest first | load the next edition (no report); after the last, `reportGameCompleted()` once |
+
+   `unlocked_editions` is the reserved sentinel the reference games share; with nothing open yet it
+   plays the default. The exit is the completion report, never `play_ended` (that means "the player
+   left"). A Vault "default" after a selection drops the edition and its brand. The unlocked cursor
+   is in memory: a relaunch starts the walk at its oldest edition.
 
 Known hazard: an active Vault experiment whose PostHog flag does not exist freezes every context
 (QA 2026-09-30) — disable the experiment until the flag exists.

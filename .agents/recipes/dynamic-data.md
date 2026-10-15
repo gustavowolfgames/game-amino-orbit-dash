@@ -13,7 +13,7 @@ The template ships the client, the loaders, and the fallbacks. Reuse them. Full 
 - `src/game/brand/load.ts` fetches the brand sheet: the one in the pack, else the `brand/theme` entry.
 - `src/game/content/catalog.ts` answers the Daily Editions schedule (`catalog` schema: pack key to `YYYY-MM-DD`).
 - `src/game/setup/content.ts` runs the pack and the brand at boot, in parallel with the assets, capped at `CONTENT_BUDGET_MS`. A missing, failing, or malformed response falls back to the bundled pack and the build's brand, and the game still plays.
-- `src/game/setup/vault-content.tsx` maps the Vault's `contentId` to a pack key and reports completion.
+- `src/game/setup/vault-content.tsx` maps the Vault's selection to a served mode: default, a daily edition (its completion exits to the Vault), or `unlocked_editions` (every open edition in schedule order). The rules are pure in `src/game/content/served-mode.ts` and `src/game/setup/served-session.ts`; the controller calls `completeActivePack()` at a pack's last win.
 
 Schemas are registered in `schemas/registry.ts`, each with `bundleSyncEnabled: false`. A new schema goes in that file. A shape change bumps the schema's `version` and needs a redeploy. An entry change needs neither.
 
@@ -21,7 +21,7 @@ Publishing is the content person's job, in order: deploy (registers the schemas)
 
 ## Verify
 
-`bun run test:run` passes, including `tests/unit/content/content-load.test.ts` (fallbacks, `?wolfPack=`) and `tests/unit/content/brand.test.ts`.
+`bun run test:run` passes, including `tests/unit/content/content-load.test.ts` (fallbacks, `?wolfPack=`), `tests/unit/content/served-mode.test.ts` (served modes, cursor, daily exit) and `tests/unit/content/brand.test.ts`.
 
 `bun run test:e2e` runs `tests/e2e/game-packs.spec.ts`: the bundled pack with nothing published, a `?wolfPack=` pack with its brand, a brand switch, and a broken pack falling back.
 
