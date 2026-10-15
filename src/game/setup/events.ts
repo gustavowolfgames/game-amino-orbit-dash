@@ -151,6 +151,26 @@ export const gameStartSchema = type({
 });
 
 /**
+ * Schema for edition_started event.
+ * Fires when a run of the active Content Pack begins (its first level starts).
+ * `edition_date` is the pack's `YYYY-MM-DD` from the Daily Editions catalog, null when the pack
+ * is not scheduled (the bundled default, a `?wolfPack=` override outside a Vault).
+ */
+export const editionStartedSchema = type({
+  edition_id: "string",
+  edition_date: "string | null",
+});
+
+/**
+ * Schema for edition_completed event.
+ * Fires when the active Content Pack's last level is won. Same props as edition_started.
+ */
+export const editionCompletedSchema = type({
+  edition_id: "string",
+  edition_date: "string | null",
+});
+
+/**
  * Schema for level_start event.
  * Fires when a level becomes interactive.
  */

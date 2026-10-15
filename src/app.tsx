@@ -36,6 +36,7 @@ import '~/game/setup/flags'; // registers flag config at module load
 import { useAssetCoordinator } from '~/core/systems/assets';
 import { EmbedHook } from '~/game/EmbedHook';
 import { GameSettingsMenu } from '~/game/screens/components/GameSettingsMenu';
+import { registerEditionSuperProperties } from '~/game/setup/edition-analytics';
 import { createLoadingTracker } from '~/game/setup/loading-tracker';
 import { createSessionTracker } from '~/game/setup/session-tracker';
 import { AttractGate, EmbedProvider } from '~/integrations/embed';
@@ -53,6 +54,12 @@ function SessionTrackerBridge() {
   const service = useAnalyticsService();
   const cleanup = createSessionTracker(service, gameConfig.initialScreen);
   onCleanup(cleanup);
+  return null;
+}
+
+/** Registers edition_id / edition_date as super properties, re-registered on every pack change */
+function EditionAnalyticsBridge() {
+  onCleanup(registerEditionSuperProperties(useAnalyticsService()));
   return null;
 }
 
@@ -92,6 +99,7 @@ export default function App() {
       <GameConfigProvider debug>
         <AnalyticsProvider userId={getResolvedPlayerId() ?? undefined}>
           <SessionTrackerBridge />
+          <EditionAnalyticsBridge />
           <GlobalBoundary>
             <TuningProvider gameDefaults={GAME_DEFAULTS}>
               <DevOnly>

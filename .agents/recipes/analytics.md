@@ -2,7 +2,7 @@
 
 ## When
 
-Open this recipe when you add or change event tracking, wire PostHog, or implement the vault edition events (`edition_started`, `edition_completed`).
+Open this recipe when you add or change event tracking, wire PostHog, or change the edition events (`edition_started`, `edition_completed`) or the level events.
 
 ## Do
 
@@ -12,42 +12,36 @@ Fire gameplay events from the game controller or an ECS transaction that owns th
 
 Each event is an arktype schema in `src/game/setup/events.ts` and a typed `track*` function in `src/game/setup/tracking.ts`. Keep event names snake_case. Keep property names snake_case. Never pass raw ECS state as event props — pick the two or three fields that answer the question "what happened."
 
-### Vault / daily edition events (required)
+### Edition events (wired)
 
-A vault-eligible game MUST emit:
+`src/game/setup/edition-analytics.ts` owns these; keep them when you replace the sample.
 
-- `edition_started` — when the active content pack mounts. Props: `{ edition_id: string, edition_date: string }`.
-- `edition_completed` — when the player clears the edition. Same props.
-- `edition_id` and `edition_date` must be registered as PostHog **super properties** at mount so they ride on every subsequent event in the session. Register them through the analytics service when the pack mounts.
+- `edition_started` — a run of the active Content Pack begins (its first level starts; a pack that loops round starts again). Props: `{ edition_id: string, edition_date: string | null }`.
+- `edition_completed` — the pack's last level is won, next to `reportContentCompleted`. Same props.
+- `edition_id` is the pack key (`getActivePack().id`). `edition_date` is the pack's `YYYY-MM-DD` in the Daily Editions catalog (`getEditions()`, loaded at boot inside a Vault), looked up by the Vault `contentId`, then the pack key. It is `null` for an unscheduled pack: the bundled default, the published default, a `?wolfPack=` override outside a Vault.
+- Both are PostHog **super properties**. `registerEditionSuperProperties` (mounted once in `src/app.tsx`) registers them at mount and on every `onActivePackChange`, so each pack of an unlocked loop overwrites the last. `register` is a no-op until PostHog has loaded, so it registers again on `service.whenReady()`; events queued before that lack them, which is why the edition events carry both as props.
 
-In **unlocked mode** the player plays through all editions back-to-back. Super properties update when the next pack mounts. Re-register them; do not append.
+### Level events (wired)
 
-### Standard game events (recommended)
+`createRunAnalytics(deps.analytics)` in the game controller sends `level_start` (`is_replay` when the pack loops), `level_restart` (same level begun again, with `restart_count`) and `level_complete` (`time_to_complete` in seconds, `score`). `level_id` is `<pack key>/<1-based order>`. The sample has no losing state, so `level_fail` is never sent; a game with one calls `levelFailed(index, reason)` at that terminal moment. A new game keeps the three calls: `levelStarted(index, entry)` where a run starts, `levelWon(index, score)` where it is won.
 
-The convention is: one event per state transition the player cares about. For a tap-to-clear game:
-
-- `level_started` — level 1 begins. Props: `{ level: number }`.
-- `move_made` — player took a turn. Props: `{ level, moves_used, score }` only on moves that change the board.
-- `combo` — a cascade cleared N groups in sequence. Props: `{ level, combo_count, score_gained }`.
-- `level_cleared` / `level_failed` — terminal states. Props: `{ level, moves_used, score, stars }`.
-
-Do not fire every single tap. Fire the state transition.
+Add more events the same way: one per state transition the player cares about (a move that changes the board, a combo), never every tap.
 
 ## Verify
 
 - `bun run typecheck:baseline` passes.
 - Open the game in dev. Make a move. Check PostHog Live view (dev project) — the event lands with the right props within a few seconds.
-- For vault events: load the game with `?pack=<id>` and verify `edition_started` fires once with the right `edition_id`.
+- For edition events: load the game with `?wolfPack=<key>` and verify `edition_started` fires on level 1 with that `edition_id`, and that later events carry it as a super property. `tests/unit/analytics/edition-analytics.test.ts` covers the payloads.
 - The amino-posthog-report skill (if available) can replay a session and sanity-check the event mix.
 
 ## Example
 
-`src/game/setup/events.ts` holds the schemas. `src/game/setup/tracking.ts` is the function table (`trackGameStart`, ...). The vault host bridge is in `src/integrations/vault/`. The gameController fires `move_made` from a dedicated path, not from the tap handler.
+`src/game/setup/events.ts` holds the schemas. `src/game/setup/tracking.ts` is the screen-side function table (`trackGameStart`, ...); `src/game/setup/edition-analytics.ts` is the controller-side one (level and edition events) plus the super properties. The vault host bridge is in `src/integrations/vault/`.
 
 ## Do not
 
 - Do not fire analytics from a Pixi renderer or a per-frame system.
 - Do not import PostHog directly in game code. Go through `tracking.ts`.
 - Do not log PII or raw user input strings. Props are typed shapes, not arbitrary blobs.
-- Do not re-register super properties on every event; register once at pack mount.
+- Do not re-register super properties on every event, or from screen code; they follow `onActivePackChange`.
 - Do not fire a loss event AND a complete event for the same terminal moment.
