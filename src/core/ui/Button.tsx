@@ -1,5 +1,4 @@
 import { type JSX, splitProps } from 'solid-js';
-import { useAssets } from '~/core/systems/assets';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -12,7 +11,8 @@ interface ButtonProps extends JSX.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: 'bg-white text-black hover:bg-gray-200 active:bg-gray-300',
-  secondary: 'bg-transparent border-2 border-white text-white hover:bg-white/10 active:bg-white/20',
+  secondary:
+    'bg-transparent border-2 border-white text-white hover:bg-white/10 active:bg-white/20',
   ghost: 'bg-transparent text-white hover:bg-white/10 active:bg-white/20',
 };
 
@@ -23,8 +23,15 @@ const sizeClasses: Record<ButtonSize, string> = {
 };
 
 export function Button(props: ButtonProps) {
-  const [local, rest] = splitProps(props, ['variant', 'size', 'loading', 'children', 'class', 'disabled', 'onClick']);
-  const { coordinator } = useAssets();
+  const [local, rest] = splitProps(props, [
+    'variant',
+    'size',
+    'loading',
+    'children',
+    'class',
+    'disabled',
+    'onClick',
+  ]);
 
   const variant = () => local.variant ?? 'primary';
   const size = () => local.size ?? 'md';

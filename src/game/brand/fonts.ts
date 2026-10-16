@@ -19,7 +19,12 @@ export async function loadFonts(
   fonts: readonly BrandFont[],
   timeoutMs = FONT_TIMEOUT_MS,
 ): Promise<Partial<Record<TypeRole, string>>> {
-  if (fonts.length === 0 || typeof FontFace === 'undefined' || typeof document === 'undefined') return {};
+  if (
+    fonts.length === 0 ||
+    typeof FontFace === 'undefined' ||
+    typeof document === 'undefined'
+  )
+    return {};
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error('font timed out')), timeoutMs);
@@ -27,7 +32,11 @@ export async function loadFonts(
   const loaded = await Promise.allSettled(
     fonts.map((f) =>
       Promise.race([
-        new FontFace(f.family, `url(${f.sourceUrl})`, f.weight === undefined ? undefined : { weight: f.weight }).load(),
+        new FontFace(
+          f.family,
+          `url(${f.sourceUrl})`,
+          f.weight === undefined ? undefined : { weight: f.weight },
+        ).load(),
         timeout,
       ]).then((face) => document.fonts.add(face)),
     ),
@@ -41,6 +50,9 @@ export async function loadFonts(
   });
   const out: Partial<Record<TypeRole, string>> = {};
   for (const f of fonts) if (!failed.has(f.role)) out[f.role] = f.family;
-  for (const role of failed) console.warn(`[brand] ${role} font did not load — keeping the build's family.`);
+  for (const role of failed)
+    console.warn(
+      `[brand] ${role} font did not load — keeping the build's family.`,
+    );
   return out;
 }

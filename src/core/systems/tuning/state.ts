@@ -1,14 +1,24 @@
-import { createSignal, createRoot, batch } from 'solid-js';
-import { createStore, produce, reconcile, type SetStoreFunction } from 'solid-js/store';
-import type { ScaffoldTuning, GameTuningBase, TuningState, TuningSource } from './types';
-import { SCAFFOLD_DEFAULTS } from './types';
+import { batch, createRoot, createSignal } from 'solid-js';
 import {
-  loadScaffoldTuning,
+  createStore,
+  produce,
+  reconcile,
+  type SetStoreFunction,
+} from 'solid-js/store';
+import {
+  clearTuningStorage,
   loadGameTuning,
+  loadScaffoldTuning,
   STORAGE_KEYS,
   saveToStorage,
-  clearTuningStorage,
 } from './loader';
+import type {
+  GameTuningBase,
+  ScaffoldTuning,
+  TuningSource,
+  TuningState,
+} from './types';
+import { SCAFFOLD_DEFAULTS } from './types';
 
 /**
  * Set a nested path in an object using produce (for stores)
@@ -16,7 +26,7 @@ import {
 function setStorePath<T extends object>(
   setStore: SetStoreFunction<T>,
   path: string,
-  value: unknown
+  value: unknown,
 ): void {
   const keys = path.split('.');
   setStore(
@@ -27,7 +37,7 @@ function setStorePath<T extends object>(
         current = current[keys[i]];
       }
       current[keys[keys.length - 1]] = value;
-    })
+    }),
   );
 }
 
@@ -36,15 +46,22 @@ function setStorePath<T extends object>(
  */
 export function createTuningState<
   S extends ScaffoldTuning = ScaffoldTuning,
-  G extends GameTuningBase = GameTuningBase
+  G extends GameTuningBase = GameTuningBase,
 >(scaffoldDefaults: S, gameDefaults: G): TuningState<S, G> {
   // Use stores for fine-grained reactivity - only the specific path that changes
   // will trigger effects that access that path
-  const [scaffoldStore, setScaffoldStore] = createStore<S>(structuredClone(scaffoldDefaults));
-  const [gameStore, setGameStore] = createStore<G>(structuredClone(gameDefaults));
+  const [scaffoldStore, setScaffoldStore] = createStore<S>(
+    structuredClone(scaffoldDefaults),
+  );
+  const [gameStore, setGameStore] = createStore<G>(
+    structuredClone(gameDefaults),
+  );
   const [isLoaded, setIsLoaded] = createSignal(false);
   const [loadError, setLoadError] = createSignal<string | null>(null);
-  const [source, setSource] = createSignal<{ scaffold: TuningSource; game: TuningSource }>({
+  const [source, setSource] = createSignal<{
+    scaffold: TuningSource;
+    game: TuningSource;
+  }>({
     scaffold: 'local',
     game: 'local',
   });
@@ -127,7 +144,10 @@ export function createTuningState<
 
   const save = (): void => {
     // Stores are directly accessible as objects (unwrapped for serialization)
-    saveToStorage(STORAGE_KEYS.SCAFFOLD, JSON.parse(JSON.stringify(scaffoldStore)));
+    saveToStorage(
+      STORAGE_KEYS.SCAFFOLD,
+      JSON.parse(JSON.stringify(scaffoldStore)),
+    );
     saveToStorage(STORAGE_KEYS.GAME, JSON.parse(JSON.stringify(gameStore)));
   };
 
@@ -139,7 +159,7 @@ export function createTuningState<
         exportedAt: new Date().toISOString(),
       },
       null,
-      2
+      2,
     );
   };
 
@@ -191,5 +211,5 @@ export function createTuningState<
 
 // Default singleton for scaffold-only usage (without game tuning)
 export const scaffoldTuningState = createRoot(() =>
-  createTuningState(SCAFFOLD_DEFAULTS, { version: '1.0.0' } as GameTuningBase)
+  createTuningState(SCAFFOLD_DEFAULTS, { version: '1.0.0' } as GameTuningBase),
 );

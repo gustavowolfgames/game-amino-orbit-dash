@@ -13,16 +13,19 @@ const baselineFile = path.join(root, 'scripts/typecheck-baseline.txt');
 // meaningful against one TypeScript version.
 const tsc = path.join(root, 'node_modules/.bin/tsc');
 if (!existsSync(tsc)) {
-  process.stderr.write('typescript is not installed; run `bun install` first.\n');
+  process.stderr.write(
+    'typescript is not installed; run `bun install` first.\n',
+  );
   process.exit(1);
 }
 
 let output = '';
 try {
-  output = execSync(
-    `"${tsc}" --noEmit --pretty false`,
-    { cwd: root, encoding: 'utf8', stdio: 'pipe' },
-  );
+  output = execSync(`"${tsc}" --noEmit --pretty false`, {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
 } catch (error) {
   output = `${error.stdout ?? ''}${error.stderr ?? ''}`;
 }

@@ -19,7 +19,11 @@ export function toEditions(raw: unknown): ScheduledContentMetadata[] | null {
   if (out instanceof type.errors) return null;
   return Object.entries(out as CatalogData)
     .map(([contentId, availableFrom]) => ({ contentId, availableFrom }))
-    .sort((a, b) => a.availableFrom.localeCompare(b.availableFrom) || a.contentId.localeCompare(b.contentId));
+    .sort(
+      (a, b) =>
+        a.availableFrom.localeCompare(b.availableFrom) ||
+        a.contentId.localeCompare(b.contentId),
+    );
 }
 
 export async function loadCatalog(
@@ -30,14 +34,21 @@ export async function loadCatalog(
   let raw: unknown;
   try {
     const client = await dynamicClient(gameKit);
-    raw = await client.getEntry('catalog', gameSlug, { fallbackToDefault: true });
+    raw = await client.getEntry('catalog', gameSlug, {
+      fallbackToDefault: true,
+    });
   } catch (err) {
-    console.warn(`[content] catalog "${gameSlug}" unavailable — answering no editions.`, err);
+    console.warn(
+      `[content] catalog "${gameSlug}" unavailable — answering no editions.`,
+      err,
+    );
     return [];
   }
   const editions = toEditions(raw);
   if (!editions) {
-    console.warn(`[content] catalog "${gameSlug}" refused: not a schedule — answering no editions.`);
+    console.warn(
+      `[content] catalog "${gameSlug}" refused: not a schedule — answering no editions.`,
+    );
     return [];
   }
   return editions;

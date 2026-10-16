@@ -16,8 +16,8 @@ import {
   LEVEL_DEFAULTS,
   levelAt,
   loadActivePack,
-  packLevels,
   loadCatalog,
+  packLevels,
   resolvePackKey,
   seedActivePack,
   toEditions,
@@ -34,7 +34,8 @@ function fakeKit(getPack: (key: string) => Promise<PackBundle>): KitLike {
   return { execute: () => ({ promise: Promise.resolve(client) }) };
 }
 
-const packNotFound = () => Object.assign(new Error('no pack'), { code: 'PACK_NOT_FOUND' });
+const packNotFound = () =>
+  Object.assign(new Error('no pack'), { code: 'PACK_NOT_FOUND' });
 
 /** A published one-block pack as the CDN serves it. */
 const bundleOf = (id: string, levels: unknown[]) =>
@@ -58,8 +59,14 @@ describe('resolvePackKey', () => {
 describe('assemble / decompose', () => {
   it('round-trips an authored pack through the entries a publish creates', () => {
     const bundle = decomposePack(BUNDLED_PACK);
-    expect(Object.keys(bundle.schemas.blocks?.entries ?? {})).toEqual(['orbits']);
-    expect(Object.keys(bundle.schemas.levels?.entries ?? {})).toEqual(['orbits-1', 'orbits-2', 'orbits-3']);
+    expect(Object.keys(bundle.schemas.blocks?.entries ?? {})).toEqual([
+      'orbits',
+    ]);
+    expect(Object.keys(bundle.schemas.levels?.entries ?? {})).toEqual([
+      'orbits-1',
+      'orbits-2',
+      'orbits-3',
+    ]);
     expect(assemblePack(bundle)).toEqual(BUNDLED_PACK);
   });
 
@@ -68,11 +75,17 @@ describe('assemble / decompose', () => {
       id: 'p',
       blocks: [
         { id: 'a', name: 'A', levels: [{ orbiterCount: 1 }] },
-        { id: 'b', name: 'B', levels: [{ orbiterCount: 2 }, { orbiterCount: 3 }] },
+        {
+          id: 'b',
+          name: 'B',
+          levels: [{ orbiterCount: 2 }, { orbiterCount: 3 }],
+        },
       ],
     });
-    const { a, b } = bundle.schemas.blocks?.entries as Record<string, object>;
-    bundle.schemas.blocks = { entries: { b: { ...b, order: 1 }, a: { ...a, order: 2 } } };
+    const { a, b } = bundle.schemas.blocks!.entries as Record<string, object>;
+    bundle.schemas.blocks = {
+      entries: { b: { ...b, order: 1 }, a: { ...a, order: 2 } },
+    };
     const out = assemblePack(bundle);
     expect(typeof out === 'string' ? out : packLevels(out)).toEqual([
       { orbiterCount: 2 },
@@ -84,11 +97,15 @@ describe('assemble / decompose', () => {
   it('refuses a pack whose level key is missing from the bundle', () => {
     const bundle = bundleOf('p', [{ orbiterCount: 2 }]);
     delete bundle.schemas.levels?.entries['p-1'];
-    expect(assemblePack(bundle)).toMatch(/level "p-1" of block "p" is not in the bundle/);
+    expect(assemblePack(bundle)).toMatch(
+      /level "p-1" of block "p" is not in the bundle/,
+    );
   });
 
   it('refuses a pack with no block, or a malformed one', () => {
-    expect(assemblePack({ packKey: 'p', schemas: {} })).toMatch(/no block entry/);
+    expect(assemblePack({ packKey: 'p', schemas: {} })).toMatch(
+      /no block entry/,
+    );
     const bundle = bundleOf('p', [{ orbiterCount: 2 }]);
     bundle.schemas.blocks = { entries: { p: { id: 'p', levels: ['p-1'] } } };
     expect(assemblePack(bundle)).toMatch(/block "p" is not a block entry/);
@@ -98,7 +115,10 @@ describe('assemble / decompose', () => {
 describe('loadActivePack — never breaks the boot', () => {
   it('plays the bundled pack with no GameSDK', async () => {
     expect(await loadActivePack(null, DEFAULT_PACK_KEY)).toBeNull();
-    expect(getActivePack()).toMatchObject({ id: BUNDLED_PACK.id, source: 'bundled' });
+    expect(getActivePack()).toMatchObject({
+      id: BUNDLED_PACK.id,
+      source: 'bundled',
+    });
   });
 
   it('is silent when nothing is published under the default key', async () => {
@@ -124,16 +144,31 @@ describe('loadActivePack — never breaks the boot', () => {
   });
 
   it('seeds a published pack, filling optional level fields from the defaults', async () => {
-    const kit = fakeKit(async () => bundleOf('edition', [{ orbiterCount: 3, orbitSpeed: 1.4 }, { orbiterCount: 12 }]));
+    const kit = fakeKit(async () =>
+      bundleOf('edition', [
+        { orbiterCount: 3, orbitSpeed: 1.4 },
+        { orbiterCount: 12 },
+      ]),
+    );
     const pack = await loadActivePack(kit, 'edition', 'edition');
-    expect(pack).toMatchObject({ id: 'edition', source: 'published', contentId: 'edition' });
-    expect(levelAt(0)).toEqual({ ...LEVEL_DEFAULTS, orbiterCount: 3, orbitSpeed: 1.4 });
+    expect(pack).toMatchObject({
+      id: 'edition',
+      source: 'published',
+      contentId: 'edition',
+    });
+    expect(levelAt(0)).toEqual({
+      ...LEVEL_DEFAULTS,
+      orbiterCount: 3,
+      orbitSpeed: 1.4,
+    });
     expect(levelAt(1)).toEqual({ ...LEVEL_DEFAULTS, orbiterCount: 12 });
   });
 
   it('drops a level this game cannot play, keeping the rest', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const kit = fakeKit(async () => bundleOf('mixed', [{ orbiterCount: 999 }, 'CRANE', { orbiterCount: 5 }]));
+    const kit = fakeKit(async () =>
+      bundleOf('mixed', [{ orbiterCount: 999 }, 'CRANE', { orbiterCount: 5 }]),
+    );
     const pack = await loadActivePack(kit, 'mixed');
     expect(pack?.levels).toHaveLength(1);
     expect(levelAt(0).orbiterCount).toBe(5);
@@ -149,7 +184,9 @@ describe('loadActivePack — never breaks the boot', () => {
 
 describe('catalog (Daily Editions harvest)', () => {
   it('answers the schedule oldest first, in the wire shape', () => {
-    expect(toEditions({ b: '2026-10-09', a: '2026-10-08', c: '2026-10-08' })).toEqual([
+    expect(
+      toEditions({ b: '2026-10-09', a: '2026-10-08', c: '2026-10-08' }),
+    ).toEqual([
       { contentId: 'a', availableFrom: '2026-10-08' },
       { contentId: 'c', availableFrom: '2026-10-08' },
       { contentId: 'b', availableFrom: '2026-10-09' },
@@ -161,7 +198,12 @@ describe('catalog (Daily Editions harvest)', () => {
     expect(toEditions({ a: 'tomorrow' })).toBeNull();
     expect(await loadCatalog(null, GAME_SLUG)).toEqual([]);
     const kit: KitLike = {
-      execute: () => ({ promise: Promise.resolve({ getPack: async () => ({}), getEntry: async () => ({ a: 'x' }) }) }),
+      execute: () => ({
+        promise: Promise.resolve({
+          getPack: async () => ({}),
+          getEntry: async () => ({ a: 'x' }),
+        }),
+      }),
     };
     expect(await loadCatalog(kit, GAME_SLUG)).toEqual([]);
   });
@@ -176,9 +218,18 @@ describe('active pack', () => {
   });
 
   it('seeding null restores the bundled pack', () => {
-    seedActivePack({ id: 'x', levels: [levelAt(0)], source: 'published', contentId: 'x' });
+    seedActivePack({
+      id: 'x',
+      levels: [levelAt(0)],
+      source: 'published',
+      contentId: 'x',
+    });
     expect(getActivePack().id).toBe('x');
     seedActivePack(null);
-    expect(getActivePack()).toMatchObject({ id: BUNDLED_PACK.id, source: 'bundled', contentId: null });
+    expect(getActivePack()).toMatchObject({
+      id: BUNDLED_PACK.id,
+      source: 'bundled',
+      contentId: null,
+    });
   });
 });

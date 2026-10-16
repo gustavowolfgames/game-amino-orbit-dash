@@ -1,11 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('solid-js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('solid-js')>();
   return { ...actual };
 });
 
-import { AttractGate, type AttractEngage } from '~/integrations/embed/attract';
+import { type AttractEngage, AttractGate } from '~/integrations/embed/attract';
 
 describe('AttractGate', () => {
   it('exports a component function', () => {

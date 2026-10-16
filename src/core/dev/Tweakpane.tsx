@@ -1,4 +1,4 @@
-import { onMount, onCleanup, createSignal } from 'solid-js';
+import { createSignal, onCleanup, onMount } from 'solid-js';
 import type { Pane } from 'tweakpane';
 import { isDevToggleKey } from './toggleKey';
 
@@ -41,7 +41,10 @@ export default function TweakpaneConfig() {
     scenesFolder.addFolder({ title: '🏆 Results', expanded: false });
 
     // 📦 Presets
-    const presetsFolder = pane.addFolder({ title: '📦 Presets', expanded: false });
+    const presetsFolder = pane.addFolder({
+      title: '📦 Presets',
+      expanded: false,
+    });
     const presetObj = { preset: 'default' };
     presetsFolder.addBinding(presetObj, 'preset', {
       label: 'Load',

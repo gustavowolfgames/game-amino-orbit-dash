@@ -1,14 +1,34 @@
-import { createSignal, For, Show, onMount, onCleanup } from 'solid-js';
 import type { Database } from '@adobe/data/ecs';
+import { createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import { activeInspectorActions } from '~/core/systems/ecs';
 import { isPanelOpen, setIsPanelOpen } from '../TuningPanel';
 import {
-  readEntities, readResources, readSystems, readArchetypes,
-  getEntityPosition, getEntityName,
-  type InspectorEntity, type InspectorResource, type InspectorSystem,
+  getEntityName,
+  type InspectorEntity,
+  type InspectorResource,
+  type InspectorSystem,
+  readArchetypes,
+  readEntities,
+  readResources,
+  readSystems,
 } from './bridge';
-import { InspectorOverlay, entityColor } from './Overlay';
+import { entityColor, InspectorOverlay } from './Overlay';
 import { s } from './styles';
+
+/** Click, Enter/Space and keyboard focus for a non-button element that acts as a button. */
+function pressable(onPress: () => void) {
+  return {
+    role: 'button',
+    tabIndex: 0,
+    onClick: onPress,
+    onKeyDown: (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onPress();
+      }
+    },
+  } as const;
+}
 
 export type InspectorProps = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,15 +37,23 @@ export type InspectorProps = {
 
 export function Inspector(props: InspectorProps) {
   const [filter, setFilter] = createSignal('');
-  const [sections, setSections] = createSignal<Set<string>>(new Set(['entities']));
-  const [expandedEntities, setExpandedEntities] = createSignal<Set<number>>(new Set());
-  const [expandedArchetypes, setExpandedArchetypes] = createSignal<Set<string>>(new Set());
+  const [sections, setSections] = createSignal<Set<string>>(
+    new Set(['entities']),
+  );
+  const [expandedEntities, setExpandedEntities] = createSignal<Set<number>>(
+    new Set(),
+  );
+  const [expandedArchetypes, setExpandedArchetypes] = createSignal<Set<string>>(
+    new Set(),
+  );
 
   // Snapshot state from the database
   const [entities, setEntities] = createSignal<InspectorEntity[]>([]);
   const [resources, setResources] = createSignal<InspectorResource[]>([]);
   const [systems, setSystems] = createSignal<InspectorSystem[]>([]);
-  const [archetypes, setArchetypes] = createSignal<Record<string, string[]>>({});
+  const [archetypes, setArchetypes] = createSignal<Record<string, string[]>>(
+    {},
+  );
 
   const entityRefs = new Map<number, HTMLElement>();
 
@@ -34,7 +62,9 @@ export function Inspector(props: InspectorProps) {
   let lastJson = '';
   const refresh = () => {
     const next = readEntities(props.db);
-    const json = JSON.stringify(next.map(e => e.id + e.archetype + e.fields.map(f => f.value).join()));
+    const json = JSON.stringify(
+      next.map((e) => e.id + e.archetype + e.fields.map((f) => f.value).join()),
+    );
     if (json !== lastJson) {
       lastJson = json;
       setEntities(next);
@@ -61,7 +91,7 @@ export function Inspector(props: InspectorProps) {
   // ── Helpers ─────────────────────────────────────────────────────
 
   const toggleSection = (name: string) => {
-    setSections(prev => {
+    setSections((prev) => {
       const next = new Set(prev);
       next.has(name) ? next.delete(name) : next.add(name);
       return next;
@@ -69,7 +99,7 @@ export function Inspector(props: InspectorProps) {
   };
 
   const toggleEntity = (id: number) => {
-    setExpandedEntities(prev => {
+    setExpandedEntities((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
@@ -77,7 +107,7 @@ export function Inspector(props: InspectorProps) {
   };
 
   const toggleArchetype = (name: string) => {
-    setExpandedArchetypes(prev => {
+    setExpandedArchetypes((prev) => {
       const next = new Set(prev);
       next.has(name) ? next.delete(name) : next.add(name);
       return next;
@@ -86,12 +116,14 @@ export function Inspector(props: InspectorProps) {
 
   const filteredEntities = () => {
     const f = filter().toLowerCase();
-    return entities().filter(e => {
+    return entities().filter((e) => {
       if (!f) return true;
-      return e.archetype.toLowerCase().includes(f)
-        || getEntityName(e).toLowerCase().includes(f)
-        || String(e.id).includes(f)
-        || e.fields.some(field => field.name.toLowerCase().includes(f));
+      return (
+        e.archetype.toLowerCase().includes(f) ||
+        getEntityName(e).toLowerCase().includes(f) ||
+        String(e.id).includes(f) ||
+        e.fields.some((field) => field.name.toLowerCase().includes(f))
+      );
     });
   };
 
@@ -116,7 +148,13 @@ export function Inspector(props: InspectorProps) {
         {/* Header */}
         <div style={s.header}>
           <span>Inspector</span>
-          <button style={s.closeBtn} onClick={() => setIsPanelOpen(false)}>x</button>
+          <button
+            type="button"
+            style={s.closeBtn}
+            onClick={() => setIsPanelOpen(false)}
+          >
+            x
+          </button>
         </div>
 
         {/* Dev actions registered by the active game (e.g. an auto-player bot) */}
@@ -124,7 +162,11 @@ export function Inspector(props: InspectorProps) {
           <div style={s.actionBar}>
             <For each={activeInspectorActions()}>
               {(action) => (
-                <button style={s.actionBtn} onClick={() => action.run()}>
+                <button
+                  type="button"
+                  style={s.actionBtn}
+                  onClick={() => action.run()}
+                >
                   {action.label()}
                 </button>
               )}
@@ -145,16 +187,23 @@ export function Inspector(props: InspectorProps) {
 
         {/* Scrollable content */}
         <div style={s.content}>
-
           {/* ── Entities accordion ──────────────────────────── */}
           <div style={s.section}>
-            <div style={s.accordionHeader} onClick={() => toggleSection('entities')}>
-              <span style={s.chevron(sections().has('entities'))}>{'\u25B6'}</span>
+            <div
+              style={s.accordionHeader}
+              {...pressable(() => toggleSection('entities'))}
+            >
+              <span style={s.chevron(sections().has('entities'))}>
+                {'\u25B6'}
+              </span>
               <span>Entities</span>
               <span style={s.badge}>{entities().length}</span>
             </div>
             <Show when={sections().has('entities')}>
-              <Show when={filteredEntities().length > 0} fallback={<div style={s.empty}>No entities</div>}>
+              <Show
+                when={filteredEntities().length > 0}
+                fallback={<div style={s.empty}>No entities</div>}
+              >
                 <For each={filteredEntities()}>
                   {(entity) => {
                     const isOpen = () => expandedEntities().has(entity.id);
@@ -165,16 +214,33 @@ export function Inspector(props: InspectorProps) {
                         <div
                           ref={(el) => entityRefs.set(entity.id, el)}
                           style={s.entityAccordion}
-                          onClick={() => toggleEntity(entity.id)}
+                          {...pressable(() => toggleEntity(entity.id))}
                         >
-                          <span style={s.chevronSmall(isOpen())}>{'\u25B6'}</span>
+                          <span style={s.chevronSmall(isOpen())}>
+                            {'\u25B6'}
+                          </span>
                           <div style={s.dot(color)} />
-                          <span style={{ ...s.entityId, color }}>#{entity.id}</span>
-                          <span style={{ 'font-size': '11px', 'font-weight': '600', color }}>{name}</span>
+                          <span style={{ ...s.entityId, color }}>
+                            #{entity.id}
+                          </span>
+                          <span
+                            style={{
+                              'font-size': '11px',
+                              'font-weight': '600',
+                              color,
+                            }}
+                          >
+                            {name}
+                          </span>
                           <span style={s.badge}>{entity.archetype}</span>
                         </div>
                         <Show when={isOpen()}>
-                          <EntityFields entity={entity} color={color} db={props.db} onRefresh={refresh} />
+                          <EntityFields
+                            entity={entity}
+                            color={color}
+                            db={props.db}
+                            onRefresh={refresh}
+                          />
                         </Show>
                       </div>
                     );
@@ -186,35 +252,70 @@ export function Inspector(props: InspectorProps) {
 
           {/* ── Archetypes accordion ────────────────────────── */}
           <div style={s.section}>
-            <div style={s.accordionHeader} onClick={() => toggleSection('archetypes')}>
-              <span style={s.chevron(sections().has('archetypes'))}>{'\u25B6'}</span>
+            <div
+              style={s.accordionHeader}
+              {...pressable(() => toggleSection('archetypes'))}
+            >
+              <span style={s.chevron(sections().has('archetypes'))}>
+                {'\u25B6'}
+              </span>
               <span>Archetypes</span>
               <span style={s.badge}>{Object.keys(archetypes()).length}</span>
             </div>
             <Show when={sections().has('archetypes')}>
               <For each={Object.entries(archetypes())}>
                 {([archName, components]) => {
-                  const archEntities = () => entities().filter(e => e.archetype === archName);
+                  const archEntities = () =>
+                    entities().filter((e) => e.archetype === archName);
                   return (
                     <div>
-                      <div style={s.typeRow} onClick={() => toggleArchetype(archName)}>
-                        <span style={s.chevronSmall(expandedArchetypes().has(archName))}>{'\u25B6'}</span>
+                      <div
+                        style={s.typeRow}
+                        {...pressable(() => toggleArchetype(archName))}
+                      >
+                        <span
+                          style={s.chevronSmall(
+                            expandedArchetypes().has(archName),
+                          )}
+                        >
+                          {'\u25B6'}
+                        </span>
                         <span style={s.componentName}>{archName}</span>
                         <span style={s.badge}>{archEntities().length}</span>
                       </div>
                       <Show when={expandedArchetypes().has(archName)}>
-                        <div style={{ padding: '2px 12px 4px 32px', 'font-size': '10px', color: '#666' }}>
+                        <div
+                          style={{
+                            padding: '2px 12px 4px 32px',
+                            'font-size': '10px',
+                            color: '#666',
+                          }}
+                        >
                           {components.join(', ')}
                         </div>
                         <For each={archEntities()}>
                           {(entity) => (
                             <div
                               style={s.entityRow}
-                              onClick={() => { setSections(p => new Set([...p, 'entities'])); setExpandedEntities(p => new Set([...p, entity.id])); }}
+                              {...pressable(() => {
+                                setSections((p) => new Set([...p, 'entities']));
+                                setExpandedEntities(
+                                  (p) => new Set([...p, entity.id]),
+                                );
+                              })}
                             >
                               <div style={s.dot(entityColor(entity.id))} />
-                              <span style={{ ...s.entityId, color: entityColor(entity.id) }}>#{entity.id}</span>
-                              <span style={{ 'font-size': '11px' }}>{getEntityName(entity)}</span>
+                              <span
+                                style={{
+                                  ...s.entityId,
+                                  color: entityColor(entity.id),
+                                }}
+                              >
+                                #{entity.id}
+                              </span>
+                              <span style={{ 'font-size': '11px' }}>
+                                {getEntityName(entity)}
+                              </span>
                             </div>
                           )}
                         </For>
@@ -228,8 +329,13 @@ export function Inspector(props: InspectorProps) {
 
           {/* ── Resources accordion ─────────────────────────── */}
           <div style={s.section}>
-            <div style={s.accordionHeader} onClick={() => toggleSection('resources')}>
-              <span style={s.chevron(sections().has('resources'))}>{'\u25B6'}</span>
+            <div
+              style={s.accordionHeader}
+              {...pressable(() => toggleSection('resources'))}
+            >
+              <span style={s.chevron(sections().has('resources'))}>
+                {'\u25B6'}
+              </span>
               <span>Resources</span>
               <span style={s.badge}>{resources().length}</span>
             </div>
@@ -239,7 +345,9 @@ export function Inspector(props: InspectorProps) {
                   <div style={s.fieldRow}>
                     <span style={s.fieldLabel}>{res.name}</span>
                     <span style={s.fieldValue}>
-                      {typeof res.value === 'object' ? JSON.stringify(res.value) : String(res.value)}
+                      {typeof res.value === 'object'
+                        ? JSON.stringify(res.value)
+                        : String(res.value)}
                     </span>
                   </div>
                 )}
@@ -249,17 +357,30 @@ export function Inspector(props: InspectorProps) {
 
           {/* ── Systems accordion ───────────────────────────── */}
           <div style={s.section}>
-            <div style={s.accordionHeader} onClick={() => toggleSection('systems')}>
-              <span style={s.chevron(sections().has('systems'))}>{'\u25B6'}</span>
+            <div
+              style={s.accordionHeader}
+              {...pressable(() => toggleSection('systems'))}
+            >
+              <span style={s.chevron(sections().has('systems'))}>
+                {'\u25B6'}
+              </span>
               <span>Systems</span>
               <span style={s.badge}>{systems().length}</span>
             </div>
             <Show when={sections().has('systems')}>
-              <Show when={systems().length > 0} fallback={<div style={s.empty}>No systems</div>}>
+              <Show
+                when={systems().length > 0}
+                fallback={<div style={s.empty}>No systems</div>}
+              >
                 <For each={systems()}>
                   {(sys) => (
                     <div style={s.systemRow}>
-                      <span style={{ 'font-size': '11px', color: sys.enabled ? '#e0e0e0' : '#666' }}>
+                      <span
+                        style={{
+                          'font-size': '11px',
+                          color: sys.enabled ? '#e0e0e0' : '#666',
+                        }}
+                      >
                         {sys.name}
                       </span>
                       <div style={s.dot(sys.enabled ? '#4caf50' : '#666')} />
@@ -269,13 +390,16 @@ export function Inspector(props: InspectorProps) {
               </Show>
             </Show>
           </div>
-
         </div>
 
         {/* Footer */}
         <div style={s.footer}>
-          <span>{entities().length} entities | {systems().length} systems</span>
-          <button style={s.footerBtn} onClick={copySnapshot}>Copy JSON</button>
+          <span>
+            {entities().length} entities | {systems().length} systems
+          </span>
+          <button type="button" style={s.footerBtn} onClick={copySnapshot}>
+            Copy JSON
+          </button>
         </div>
       </div>
     </Show>
@@ -292,26 +416,51 @@ function EntityFields(props: {
   onRefresh: () => void;
 }) {
   return (
-    <div style={{ 'border-left': `2px solid ${props.color}33`, 'margin-left': '16px' }}>
+    <div
+      style={{
+        'border-left': `2px solid ${props.color}33`,
+        'margin-left': '16px',
+      }}
+    >
       <For each={props.entity.fields}>
         {(field) => (
           <div style={s.fieldRow}>
             <span style={s.fieldLabel}>{field.name}</span>
-            <Show when={field.type === 'number'} fallback={
-              <Show when={field.type === 'boolean'} fallback={
-                <Show when={field.type === 'vec2'} fallback={
-                  <span style={s.fieldValue}>{JSON.stringify(field.value)}</span>
-                }>
-                  <span style={s.fieldValue}>
-                    [{(field.value as number[]).map(v => v.toFixed(0)).join(', ')}]
+            <Show
+              when={field.type === 'number'}
+              fallback={
+                <Show
+                  when={field.type === 'boolean'}
+                  fallback={
+                    <Show
+                      when={field.type === 'vec2'}
+                      fallback={
+                        <span style={s.fieldValue}>
+                          {JSON.stringify(field.value)}
+                        </span>
+                      }
+                    >
+                      <span style={s.fieldValue}>
+                        [
+                        {(field.value as number[])
+                          .map((v) => v.toFixed(0))
+                          .join(', ')}
+                        ]
+                      </span>
+                    </Show>
+                  }
+                >
+                  <span
+                    style={{
+                      ...s.fieldValue,
+                      color: field.value ? '#4caf50' : '#666',
+                    }}
+                  >
+                    {String(field.value)}
                   </span>
                 </Show>
-              }>
-                <span style={{ ...s.fieldValue, color: field.value ? '#4caf50' : '#666' }}>
-                  {String(field.value)}
-                </span>
-              </Show>
-            }>
+              }
+            >
               <input
                 type="number"
                 value={field.value as number}

@@ -9,8 +9,8 @@
  * - Theme-loaded gating for logo display
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Manifest, LoadingState } from '@wolfgames/components/core';
+import type { LoadingState, Manifest } from '@wolfgames/components/core';
+import { describe, expect, it, vi } from 'vitest';
 
 const testManifest: Manifest = {
   cdnBase: '/assets',
@@ -25,7 +25,9 @@ const testManifest: Manifest = {
 };
 
 function bundlesByPrefix(prefix: string): string[] {
-  return testManifest.bundles.filter((b) => b.name.startsWith(prefix)).map((b) => b.name);
+  return testManifest.bundles
+    .filter((b) => b.name.startsWith(prefix))
+    .map((b) => b.name);
 }
 
 function computeProgress(targetBundles: string[], state: LoadingState): number {
@@ -41,7 +43,9 @@ function computeProgress(targetBundles: string[], state: LoadingState): number {
   return (sum / targetBundles.length) * 100;
 }
 
-function createLoadingState(overrides: Partial<LoadingState> = {}): LoadingState {
+function createLoadingState(
+  overrides: Partial<LoadingState> = {},
+): LoadingState {
   return {
     loading: [],
     backgroundLoading: [],
@@ -104,7 +108,12 @@ describe('LoadingScreen progress calculation', () => {
   });
 
   describe('skip-to-game flow (boot + theme + core + audio)', () => {
-    const targetBundles = [...bootBundles, ...themeBundles, ...coreBundles, ...audioBundles];
+    const targetBundles = [
+      ...bootBundles,
+      ...themeBundles,
+      ...coreBundles,
+      ...audioBundles,
+    ];
 
     it('includes core and audio bundles in target set', () => {
       expect(targetBundles).toContain('core-ui');
@@ -157,17 +166,24 @@ describe('LoadingScreen themeLoaded', () => {
 
   it('returns false when theme is partially loaded (in progress)', () => {
     expect(
-      themeLoaded(createLoadingState({ bundleProgress: { 'theme-branding': 0.5 } }))
+      themeLoaded(
+        createLoadingState({ bundleProgress: { 'theme-branding': 0.5 } }),
+      ),
     ).toBe(false);
   });
 
   it('returns true when all theme bundles are in loaded array', () => {
-    expect(themeLoaded(createLoadingState({ loaded: ['theme-branding'] }))).toBe(true);
+    expect(
+      themeLoaded(createLoadingState({ loaded: ['theme-branding'] })),
+    ).toBe(true);
   });
 });
 
 describe('LoadingScreen failedBundles', () => {
-  function failedBundles(targetBundles: string[], state: LoadingState): string[] {
+  function failedBundles(
+    targetBundles: string[],
+    state: LoadingState,
+  ): string[] {
     return targetBundles.filter((name) => name in state.errors);
   }
 
@@ -198,7 +214,10 @@ describe('LoadingScreen failedBundles', () => {
         'theme-branding': new Error('fail2'),
       },
     });
-    expect(failedBundles(target, state)).toEqual(['boot-splash', 'theme-branding']);
+    expect(failedBundles(target, state)).toEqual([
+      'boot-splash',
+      'theme-branding',
+    ]);
   });
 });
 
@@ -206,12 +225,24 @@ describe('LoadingScreen load sequence', () => {
   it('normal flow calls loadBoot then loadTheme in order', async () => {
     const callOrder: string[] = [];
     const mockAssets = {
-      loadBoot: vi.fn(async () => { callOrder.push('loadBoot'); }),
-      loadTheme: vi.fn(async () => { callOrder.push('loadTheme'); }),
-      loadCore: vi.fn(async () => { callOrder.push('loadCore'); }),
-      loadAudio: vi.fn(async () => { callOrder.push('loadAudio'); }),
-      initGpu: vi.fn(async () => { callOrder.push('initGpu'); }),
-      unlockAudio: vi.fn(() => { callOrder.push('unlockAudio'); }),
+      loadBoot: vi.fn(async () => {
+        callOrder.push('loadBoot');
+      }),
+      loadTheme: vi.fn(async () => {
+        callOrder.push('loadTheme');
+      }),
+      loadCore: vi.fn(async () => {
+        callOrder.push('loadCore');
+      }),
+      loadAudio: vi.fn(async () => {
+        callOrder.push('loadAudio');
+      }),
+      initGpu: vi.fn(async () => {
+        callOrder.push('initGpu');
+      }),
+      unlockAudio: vi.fn(() => {
+        callOrder.push('unlockAudio');
+      }),
     };
 
     await mockAssets.loadBoot();
@@ -223,12 +254,24 @@ describe('LoadingScreen load sequence', () => {
   it('skip-to-game flow calls boot → theme → unlockAudio/initGpu → core → audio', async () => {
     const callOrder: string[] = [];
     const mockAssets = {
-      loadBoot: vi.fn(async () => { callOrder.push('loadBoot'); }),
-      loadTheme: vi.fn(async () => { callOrder.push('loadTheme'); }),
-      loadCore: vi.fn(async () => { callOrder.push('loadCore'); }),
-      loadAudio: vi.fn(async () => { callOrder.push('loadAudio'); }),
-      initGpu: vi.fn(async () => { callOrder.push('initGpu'); }),
-      unlockAudio: vi.fn(() => { callOrder.push('unlockAudio'); }),
+      loadBoot: vi.fn(async () => {
+        callOrder.push('loadBoot');
+      }),
+      loadTheme: vi.fn(async () => {
+        callOrder.push('loadTheme');
+      }),
+      loadCore: vi.fn(async () => {
+        callOrder.push('loadCore');
+      }),
+      loadAudio: vi.fn(async () => {
+        callOrder.push('loadAudio');
+      }),
+      initGpu: vi.fn(async () => {
+        callOrder.push('initGpu');
+      }),
+      unlockAudio: vi.fn(() => {
+        callOrder.push('unlockAudio');
+      }),
     };
 
     await mockAssets.loadBoot();
@@ -239,11 +282,22 @@ describe('LoadingScreen load sequence', () => {
     await mockAssets.loadAudio();
 
     expect(callOrder).toEqual([
-      'loadBoot', 'loadTheme', 'unlockAudio', 'initGpu', 'loadCore', 'loadAudio',
+      'loadBoot',
+      'loadTheme',
+      'unlockAudio',
+      'initGpu',
+      'loadCore',
+      'loadAudio',
     ]);
-    expect(callOrder.indexOf('loadBoot')).toBeLessThan(callOrder.indexOf('loadTheme'));
-    expect(callOrder.indexOf('loadTheme')).toBeLessThan(callOrder.indexOf('initGpu'));
-    expect(callOrder.indexOf('initGpu')).toBeLessThan(callOrder.indexOf('loadCore'));
+    expect(callOrder.indexOf('loadBoot')).toBeLessThan(
+      callOrder.indexOf('loadTheme'),
+    );
+    expect(callOrder.indexOf('loadTheme')).toBeLessThan(
+      callOrder.indexOf('initGpu'),
+    );
+    expect(callOrder.indexOf('initGpu')).toBeLessThan(
+      callOrder.indexOf('loadCore'),
+    );
   });
 
   it('audio failure in skip-to-game does not block the flow', async () => {
@@ -251,7 +305,9 @@ describe('LoadingScreen load sequence', () => {
       loadBoot: vi.fn(async () => {}),
       loadTheme: vi.fn(async () => {}),
       loadCore: vi.fn(async () => {}),
-      loadAudio: vi.fn(async () => { throw new Error('Audio load failed'); }),
+      loadAudio: vi.fn(async () => {
+        throw new Error('Audio load failed');
+      }),
       initGpu: vi.fn(async () => {}),
       unlockAudio: vi.fn(),
     };

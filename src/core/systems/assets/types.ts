@@ -1,14 +1,14 @@
 // Re-export manifest types from game-components (single source of truth)
 export type {
-  Manifest,
-  Bundle as ManifestBundle,
   AssetDefinition,
   AssetType,
+  Bundle as ManifestBundle,
   BundleKind,
-  LoadBundleOptions,
-  LoadingState,
   BundleProgress,
+  LoadBundleOptions,
   LoaderAdapter,
   LoaderType,
+  LoadingState,
+  Manifest,
   OnProgress as ProgressCallback,
 } from '@wolfgames/components/core';

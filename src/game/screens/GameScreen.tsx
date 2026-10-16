@@ -1,19 +1,16 @@
-import { onMount, onCleanup, Show } from 'solid-js';
-import { Portal } from 'solid-js/web';
 import { useRendererHost } from '@wolfgames/components/solid';
-
+import { onCleanup, onMount, Show } from 'solid-js';
+import { Portal } from 'solid-js/web';
+import { PauseOverlay, type ScaffoldTuning, useTuning } from '~/core';
 import { useAssets } from '~/core/systems/assets';
-import { PauseOverlay, useTuning, type ScaffoldTuning } from '~/core';
-import { Logo } from '~/core/ui/Logo';
 import { useAudio } from '~/core/systems/audio';
 import { useScreen } from '~/core/systems/screens';
-import { useGameTracking } from '~/game/setup/tracking';
-
-import type { GameTuning } from '~/game/tuning';
-import { useGameData } from '~/game/screens/useGameData';
-
+import { Logo } from '~/core/ui/Logo';
 // Game-specific controller — swap this import for a different game
 import { setupGame } from '~/game/mygame/screens/gameController';
+import { useGameData } from '~/game/screens/useGameData';
+import { useGameTracking } from '~/game/setup/tracking';
+import type { GameTuning } from '~/game/tuning';
 
 export default function GameScreen() {
   const { coordinator } = useAssets();
@@ -60,45 +57,41 @@ export default function GameScreen() {
      takes its events back and keeps a backdrop. */
   return (
     <>
-    <div
-      class="design-box-span"
-      classList={{ 'pointer-events-auto': !isPixi }}
-      style={isPixi ? undefined : { background: 'var(--brand-ground)' }}
-    >
-      {/* Engine container. Portalled to the renderer host for a 'pixi'
+      <div
+        class="design-box-span"
+        classList={{ 'pointer-events-auto': !isPixi }}
+        style={isPixi ? undefined : { background: 'var(--brand-ground)' }}
+      >
+        {/* Engine container. Portalled to the renderer host for a 'pixi'
           controller so Pixi renders 1:1 with the screen; kept in the scaled tree
           for a 'dom' one, where design px is exactly what is wanted. */}
-      <Show
-        when={isPixi && rendererHost()}
-        fallback={<div ref={containerRef} class="absolute inset-0" />}
-      >
-        {(host) => (
-          <Portal mount={host()}>
-            <div
-              ref={containerRef}
-              class="absolute inset-0"
-              style={{ 'pointer-events': 'auto' }}
-            />
-          </Portal>
-        )}
-      </Show>
+        <Show
+          when={isPixi && rendererHost()}
+          fallback={<div ref={containerRef} class="absolute inset-0" />}
+        >
+          {(host) => (
+            <Portal mount={host()}>
+              <div
+                ref={containerRef}
+                class="absolute inset-0"
+                style={{ 'pointer-events': 'auto' }}
+              />
+            </Portal>
+          )}
+        </Show>
 
-      {/* Accessibility: Screen reader announcements */}
-      <div
-        class="sr-only"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        {controller.ariaText()}
+        {/* Accessibility: Screen reader announcements */}
+        <div class="sr-only" aria-live="polite" aria-atomic="true">
+          {controller.ariaText()}
+        </div>
+
+        {/* Wolf Games logo at bottom center */}
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2">
+          <Logo />
+        </div>
       </div>
 
-      {/* Wolf Games logo at bottom center */}
-      <div class="absolute bottom-8 left-1/2 -translate-x-1/2">
-        <Logo />
-      </div>
-    </div>
-
-    {/* Pause overlay, a SIBLING of the root above rather than a child, which is
+      {/* Pause overlay, a SIBLING of the root above rather than a child, which is
         load-bearing. `src/core/` is upstream-managed and its root is
         `fixed inset-0`: under the design transform that pins to the 390x844
         canvas and leaves bands, and as a modal scrim it also has to take pointer
@@ -113,7 +106,7 @@ export default function GameScreen() {
         sibling the containing block is the design root and the offset applies
         once. A full-bleed layer *inside* a spanning root wants plain
         `absolute inset-0` instead. See components.md §9.5.2. */}
-    <PauseOverlay class="design-box-span pointer-events-auto" />
+      <PauseOverlay class="design-box-span pointer-events-auto" />
     </>
   );
 }

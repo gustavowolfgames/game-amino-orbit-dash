@@ -34,15 +34,34 @@ export function ResultsScreen() {
     // them through for the sake of the gameplay screen's canvas.
     <div
       class="design-box-span pointer-events-auto flex flex-col items-center justify-center px-6"
-      style={{ background: 'var(--brand-ground)', color: 'var(--brand-text)', 'font-family': 'var(--font-body)' }}
+      style={{
+        background: 'var(--brand-ground)',
+        color: 'var(--brand-text)',
+        'font-family': 'var(--font-body)',
+      }}
     >
-      <h1 class="text-3xl font-bold mb-2" style={{ 'font-family': 'var(--font-display)' }}>
-        {packDone ? 'Pack Complete' : won ? `Level ${level + 1} Complete` : 'Game Over'}
+      <h1
+        class="text-3xl font-bold mb-2"
+        style={{ 'font-family': 'var(--font-display)' }}
+      >
+        {packDone
+          ? 'Pack Complete'
+          : won
+            ? `Level ${level + 1} Complete`
+            : 'Game Over'}
       </h1>
 
       <div class="text-center mb-8">
-        <p class="text-sm mb-1" style={{ color: 'var(--brand-muted)' }}>Score</p>
-        <p class="text-5xl font-bold" style={{ color: 'var(--brand-accent)', 'font-family': 'var(--font-numeric)' }}>
+        <p class="text-sm mb-1" style={{ color: 'var(--brand-muted)' }}>
+          Score
+        </p>
+        <p
+          class="text-5xl font-bold"
+          style={{
+            color: 'var(--brand-accent)',
+            'font-family': 'var(--font-numeric)',
+          }}
+        >
           {score}
         </p>
       </div>

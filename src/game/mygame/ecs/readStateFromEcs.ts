@@ -58,9 +58,11 @@ export interface EcsStateSource {
 export function readOrbiters(source: EcsStateSource): OrbiterState[] {
   const orbiters: OrbiterState[] = [];
   for (const entity of source.select(['angle'])) {
-    const o = source.read(entity) as
-      | { angle: number; color: number; position: [number, number] }
-      | null;
+    const o = source.read(entity) as {
+      angle: number;
+      color: number;
+      position: [number, number];
+    } | null;
     if (!o) continue;
     orbiters.push({
       entity,
@@ -76,9 +78,11 @@ export function readOrbiters(source: EcsStateSource): OrbiterState[] {
 export function readMovers(source: EcsStateSource): MoverState[] {
   const movers: MoverState[] = [];
   for (const entity of source.select(['velocity'])) {
-    const m = source.read(entity) as
-      | { color: number; position: [number, number]; velocity: [number, number] }
-      | null;
+    const m = source.read(entity) as {
+      color: number;
+      position: [number, number];
+      velocity: [number, number];
+    } | null;
     if (!m) continue;
     movers.push({
       entity,

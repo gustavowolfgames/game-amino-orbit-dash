@@ -56,11 +56,19 @@ describe('startDemo', () => {
 
   it('plays a Content Pack level: its ring, and which level of which pack it is', () => {
     const db = createGameWorld();
-    db.transactions.startDemo({ orbiterCount: 3, seed: 7, orbitRadius: 200, level: 1, packId: 'edition' });
+    db.transactions.startDemo({
+      orbiterCount: 3,
+      seed: 7,
+      orbitRadius: 200,
+      level: 1,
+      packId: 'edition',
+    });
     expect(db.resources.level).toBe(1);
     expect(db.resources.packId).toBe('edition');
     for (const o of readOrbiters(db)) {
-      expect(Math.hypot(o.position[0] - CENTER[0], o.position[1] - CENTER[1])).toBeCloseTo(200, 3);
+      expect(
+        Math.hypot(o.position[0] - CENTER[0], o.position[1] - CENTER[1]),
+      ).toBeCloseTo(200, 3);
     }
   });
 
@@ -91,7 +99,10 @@ describe('orbit system', () => {
     }
     // Position stays on the ring after advancing.
     for (const o of readOrbiters(db)) {
-      const r = Math.hypot(o.position[0] - CENTER[0], o.position[1] - CENTER[1]);
+      const r = Math.hypot(
+        o.position[0] - CENTER[0],
+        o.position[1] - CENTER[1],
+      );
       expect(r).toBeCloseTo(ORBIT_RADIUS, 3);
     }
   });
@@ -108,7 +119,9 @@ describe('orbit system', () => {
       stepWorld(a, DT);
       stepWorld(b, DT);
     }
-    expect(readMovers(a).map((m) => m.color)).toEqual(readMovers(b).map((m) => m.color));
+    expect(readMovers(a).map((m) => m.color)).toEqual(
+      readMovers(b).map((m) => m.color),
+    );
   });
 });
 
@@ -181,7 +194,9 @@ describe('input as intent', () => {
 
     expect(db.resources.remaining).toBe(before - 1);
     expect(db.resources.score).toBe(POINTS_PER_COLLECT);
-    expect(readOrbiters(db).some((o) => o.entity === target.entity)).toBe(false);
+    expect(readOrbiters(db).some((o) => o.entity === target.entity)).toBe(
+      false,
+    );
   });
 
   it('a tap far from every orbiter collects nothing (spawns a mover only)', () => {

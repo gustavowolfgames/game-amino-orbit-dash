@@ -37,7 +37,9 @@ function isClueDisplayTime(value: unknown): boolean {
   return typeof value === 'string' && ['2s', '3s', '5s'].includes(value);
 }
 
-const VALIDATORS: Partial<Record<keyof GameFeatureFlags, (v: unknown) => boolean>> = {
+const VALIDATORS: Partial<
+  Record<keyof GameFeatureFlags, (v: unknown) => boolean>
+> = {
   difficulty_curve_variant: isDifficultyVariant,
   clue_display_time: isClueDisplayTime,
 };

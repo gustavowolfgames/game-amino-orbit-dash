@@ -1,16 +1,27 @@
-import { createContext, useContext, onMount, type ParentProps, type JSX } from 'solid-js';
-import type { ScaffoldTuning, GameTuningBase, TuningState } from './types';
-import { SCAFFOLD_DEFAULTS } from './types';
+import {
+  createContext,
+  type JSX,
+  onMount,
+  type ParentProps,
+  useContext,
+} from 'solid-js';
 import { createTuningState, scaffoldTuningState } from './state';
+import type { GameTuningBase, ScaffoldTuning, TuningState } from './types';
+import { SCAFFOLD_DEFAULTS } from './types';
 
 // Generic context type
-type TuningContextValue<S extends ScaffoldTuning, G extends GameTuningBase> = TuningState<S, G>;
+type TuningContextValue<
+  S extends ScaffoldTuning,
+  G extends GameTuningBase,
+> = TuningState<S, G>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TuningContext = createContext<TuningContextValue<any, any>>();
 
-export interface TuningProviderProps<S extends ScaffoldTuning, G extends GameTuningBase>
-  extends ParentProps {
+export interface TuningProviderProps<
+  S extends ScaffoldTuning,
+  G extends GameTuningBase,
+> extends ParentProps {
   scaffoldDefaults?: S;
   gameDefaults: G;
   autoLoad?: boolean;
@@ -23,11 +34,11 @@ export interface TuningProviderProps<S extends ScaffoldTuning, G extends GameTun
  */
 export function TuningProvider<
   S extends ScaffoldTuning = ScaffoldTuning,
-  G extends GameTuningBase = GameTuningBase
+  G extends GameTuningBase = GameTuningBase,
 >(props: TuningProviderProps<S, G>): JSX.Element {
   const state = createTuningState(
     props.scaffoldDefaults ?? (SCAFFOLD_DEFAULTS as S),
-    props.gameDefaults
+    props.gameDefaults,
   );
 
   onMount(async () => {
@@ -40,7 +51,11 @@ export function TuningProvider<
     }
   });
 
-  return <TuningContext.Provider value={state}>{props.children}</TuningContext.Provider>;
+  return (
+    <TuningContext.Provider value={state}>
+      {props.children}
+    </TuningContext.Provider>
+  );
 }
 
 /**
@@ -49,7 +64,7 @@ export function TuningProvider<
  */
 export function useTuning<
   S extends ScaffoldTuning = ScaffoldTuning,
-  G extends GameTuningBase = GameTuningBase
+  G extends GameTuningBase = GameTuningBase,
 >(): TuningState<S, G> {
   const context = useContext(TuningContext);
   if (!context) {

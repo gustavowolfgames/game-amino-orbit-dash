@@ -9,9 +9,9 @@
  * - Error state is cleared on successful retry
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { LoaderAdapter, Manifest } from '@wolfgames/components/core';
 import { createAssetCoordinator } from '@wolfgames/components/core';
-import type { Manifest, LoaderAdapter, LoadingState } from '@wolfgames/components/core';
+import { describe, expect, it, vi } from 'vitest';
 
 const manifest: Manifest = {
   cdnBase: '/assets',
@@ -96,7 +96,9 @@ describe('Error tracking in loadingState', () => {
 
 describe('Multiple concurrent failures', () => {
   it('tracks errors for each failed bundle independently', async () => {
-    const loader = createFailingLoader(new Set(['boot-splash', 'theme-branding']));
+    const loader = createFailingLoader(
+      new Set(['boot-splash', 'theme-branding']),
+    );
     const coordinator = createAssetCoordinator({
       manifest,
       loaders: { dom: loader },
@@ -204,7 +206,9 @@ describe('Error propagation', () => {
       loaders: { dom: loader },
     });
 
-    await expect(coordinator.loadBundle('boot-splash')).rejects.toThrow('Load failed: boot-splash');
+    await expect(coordinator.loadBundle('boot-splash')).rejects.toThrow(
+      'Load failed: boot-splash',
+    );
   });
 
   it('loadBundles rejects when any bundle fails', async () => {
@@ -215,7 +219,7 @@ describe('Error propagation', () => {
     });
 
     await expect(
-      coordinator.loadBundles(['boot-splash', 'theme-branding'])
+      coordinator.loadBundles(['boot-splash', 'theme-branding']),
     ).rejects.toThrow();
   });
 });

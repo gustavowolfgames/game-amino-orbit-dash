@@ -1,5 +1,10 @@
 import { batch, createSignal } from 'solid-js';
-import type { ScreenId, ScreenAssetConfig, TransitionState, TransitionConfig } from './types';
+import type {
+  ScreenAssetConfig,
+  ScreenId,
+  TransitionConfig,
+  TransitionState,
+} from './types';
 import { DEFAULT_TRANSITION } from './types';
 
 export interface ScreenManagerOptions {
@@ -8,11 +13,17 @@ export interface ScreenManagerOptions {
   screenAssets?: Partial<Record<ScreenId, ScreenAssetConfig>>;
   onScreenChange?: (from: ScreenId | null, to: ScreenId) => void;
   /** Called before transition to load required bundles. Awaited before screen switch. */
-  onBeforeScreenChange?: (from: ScreenId, to: ScreenId, config?: ScreenAssetConfig) => Promise<void>;
+  onBeforeScreenChange?: (
+    from: ScreenId,
+    to: ScreenId,
+    config?: ScreenAssetConfig,
+  ) => Promise<void>;
 }
 
 export function createScreenManager(options: ScreenManagerOptions = {}) {
-  const [current, setCurrent] = createSignal<ScreenId>(options.initialScreen ?? 'loading');
+  const [current, setCurrent] = createSignal<ScreenId>(
+    options.initialScreen ?? 'loading',
+  );
   const [previous, setPrevious] = createSignal<ScreenId | null>(null);
   const [transition, setTransition] = createSignal<TransitionState>('idle');
   const [data, setData] = createSignal<Record<string, unknown>>({});
@@ -21,7 +32,10 @@ export function createScreenManager(options: ScreenManagerOptions = {}) {
 
   let transitionPromise: Promise<void> | null = null;
 
-  async function goto(screen: ScreenId, screenData?: Record<string, unknown>): Promise<void> {
+  async function goto(
+    screen: ScreenId,
+    screenData?: Record<string, unknown>,
+  ): Promise<void> {
     // Wait for any in-progress transition
     if (transitionPromise) {
       await transitionPromise;
@@ -38,7 +52,7 @@ export function createScreenManager(options: ScreenManagerOptions = {}) {
   function switchScreen(
     from: ScreenId,
     to: ScreenId,
-    screenData?: Record<string, unknown>
+    screenData?: Record<string, unknown>,
   ): void {
     batch(() => {
       setPrevious(from);
@@ -51,7 +65,7 @@ export function createScreenManager(options: ScreenManagerOptions = {}) {
   async function performTransition(
     from: ScreenId,
     to: ScreenId,
-    screenData?: Record<string, unknown>
+    screenData?: Record<string, unknown>,
   ): Promise<void> {
     const { duration, type } = transitionConfig;
     const assetConfig = options.screenAssets?.[to];

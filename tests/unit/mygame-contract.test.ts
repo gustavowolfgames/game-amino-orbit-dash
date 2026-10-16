@@ -5,7 +5,7 @@
  * the contract types required by the scaffold screens.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@wolfgames/components/solid', () => ({
   Spinner: () => null,

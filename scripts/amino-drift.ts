@@ -6,24 +6,27 @@
 // Compares amino-owned paths in the current repo against amino/main.
 // Reports any files that differ. Exits non-zero if drift is found.
 
-import { execSync } from "node:child_process";
+import { execSync } from 'node:child_process';
 
 const AMINO_PATHS = [
-  "src/core/",
-  "vite.config.ts",
-  "tsconfig.json",
-  "vitest.config.ts",
-  "biome.json",
-  ".gitattributes",
+  'src/core/',
+  'vite.config.ts',
+  'tsconfig.json',
+  'vitest.config.ts',
+  'biome.json',
+  '.gitattributes',
 ];
 
 function git(args: string): string {
-  return execSync(`git ${args}`, { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }).trim();
+  return execSync(`git ${args}`, {
+    encoding: 'utf-8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  }).trim();
 }
 
 function run(): void {
-  const remote = process.env.AMINO_REMOTE || "amino";
-  const branch = process.env.AMINO_BRANCH || "main";
+  const remote = process.env.AMINO_REMOTE || 'amino';
+  const branch = process.env.AMINO_BRANCH || 'main';
   const ref = `${remote}/${branch}`;
 
   // Ensure remote exists
@@ -31,15 +34,19 @@ function run(): void {
     git(`remote get-url ${remote}`);
   } catch {
     console.error(`[drift] Amino remote "${remote}" not found.`);
-    console.error("[drift] Run 'bun run amino:sync' first, or add it manually:");
-    console.error(`[drift]   git remote add ${remote} git@github.com:wolfgames/template-amino.git`);
+    console.error(
+      "[drift] Run 'bun run amino:sync' first, or add it manually:",
+    );
+    console.error(
+      `[drift]   git remote add ${remote} git@github.com:wolfgames/template-amino.git`,
+    );
     process.exit(1);
   }
 
   console.log(`[drift] Fetching ${ref}...`);
-  execSync(`git fetch ${remote}`, { stdio: ["pipe", "pipe", "pipe"] });
+  execSync(`git fetch ${remote}`, { stdio: ['pipe', 'pipe', 'pipe'] });
 
-  console.log("[drift] Comparing amino-owned paths against upstream...\n");
+  console.log('[drift] Comparing amino-owned paths against upstream...\n');
 
   const drifted: string[] = [];
 
@@ -49,7 +56,7 @@ function run(): void {
       if (diff) {
         // Get list of changed files for this path
         const files = git(`diff --name-only ${ref} -- ${syncPath}`);
-        for (const file of files.split("\n").filter(Boolean)) {
+        for (const file of files.split('\n').filter(Boolean)) {
           drifted.push(file);
           console.log(`[drift]   modified: ${file}`);
         }
@@ -59,14 +66,18 @@ function run(): void {
     }
   }
 
-  console.log("");
+  console.log('');
 
   if (drifted.length === 0) {
-    console.log("[drift] No drift detected. Amino-owned paths match upstream.");
+    console.log('[drift] No drift detected. Amino-owned paths match upstream.');
   } else {
     console.log(`[drift] ${drifted.length} file(s) differ from upstream.`);
-    console.log("[drift] Run 'bun run amino:sync' to overwrite with upstream versions,");
-    console.log("[drift] or review the diffs with: git diff amino/main -- <path>");
+    console.log(
+      "[drift] Run 'bun run amino:sync' to overwrite with upstream versions,",
+    );
+    console.log(
+      '[drift] or review the diffs with: git diff amino/main -- <path>',
+    );
     process.exit(1);
   }
 }

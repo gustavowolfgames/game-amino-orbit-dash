@@ -36,8 +36,10 @@
  */
 
 import type { AssetCoordinatorFacade } from '~/core/systems/assets';
-import type { ScaffoldTuning } from '~/core/systems/tuning/types';
-import type { GameTuningBase } from '~/core/systems/tuning/types';
+import type {
+  GameTuningBase,
+  ScaffoldTuning,
+} from '~/core/systems/tuning/types';
 
 export type GameMode = 'dom' | 'pixi' | 'layered';
 
@@ -87,9 +89,17 @@ export interface StartScreenDeps {
   unlockAudio: () => void;
   loadCore: (onProgress?: (p: number) => void) => Promise<void>;
   loadAudio: (onProgress?: (p: number) => void) => Promise<void>;
-  loadBundle?: (name: string, onProgress?: (p: number) => void) => Promise<void>;
+  loadBundle?: (
+    name: string,
+    onProgress?: (p: number) => void,
+  ) => Promise<void>;
   tuning: { scaffold: ScaffoldTuning; game: GameTuningBase };
-  analytics: { trackGameStart: (params: { start_source: string; is_returning_player: boolean }) => void };
+  analytics: {
+    trackGameStart: (params: {
+      start_source: string;
+      is_returning_player: boolean;
+    }) => void;
+  };
   /** Called once the start screen has drawn its first frame (the host can drop a stand-in). */
   onReady?: () => void;
 }

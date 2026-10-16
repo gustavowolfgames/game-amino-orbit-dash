@@ -41,6 +41,7 @@ export function systemInput(db: GameDatabase): void {
         best = i;
       }
     }
-    if (best >= 0) db.transactions.collectOrbiter({ entity: orbiters[best].entity });
+    if (best >= 0)
+      db.transactions.collectOrbiter({ entity: orbiters[best].entity });
   }
 }

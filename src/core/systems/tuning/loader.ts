@@ -1,4 +1,4 @@
-import type { ScaffoldTuning, GameTuningBase, TuningLoadResult, TuningSource } from './types';
+import type { GameTuningBase, ScaffoldTuning, TuningLoadResult } from './types';
 import { SCAFFOLD_DEFAULTS } from './types';
 
 // Paths to JSON config files
@@ -31,7 +31,10 @@ export function deepMerge<T extends object>(target: T, source: Partial<T>): T {
       typeof targetValue === 'object' &&
       targetValue !== null
     ) {
-      result[key] = deepMerge(targetValue as object, sourceValue as object) as T[keyof T];
+      result[key] = deepMerge(
+        targetValue as object,
+        sourceValue as object,
+      ) as T[keyof T];
     } else if (sourceValue !== undefined) {
       result[key] = sourceValue as T[keyof T];
     }
@@ -75,7 +78,7 @@ export function saveToStorage<T>(key: string, data: T): void {
 export async function loadTuning<T extends object>(
   path: string,
   storageKey: string,
-  defaults: T
+  defaults: T,
 ): Promise<TuningLoadResult<T>> {
   // 1. Check localStorage first (fastest, preserves user changes)
   const cached = getFromStorage<T>(storageKey);
@@ -101,15 +104,21 @@ export async function loadTuning<T extends object>(
 /**
  * Load scaffold tuning configuration
  */
-export async function loadScaffoldTuning(): Promise<TuningLoadResult<ScaffoldTuning>> {
-  return loadTuning<ScaffoldTuning>(PATHS.core, STORAGE_KEYS.SCAFFOLD, SCAFFOLD_DEFAULTS);
+export async function loadScaffoldTuning(): Promise<
+  TuningLoadResult<ScaffoldTuning>
+> {
+  return loadTuning<ScaffoldTuning>(
+    PATHS.core,
+    STORAGE_KEYS.SCAFFOLD,
+    SCAFFOLD_DEFAULTS,
+  );
 }
 
 /**
  * Load game tuning configuration
  */
 export async function loadGameTuning<G extends GameTuningBase>(
-  defaults: G
+  defaults: G,
 ): Promise<TuningLoadResult<G>> {
   return loadTuning<G>(PATHS.game, STORAGE_KEYS.GAME, defaults);
 }

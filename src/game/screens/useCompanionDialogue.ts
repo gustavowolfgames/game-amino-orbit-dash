@@ -29,7 +29,10 @@ export function useCompanionDialogue() {
      * @param newMessages - Array of dialogue messages
      * @param displayMode - Display mode ('full' or 'circular')
      */
-    show: (newMessages: DialogueMessage[], displayMode: 'full' | 'circular' = 'full') => {
+    show: (
+      newMessages: DialogueMessage[],
+      displayMode: 'full' | 'circular' = 'full',
+    ) => {
       setMessages(newMessages);
       setCurrentIndex(0);
       setMode(displayMode);

@@ -22,9 +22,14 @@ interface ManifestLike {
  * start screen's still): the manifest's `bg-title` / `ui-title` (the CDN in a build) when the
  * game publishes them, else the bundled art the title screen also falls back to.
  */
-export function titleArt(manifest: ManifestLike): { background: string; logo: string } {
+export function titleArt(manifest: ManifestLike): {
+  background: string;
+  logo: string;
+} {
   const url = (alias: string) => {
-    const asset = manifest.bundles.flatMap((b) => b.assets).find((a) => a.alias === alias);
+    const asset = manifest.bundles
+      .flatMap((b) => b.assets)
+      .find((a) => a.alias === alias);
     return asset ? `${asset.base ?? manifest.cdnBase}/${asset.src}` : null;
   };
   return {
@@ -49,8 +54,10 @@ export function titleBgMatch(
   image: { width: number; height: number },
   cssScale = 1,
 ): { scale: number; y: number } {
-  if (!image.width || !image.height || !box.width || !box.height) return { scale: 1, y: 0 };
-  const cover = (w: number, h: number) => Math.max(w / image.width, h / image.height);
+  if (!image.width || !image.height || !box.width || !box.height)
+    return { scale: 1, y: 0 };
+  const cover = (w: number, h: number) =>
+    Math.max(w / image.width, h / image.height);
   const o = TITLE_BG.overscan * 2;
   return {
     scale: cover(box.width + o, box.height + o) / cover(box.width, box.height),
@@ -66,10 +73,18 @@ export const TITLE_LOGO = { x: DESIGN_CANVAS.width / 2, y: 163, width: 320 };
  * parks the WolfGames lockup here while loading, so the player's eye is already on the spot
  * the button pops in at.
  */
-export const TITLE_BUTTON = { x: DESIGN_CANVAS.width / 2, y: DESIGN_CANVAS.height - 152, size: 150 };
+export const TITLE_BUTTON = {
+  x: DESIGN_CANVAS.width / 2,
+  y: DESIGN_CANVAS.height - 152,
+  size: 150,
+};
 
 /** A design-px point on the title screen, in screen px from the top-left of a `box`-sized frame. */
-export function titleScreenPoint(box: { width: number; height: number }, x: number, y: number): { x: number; y: number } {
+export function titleScreenPoint(
+  box: { width: number; height: number },
+  x: number,
+  y: number,
+): { x: number; y: number } {
   const dpr = typeof window !== 'undefined' ? window.devicePixelRatio : 1;
   const frame = resolveDesignFrame({
     hostWidth: box.width,
@@ -77,7 +92,10 @@ export function titleScreenPoint(box: { width: number; height: number }, x: numb
     devicePixelRatio: dpr,
     baselineDevicePixelRatio: dpr,
   });
-  return { x: frame.offsetX + x * frame.scale, y: frame.offsetY + y * frame.scale };
+  return {
+    x: frame.offsetX + x * frame.scale,
+    y: frame.offsetY + y * frame.scale,
+  };
 }
 
 /**
@@ -97,7 +115,11 @@ export function cssScaleOf(el: HTMLElement): number {
  *
  * Uses `resolveDesignFrame`, the function the title screen's DesignLayer resolves with.
  */
-export function placeTitleLogo(logo: HTMLElement, box: { width: number; height: number }, cssScale = 1): void {
+export function placeTitleLogo(
+  logo: HTMLElement,
+  box: { width: number; height: number },
+  cssScale = 1,
+): void {
   const dpr = typeof window !== 'undefined' ? window.devicePixelRatio : 1;
   const frame = resolveDesignFrame({
     hostWidth: box.width,

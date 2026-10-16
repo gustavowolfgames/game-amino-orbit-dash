@@ -31,15 +31,15 @@
  * rules because the design is still settling. See intro-sting/README.md.
  */
 
-import { createSignal, createEffect, onCleanup, onMount, Show } from 'solid-js';
-import gsap from 'gsap';
 import { LoaderBar } from '@wolfgames/components/modules/prefabs/screen-content-loader';
+import gsap from 'gsap';
+import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js';
 import { GAME_FONT_FAMILY } from '~/game/config';
-import { cssScaleOf, placeTitleLogo, titleBgMatch } from './titleFrame';
 // Single source of truth for the sting markup is the design sandbox at repo-root
 // `intro-sting/wolf-sting.svg` (previewable via intro-sting/preview.html). On promotion
 // into ContentLoader the SVG moves into that module folder. [ENG-4657]
 import wolfStingRaw from '../../../../intro-sting/wolf-sting.svg?raw';
+import { cssScaleOf, placeTitleLogo, titleBgMatch } from './titleFrame';
 
 /** Timeline length of the sting, in seconds — MUST match the SVG `dur` attributes. */
 const DURATION_SEC = 3.8;
@@ -126,10 +126,10 @@ const PLAY_ONCE_SVG = wolfStingRaw.replace(
  * still turns white); the loading descent then carries it slowly from there onto the title
  * screen's WolfGames logo, in step with the loading bar.
  */
-const HOLD_SVG = PLAY_ONCE_SVG.replace('values="0 0;0 0;313 1281;313 1281"', 'values="0 0;0 0;0 0;0 0"').replace(
-  'values="1;1;0.42;0.42"',
-  'values="1;1;1;1"',
-);
+const HOLD_SVG = PLAY_ONCE_SVG.replace(
+  'values="0 0;0 0;313 1281;313 1281"',
+  'values="0 0;0 0;0 0;0 0"',
+).replace('values="1;1;0.42;0.42"', 'values="1;1;1;1"');
 
 export interface IntroStingProps {
   /** Load progress 0–1 (accessor or value) — drives the loader bar. Mirrors ContentLoader. */
@@ -171,14 +171,17 @@ export function IntroSting(props: IntroStingProps) {
   let exitTween: gsap.core.Animation | undefined;
   let exited = false;
 
-  const reveal = () => Boolean(props.reveal && props.backgroundSrc && props.logoSrc);
+  const reveal = () =>
+    Boolean(props.reveal && props.backgroundSrc && props.logoSrc);
   const [introDone, setIntroDone] = createSignal(false);
 
   // Reveal mode's footer bar: real progress, held back by a minimum-time ramp.
   let footBarRef: HTMLDivElement | undefined;
   const [ramp, setRamp] = createSignal(0);
   const realProgress = () =>
-    typeof props.progress === 'function' ? props.progress() : (props.progress ?? 0);
+    typeof props.progress === 'function'
+      ? props.progress()
+      : (props.progress ?? 0);
   /**
    * What the bar heads for: the minimum-time ramp, simulated up to FOOT_BAR.simCap while the
    * assets are still loading (the real progress often reports nothing until the end), then
@@ -187,7 +190,10 @@ export function IntroSting(props: IntroStingProps) {
   const footProgress = () => {
     const loaded = realProgress() >= 1 || Boolean(props.exitSignal?.());
     if (loaded) return ramp();
-    return Math.min(ramp(), Math.max(realProgress(), Math.min(ramp(), FOOT_BAR.simCap)));
+    return Math.min(
+      ramp(),
+      Math.max(realProgress(), Math.min(ramp(), FOOT_BAR.simCap)),
+    );
   };
   /** footProgress eased over FOOT_BAR.smoothSec: what the bar shows and the lockup follows. */
   const [shownProgress, setShownProgress] = createSignal(0);
@@ -217,13 +223,29 @@ export function IntroSting(props: IntroStingProps) {
     placeFootBar();
     if (stingRef) {
       // Linear: the fill already eases in and out, so the drift is one steady, slow glide.
-      descent = gsap.to(stingRef, { ...driftPose(), duration: 1, ease: 'none', paused: true });
+      descent = gsap.to(stingRef, {
+        ...driftPose(),
+        duration: 1,
+        ease: 'none',
+        paused: true,
+      });
       tweens.push(descent);
     }
-    tweens.push(gsap.to(footBarRef, { opacity: 1, duration: FOOT_BAR.fadeSec, ease: 'power1.out' }));
+    tweens.push(
+      gsap.to(footBarRef, {
+        opacity: 1,
+        duration: FOOT_BAR.fadeSec,
+        ease: 'power1.out',
+      }),
+    );
     const fill = { v: 0 };
     tweens.push(
-      gsap.to(fill, { v: 1, duration: FOOT_BAR.minFillSec, ease: 'none', onUpdate: () => setRamp(fill.v) }),
+      gsap.to(fill, {
+        v: 1,
+        duration: FOOT_BAR.minFillSec,
+        ease: 'none',
+        onUpdate: () => setRamp(fill.v),
+      }),
     );
     gsap.ticker.add(followProgress);
   };
@@ -240,7 +262,13 @@ export function IntroSting(props: IntroStingProps) {
     const gap = target - shown;
     // Eased, but never slower than half the fill pace (no long exponential tail) nor faster
     // than the catch-up pace; lands exactly on the target.
-    const step = Math.min(Math.max(gap * (1 - Math.exp(-deltaMs / 1000 / FOOT_BAR.smoothSec)), pace * 0.5), pace * FOOT_BAR.catchUp);
+    const step = Math.min(
+      Math.max(
+        gap * (1 - Math.exp(-deltaMs / 1000 / FOOT_BAR.smoothSec)),
+        pace * 0.5,
+      ),
+      pace * FOOT_BAR.catchUp,
+    );
     shown = step >= gap ? target : shown + step;
     setShownProgress(shown);
     if (descent) {
@@ -251,7 +279,12 @@ export function IntroSting(props: IntroStingProps) {
 
   /** Put the logo where the title screen draws it (and keep the footer bar under the WolfGames logo). */
   const placeLogo = () => {
-    if (rootRef && titleRef) placeTitleLogo(titleRef, rootRef.getBoundingClientRect(), cssScaleOf(rootRef));
+    if (rootRef && titleRef)
+      placeTitleLogo(
+        titleRef,
+        rootRef.getBoundingClientRect(),
+        cssScaleOf(rootRef),
+      );
     placeFootBar();
   };
 
@@ -260,20 +293,30 @@ export function IntroSting(props: IntroStingProps) {
    * every pose is relative to the same untransformed box (screen px). Null when the sting
    * can't be measured; the lockup then stays where the sting left it.
    */
-  type LockupBase = { cx: number; cy: number; width: number; host: DOMRect; k: number };
+  type LockupBase = {
+    cx: number;
+    cy: number;
+    width: number;
+    host: DOMRect;
+    k: number;
+  };
   let lockupBase: LockupBase | null | undefined;
   const measureLockupBase = (): LockupBase | null => {
     if (lockupBase !== undefined) return lockupBase;
     const lockup = stingRef?.querySelector('#lockup')?.getBoundingClientRect();
     const host = stingRef?.getBoundingClientRect();
-    if (!stingRef || !lockup?.width || !host?.width) return (lockupBase = null);
-    return (lockupBase = {
+    if (!stingRef || !lockup?.width || !host?.width) {
+      lockupBase = null;
+      return lockupBase;
+    }
+    lockupBase = {
       cx: lockup.left + lockup.width / 2,
       cy: lockup.top + lockup.height / 2,
       width: lockup.width,
       host,
       k: cssScaleOf(stingRef),
-    });
+    };
+    return lockupBase;
   };
 
   /**
@@ -281,7 +324,9 @@ export function IntroSting(props: IntroStingProps) {
    * screen width. Values are in the (CSS-scaled) loader's own px; the origin is the lockup's
    * untransformed centre, so successive poses don't compound.
    */
-  const lockupPose = (pose: (base: LockupBase) => { cx: number; cy: number; width: number }) => {
+  const lockupPose = (
+    pose: (base: LockupBase) => { cx: number; cy: number; width: number },
+  ) => {
     const get = () => {
       const base = measureLockupBase();
       if (!base) return null;
@@ -302,9 +347,14 @@ export function IntroSting(props: IntroStingProps) {
   };
 
   /** Where the title screen draws the WolfGames logo (StartScreen: centred, `bottom-8`, atlas size). */
-  const titleCentreY = (b: LockupBase) => b.host.height - WOLF_LOGO.bottom - WOLF_LOGO.height / 2;
+  const titleCentreY = (b: LockupBase) =>
+    b.host.height - WOLF_LOGO.bottom - WOLF_LOGO.height / 2;
   const titlePose = () =>
-    lockupPose((b) => ({ cx: b.host.width / 2, cy: titleCentreY(b), width: WOLF_LOGO.width }));
+    lockupPose((b) => ({
+      cx: b.host.width / 2,
+      cy: titleCentreY(b),
+      width: WOLF_LOGO.width,
+    }));
   /** While loading: LOCKUP_DRIFT.fraction of the way down toward the title spot, full size. */
   const driftPose = () =>
     lockupPose((b) => {
@@ -321,7 +371,10 @@ export function IntroSting(props: IntroStingProps) {
     // The blue wash rides the grey: full while greyscale, gone once the colour is in.
     const paint = () => {
       bg.style.filter = `blur(${look.blur}px) grayscale(${look.grey}) brightness(${look.light})`;
-      if (tintRef) tintRef.style.opacity = String(look.grey * Number(bg.style.opacity || 0));
+      if (tintRef)
+        tintRef.style.opacity = String(
+          look.grey * Number(bg.style.opacity || 0),
+        );
     };
     paint();
     // Ends exactly on the title screen's framing (its background is overscanned).
@@ -335,9 +388,36 @@ export function IntroSting(props: IntroStingProps) {
     // One timeline from the moment the loader mounts; its end is the intro's end (the exit
     // then waits only for the assets).
     const tl = gsap.timeline({ onComplete: () => setIntroDone(true) });
-    tl.to(bg, { opacity: 1, duration: REVEAL.bgInDur, ease: 'power1.out', onUpdate: paint }, REVEAL.bgIn);
-    tl.to(look, { light: 1, duration: REVEAL.lightDur, ease: 'sine.inOut', onUpdate: paint }, REVEAL.light);
-    tl.to(look, { grey: 0, duration: REVEAL.colourDur, ease: 'sine.inOut', onUpdate: paint }, REVEAL.colour);
+    tl.to(
+      bg,
+      {
+        opacity: 1,
+        duration: REVEAL.bgInDur,
+        ease: 'power1.out',
+        onUpdate: paint,
+      },
+      REVEAL.bgIn,
+    );
+    tl.to(
+      look,
+      {
+        light: 1,
+        duration: REVEAL.lightDur,
+        ease: 'sine.inOut',
+        onUpdate: paint,
+      },
+      REVEAL.light,
+    );
+    tl.to(
+      look,
+      {
+        grey: 0,
+        duration: REVEAL.colourDur,
+        ease: 'sine.inOut',
+        onUpdate: paint,
+      },
+      REVEAL.colour,
+    );
     if (titleRef) {
       placeLogo();
       // Centre on `top` whatever the image's loaded height (GSAP owns the transform from here).
@@ -345,15 +425,34 @@ export function IntroSting(props: IntroStingProps) {
       tl.fromTo(
         titleRef,
         { opacity: 0, scale: 0.86 },
-        { opacity: 1, scale: 1, duration: REVEAL.logoDur, ease: 'back.out(1.6)' },
+        {
+          opacity: 1,
+          scale: 1,
+          duration: REVEAL.logoDur,
+          ease: 'back.out(1.6)',
+        },
         REVEAL.logo,
       );
     }
     const sharp = REVEAL.sharp;
-    tl.to(look, { blur: 0, duration: REVEAL.sharpDur, ease: 'power2.inOut', onUpdate: paint }, sharp);
+    tl.to(
+      look,
+      {
+        blur: 0,
+        duration: REVEAL.sharpDur,
+        ease: 'power2.inOut',
+        onUpdate: paint,
+      },
+      sharp,
+    );
     tl.to(
       bg,
-      { scale: () => match().scale, y: () => match().y, duration: REVEAL.sharpDur, ease: 'power2.inOut' },
+      {
+        scale: () => match().scale,
+        y: () => match().y,
+        duration: REVEAL.sharpDur,
+        ease: 'power2.inOut',
+      },
       sharp,
     );
     // The sting has settled: the loading bar comes in under its WolfGames lockup, and as the
@@ -372,7 +471,12 @@ export function IntroSting(props: IntroStingProps) {
     // Brand background fades in as the wordmark finishes assembling.
     if (bgRef) {
       tweens.push(
-        gsap.to(bgRef, { opacity: 1, duration: 0.5, delay: BG_IN_SEC, ease: 'power1.out' }),
+        gsap.to(bgRef, {
+          opacity: 1,
+          duration: 0.5,
+          delay: BG_IN_SEC,
+          ease: 'power1.out',
+        }),
       );
     }
     // Game title is brought in as the lockup drops + shrinks to its footer.
@@ -381,7 +485,13 @@ export function IntroSting(props: IntroStingProps) {
         gsap.fromTo(
           titleRef,
           { opacity: 0, y: 28 },
-          { opacity: 1, y: 0, duration: 0.6, delay: TITLE_IN_SEC, ease: 'power2.out' },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            delay: TITLE_IN_SEC,
+            ease: 'power2.out',
+          },
         ),
       );
     }
@@ -397,11 +507,25 @@ export function IntroSting(props: IntroStingProps) {
     // the WolfGames lockup zooms down and shrinks onto the title screen's WolfGames logo (same
     // spot, same size), then hand off with no fade.
     if (reveal() && footBarRef) {
-      const exitTl = gsap.timeline({ onComplete: () => props.onExitComplete?.() });
+      const exitTl = gsap.timeline({
+        onComplete: () => props.onExitComplete?.(),
+      });
       exitTl.call(() => descent?.progress(1), [], FOOT_BAR.holdSec);
-      exitTl.to(footBarRef, { opacity: 0, duration: FOOT_BAR.fadeSec, ease: 'power1.in' }, FOOT_BAR.holdSec);
+      exitTl.to(
+        footBarRef,
+        { opacity: 0, duration: FOOT_BAR.fadeSec, ease: 'power1.in' },
+        FOOT_BAR.holdSec,
+      );
       if (stingRef) {
-        exitTl.to(stingRef, { ...titlePose(), duration: LOCKUP_DRIFT.zoomSec, ease: 'power2.inOut' }, FOOT_BAR.holdSec);
+        exitTl.to(
+          stingRef,
+          {
+            ...titlePose(),
+            duration: LOCKUP_DRIFT.zoomSec,
+            ease: 'power2.inOut',
+          },
+          FOOT_BAR.holdSec,
+        );
       }
       exitTween = exitTl;
     } else if (rootRef && !reveal()) {

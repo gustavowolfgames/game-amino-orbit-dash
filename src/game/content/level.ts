@@ -42,10 +42,14 @@ export function parseLevel(raw: unknown): ResolvedLevel | null {
 export const BUNDLED_PACK: ContentPack = (() => {
   const out = ContentPackDef(defaultPackJson);
   if (out instanceof type.errors) {
-    throw new Error(`src/game/content/packs/default.json is not a pack: ${out.summary}`);
+    throw new Error(
+      `src/game/content/packs/default.json is not a pack: ${out.summary}`,
+    );
   }
   if (packLevels(out).length === 0) {
-    throw new Error('src/game/content/packs/default.json must hold at least one level');
+    throw new Error(
+      'src/game/content/packs/default.json must hold at least one level',
+    );
   }
   return out;
 })();

@@ -58,7 +58,9 @@ export const manifest: Manifest = {
     // DOM — branding logo shown on loading screen (pre-GPU)
     {
       name: 'theme-branding',
-      assets: [{ alias: 'atlas-branding-wolf', src: 'atlas-branding-wolf.json' }],
+      assets: [
+        { alias: 'atlas-branding-wolf', src: 'atlas-branding-wolf.json' },
+      ],
     },
 
     // ── Demo gameplay + start screen art (GPU) ──────────────────────────────

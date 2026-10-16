@@ -1,9 +1,10 @@
 // Core @adobe/data ECS
-export { Database, Store, Entity } from '@adobe/data/ecs';
-export type { SystemFunction, SystemDeclaration } from '@adobe/data/ecs';
+
+export type { SystemDeclaration, SystemFunction } from '@adobe/data/ecs';
+export { Database, Entity, Store } from '@adobe/data/ecs';
 
 // Math types for component schemas
-export { Vec2, Vec3, Vec4, F32, U32, I32 } from '@adobe/data/math';
+export { F32, I32, U32, Vec2, Vec3, Vec4 } from '@adobe/data/math';
 
 // Observables
 export { Observe } from '@adobe/data/observe';
@@ -11,8 +12,8 @@ export { Observe } from '@adobe/data/observe';
 // Inspector bridge — games set/clear the active database + dev actions
 export {
   activeDb,
-  setActiveDb,
   activeInspectorActions,
-  setActiveInspectorActions,
   type InspectorAction,
+  setActiveDb,
+  setActiveInspectorActions,
 } from './DbBridge';

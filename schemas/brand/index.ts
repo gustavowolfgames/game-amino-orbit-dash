@@ -1,5 +1,5 @@
 import type { DynamicDataSchema } from '@wolfgames/shared';
-import { defaultData, BrandDef } from './schema';
+import { BrandDef, defaultData } from './schema';
 
 /**
  * `version` is a literal (never `Date.now()`) so the module stays deterministic. A deploy

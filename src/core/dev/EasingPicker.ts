@@ -25,7 +25,11 @@ export const EASING_OPTIONS: EasingOption[] = [
  * Create a mini SVG easing curve for dropdown options.
  * Larger version with headroom for overshoot, border instead of background.
  */
-function createMiniCurveSvg(easing: string, width = 100, height = 48): SVGSVGElement {
+function createMiniCurveSvg(
+  easing: string,
+  width = 100,
+  height = 48,
+): SVGSVGElement {
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg');
   svg.setAttribute('width', String(width));
@@ -142,7 +146,8 @@ export class EasingPicker {
 
     // Top row: curve + chevron
     const topRow = document.createElement('div');
-    topRow.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 8px;';
+    topRow.style.cssText =
+      'display: flex; align-items: center; justify-content: space-between; gap: 8px;';
 
     // Mini curve (top)
     const curve = createMiniCurveSvg(this.currentValue);
@@ -158,7 +163,8 @@ export class EasingPicker {
 
     // Label (below curve)
     const label = document.createElement('span');
-    label.style.cssText = 'text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+    label.style.cssText =
+      'text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
     label.textContent = this.getCurrentLabel();
     button.appendChild(label);
   }
@@ -216,12 +222,16 @@ export class EasingPicker {
       }
     });
     row.addEventListener('mouseleave', () => {
-      row.style.background = option.value === this.currentValue ? 'rgba(77, 171, 247, 0.2)' : 'transparent';
+      row.style.background =
+        option.value === this.currentValue
+          ? 'rgba(77, 171, 247, 0.2)'
+          : 'transparent';
     });
 
     // Top row: curve + checkmark
     const topRow = document.createElement('div');
-    topRow.style.cssText = 'display: flex; align-items: center; justify-content: space-between;';
+    topRow.style.cssText =
+      'display: flex; align-items: center; justify-content: space-between;';
 
     // Mini curve (top left)
     const curve = createMiniCurveSvg(option.value);

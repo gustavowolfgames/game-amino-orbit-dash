@@ -7,18 +7,18 @@
  * hand-rolled but the analytics wiring, which is game-specific by definition.
  */
 
-import { Show } from 'solid-js';
-import { useGameConfig } from '@wolfgames/components/solid';
 import { SettingsMenuDom } from '@wolfgames/components/modules/prefabs/settings-menu-dom';
+import { useGameConfig } from '@wolfgames/components/solid';
+import { Show } from 'solid-js';
 import { useAudio } from '~/core/systems/audio';
 import { useScreen } from '~/core/systems/screens';
-import { useGameTracking } from '~/game/setup/tracking';
 import { SETTINGS_THEME } from '~/game/settingsTheme';
+import { useGameTracking } from '~/game/setup/tracking';
 
 import gearIcon from './assets/icon_gear.svg';
-import volumeIcon from './assets/icon_volume_high.svg';
 import musicIcon from './assets/icon_sound_music2.svg';
 import trashIcon from './assets/icon_trash.svg';
+import volumeIcon from './assets/icon_volume_high.svg';
 
 export interface GameSettingsMenuProps {
   /** Shows the reset row when provided (dev builds pass it). */

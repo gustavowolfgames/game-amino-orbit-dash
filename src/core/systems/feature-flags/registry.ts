@@ -7,7 +7,9 @@ let registeredConfig: FeatureFlagConfig<any> | null = null;
  * Register the feature flag config for the provider to consume.
  * Call this from game setup before the provider mounts.
  */
-export function registerFlagConfig<T extends object>(config: FeatureFlagConfig<T>): void {
+export function registerFlagConfig<T extends object>(
+  config: FeatureFlagConfig<T>,
+): void {
   registeredConfig = config;
 }
 

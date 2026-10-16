@@ -6,9 +6,13 @@
  * loadingState signal behavior during load lifecycle events.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type {
+  LoaderAdapter,
+  LoadingState,
+  Manifest,
+} from '@wolfgames/components/core';
 import { createAssetCoordinator } from '@wolfgames/components/core';
-import type { Manifest, LoaderAdapter, LoadingState } from '@wolfgames/components/core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockLoader(opts?: {
   simulateProgress?: boolean;
@@ -16,17 +20,19 @@ function createMockLoader(opts?: {
 }): LoaderAdapter {
   return {
     init: vi.fn(),
-    loadBundle: vi.fn(async (name: string, onProgress?: (p: number) => void) => {
-      if (opts?.failOnBundle === name) {
-        throw new Error(`Failed to load ${name}`);
-      }
-      if (opts?.simulateProgress && onProgress) {
-        onProgress(0.25);
-        onProgress(0.5);
-        onProgress(0.75);
-        onProgress(1.0);
-      }
-    }),
+    loadBundle: vi.fn(
+      async (name: string, onProgress?: (p: number) => void) => {
+        if (opts?.failOnBundle === name) {
+          throw new Error(`Failed to load ${name}`);
+        }
+        if (opts?.simulateProgress && onProgress) {
+          onProgress(0.25);
+          onProgress(0.5);
+          onProgress(0.75);
+          onProgress(1.0);
+        }
+      },
+    ),
     get: vi.fn(() => null),
     has: vi.fn(() => false),
     unloadBundle: vi.fn(),
@@ -76,7 +82,11 @@ describe('Progress aggregation across bundles', () => {
   });
 
   it('after loading multiple bundles, all appear in loaded', async () => {
-    await coordinator.loadBundles(['boot-splash', 'boot-fonts', 'theme-branding']);
+    await coordinator.loadBundles([
+      'boot-splash',
+      'boot-fonts',
+      'theme-branding',
+    ]);
     const state = coordinator.loadingState.get();
     expect(state.loaded).toContain('boot-splash');
     expect(state.loaded).toContain('boot-fonts');
@@ -183,7 +193,9 @@ describe('Phase-based loading order', () => {
     const order: string[] = [];
     const domLoader: LoaderAdapter = {
       init: vi.fn(),
-      loadBundle: vi.fn(async (name: string) => { order.push(name); }),
+      loadBundle: vi.fn(async (name: string) => {
+        order.push(name);
+      }),
       get: vi.fn(() => null),
       has: vi.fn(() => false),
       unloadBundle: vi.fn(),
@@ -199,7 +211,10 @@ describe('Phase-based loading order', () => {
     await coordinator.loadBundles(['boot-splash', 'boot-fonts']);
     await coordinator.loadBundle('theme-branding');
 
-    const bootIdx = Math.max(order.indexOf('boot-splash'), order.indexOf('boot-fonts'));
+    const bootIdx = Math.max(
+      order.indexOf('boot-splash'),
+      order.indexOf('boot-fonts'),
+    );
     const themeIdx = order.indexOf('theme-branding');
 
     expect(bootIdx).toBeLessThan(themeIdx);

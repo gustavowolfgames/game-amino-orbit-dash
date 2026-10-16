@@ -16,10 +16,16 @@
  * - Strict mode enforces lowercase-only names
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 const SCAFFOLD_PREFIXES = [
-  'boot-', 'theme-', 'audio-', 'data-', 'core-', 'scene-', 'fx-',
+  'boot-',
+  'theme-',
+  'audio-',
+  'data-',
+  'core-',
+  'scene-',
+  'fx-',
 ];
 
 const BUNDLE_NAME_RE = /^[a-z][a-z0-9-]*$/;
@@ -54,7 +60,10 @@ interface TestManifest {
   bundles: TestBundle[];
 }
 
-function validateManifestScaffold(manifest: TestManifest, strict = false): string[] {
+function validateManifestScaffold(
+  manifest: TestManifest,
+  strict = false,
+): string[] {
   const errors: string[] = [];
 
   if (!manifest.cdnBase || typeof manifest.cdnBase !== 'string') {
@@ -84,9 +93,13 @@ function validateManifestScaffold(manifest: TestManifest, strict = false): strin
       seenNames.add(b.name);
 
       if (strict && !BUNDLE_NAME_RE.test(b.name)) {
-        errors.push(`${prefix}.name: must match ^[a-z][a-z0-9-]*$ (strict mode), got "${b.name}"`);
+        errors.push(
+          `${prefix}.name: must match ^[a-z][a-z0-9-]*$ (strict mode), got "${b.name}"`,
+        );
       } else if (!strict && !BUNDLE_NAME_LOOSE_RE.test(b.name)) {
-        errors.push(`${prefix}.name: should be lowercase with hyphens, got "${b.name}"`);
+        errors.push(
+          `${prefix}.name: should be lowercase with hyphens, got "${b.name}"`,
+        );
       }
 
       const hasReserved = SCAFFOLD_PREFIXES.some((p) => b.name.startsWith(p));
@@ -100,7 +113,11 @@ function validateManifestScaffold(manifest: TestManifest, strict = false): strin
     } else {
       for (let j = 0; j < b.assets.length; j++) {
         const asset = b.assets[j];
-        if (!asset || typeof asset !== 'object' || typeof asset.src !== 'string') {
+        if (
+          !asset ||
+          typeof asset !== 'object' ||
+          typeof asset.src !== 'string'
+        ) {
           errors.push(`${prefix}.assets[${j}]: must be { alias, src }`);
           continue;
         }
@@ -125,7 +142,9 @@ describe('check-manifest: cdnBase validation', () => {
       cdnBase: '/assets',
       bundles: [],
     });
-    expect(errors).not.toContain('manifest.cdnBase is required and must be a string');
+    expect(errors).not.toContain(
+      'manifest.cdnBase is required and must be a string',
+    );
   });
 
   it('fails when cdnBase is empty', () => {
@@ -133,7 +152,9 @@ describe('check-manifest: cdnBase validation', () => {
       cdnBase: '',
       bundles: [],
     });
-    expect(errors).toContain('manifest.cdnBase is required and must be a string');
+    expect(errors).toContain(
+      'manifest.cdnBase is required and must be a string',
+    );
   });
 
   it('fails when cdnBase is missing', () => {
@@ -141,7 +162,9 @@ describe('check-manifest: cdnBase validation', () => {
       cdnBase: undefined as unknown as string,
       bundles: [],
     });
-    expect(errors).toContain('manifest.cdnBase is required and must be a string');
+    expect(errors).toContain(
+      'manifest.cdnBase is required and must be a string',
+    );
   });
 });
 
@@ -149,7 +172,9 @@ describe('check-manifest: bundle naming', () => {
   it('accepts valid bundle name with reserved prefix', () => {
     const errors = validateManifestScaffold({
       cdnBase: '/assets',
-      bundles: [{ name: 'boot-splash', assets: [{ alias: 'a', src: 'a.png' }] }],
+      bundles: [
+        { name: 'boot-splash', assets: [{ alias: 'a', src: 'a.png' }] },
+      ],
     });
     expect(errors).toEqual([]);
   });
@@ -159,15 +184,25 @@ describe('check-manifest: bundle naming', () => {
       cdnBase: '/assets',
       bundles: [{ name: 'my-bundle', assets: [{ alias: 'a', src: 'a.png' }] }],
     });
-    expect(errors.some((e) => e.includes('must use a reserved prefix'))).toBe(true);
+    expect(errors.some((e) => e.includes('must use a reserved prefix'))).toBe(
+      true,
+    );
   });
 
   it('accepts bundle without reserved prefix if kind is set', () => {
     const errors = validateManifestScaffold({
       cdnBase: '/assets',
-      bundles: [{ name: 'my-bundle', assets: [{ alias: 'a', src: 'a.png' }], kind: 'scene' }],
+      bundles: [
+        {
+          name: 'my-bundle',
+          assets: [{ alias: 'a', src: 'a.png' }],
+          kind: 'scene',
+        },
+      ],
     });
-    expect(errors.some((e) => e.includes('must use a reserved prefix'))).toBe(false);
+    expect(errors.some((e) => e.includes('must use a reserved prefix'))).toBe(
+      false,
+    );
   });
 
   it('rejects duplicate bundle names', () => {
@@ -182,34 +217,44 @@ describe('check-manifest: bundle naming', () => {
   });
 
   it('strict mode rejects uppercase in bundle name', () => {
-    const errors = validateManifestScaffold({
-      cdnBase: '/assets',
-      bundles: [{ name: 'Boot-Splash', assets: [{ alias: 'a', src: 'a.png' }] }],
-    }, true);
+    const errors = validateManifestScaffold(
+      {
+        cdnBase: '/assets',
+        bundles: [
+          { name: 'Boot-Splash', assets: [{ alias: 'a', src: 'a.png' }] },
+        ],
+      },
+      true,
+    );
     expect(errors.some((e) => e.includes('strict mode'))).toBe(true);
   });
 
   it('non-strict accepts lowercase names', () => {
     const errors = validateManifestScaffold({
       cdnBase: '/assets',
-      bundles: [{ name: 'boot-splash', assets: [{ alias: 'a', src: 'a.png' }] }],
+      bundles: [
+        { name: 'boot-splash', assets: [{ alias: 'a', src: 'a.png' }] },
+      ],
     });
     expect(errors.some((e) => e.includes('should be lowercase'))).toBe(false);
   });
 });
 
 describe('check-manifest: asset path validation', () => {
-  const wrap = (src: string) => validateManifestScaffold({
-    cdnBase: '/assets',
-    bundles: [{ name: 'boot-test', assets: [{ alias: 'test', src }] }],
-  });
+  const wrap = (src: string) =>
+    validateManifestScaffold({
+      cdnBase: '/assets',
+      bundles: [{ name: 'boot-test', assets: [{ alias: 'test', src }] }],
+    });
 
   it('accepts relative path with valid extension', () => {
     expect(wrap('images/spinner.png')).toEqual([]);
   });
 
   it('rejects absolute path with leading slash', () => {
-    expect(wrap('/images/spinner.png').some((e) => e.includes('leading slash'))).toBe(true);
+    expect(
+      wrap('/images/spinner.png').some((e) => e.includes('leading slash')),
+    ).toBe(true);
   });
 
   it('rejects path traversal', () => {
@@ -217,7 +262,11 @@ describe('check-manifest: asset path validation', () => {
   });
 
   it('rejects absolute URL', () => {
-    expect(wrap('https://cdn.com/spinner.png').some((e) => e.includes('absolute URL'))).toBe(true);
+    expect(
+      wrap('https://cdn.com/spinner.png').some((e) =>
+        e.includes('absolute URL'),
+      ),
+    ).toBe(true);
   });
 
   it('rejects path with leading space', () => {
@@ -229,13 +278,28 @@ describe('check-manifest: asset path validation', () => {
   });
 
   it('rejects unknown extension', () => {
-    expect(wrap('data.csv').some((e) => e.includes('unknown extension'))).toBe(true);
+    expect(wrap('data.csv').some((e) => e.includes('unknown extension'))).toBe(
+      true,
+    );
   });
 
   it('accepts all allowed extensions', () => {
     const extensions = [
-      'a.json', 'a.png', 'a.jpg', 'a.jpeg', 'a.webp', 'a.gif', 'a.svg',
-      'a.woff', 'a.woff2', 'a.ttf', 'a.otf', 'a.webm', 'a.mp3', 'a.ogg', 'a.wav',
+      'a.json',
+      'a.png',
+      'a.jpg',
+      'a.jpeg',
+      'a.webp',
+      'a.gif',
+      'a.svg',
+      'a.woff',
+      'a.woff2',
+      'a.ttf',
+      'a.otf',
+      'a.webm',
+      'a.mp3',
+      'a.ogg',
+      'a.wav',
     ];
     for (const src of extensions) {
       const errors = wrap(src);
@@ -248,10 +312,12 @@ describe('check-manifest: asset alias validation', () => {
   it('rejects missing alias', () => {
     const errors = validateManifestScaffold({
       cdnBase: '/assets',
-      bundles: [{
-        name: 'boot-test',
-        assets: [{ alias: '', src: 'a.png' }],
-      }],
+      bundles: [
+        {
+          name: 'boot-test',
+          assets: [{ alias: '', src: 'a.png' }],
+        },
+      ],
     });
     expect(errors.some((e) => e.includes('alias: required string'))).toBe(true);
   });
@@ -259,10 +325,12 @@ describe('check-manifest: asset alias validation', () => {
   it('accepts valid alias', () => {
     const errors = validateManifestScaffold({
       cdnBase: '/assets',
-      bundles: [{
-        name: 'boot-test',
-        assets: [{ alias: 'spinner', src: 'spinner.png' }],
-      }],
+      bundles: [
+        {
+          name: 'boot-test',
+          assets: [{ alias: 'spinner', src: 'spinner.png' }],
+        },
+      ],
     });
     expect(errors).toEqual([]);
   });
