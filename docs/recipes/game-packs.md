@@ -146,5 +146,5 @@ live shape the Manager serves today:
 |------------------|------|
 | Content | `blocks` + `levels` entries, bound as a Content Pack |
 | Theme / Brand | `brand` entry (`theme` for the deployment, or bound into a Content Pack) |
-| Config | not yet — mechanics constants stay in `src/game/mygame/demo/config.ts` |
+| Config | not yet — mechanics constants stay in code (`src/game/mygame/sim/rules/`) |
 | Schedule (not a pack) | `catalog` entry, harvested by the manager |

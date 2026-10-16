@@ -60,12 +60,12 @@ describe('assemble / decompose', () => {
   it('round-trips an authored pack through the entries a publish creates', () => {
     const bundle = decomposePack(BUNDLED_PACK);
     expect(Object.keys(bundle.schemas.blocks?.entries ?? {})).toEqual([
-      'orbits',
+      'basics',
     ]);
     expect(Object.keys(bundle.schemas.levels?.entries ?? {})).toEqual([
-      'orbits-1',
-      'orbits-2',
-      'orbits-3',
+      'basics-1',
+      'basics-2',
+      'basics-3',
     ]);
     expect(assemblePack(bundle)).toEqual(BUNDLED_PACK);
   });
@@ -74,11 +74,11 @@ describe('assemble / decompose', () => {
     const bundle = decomposePack({
       id: 'p',
       blocks: [
-        { id: 'a', name: 'A', levels: [{ orbiterCount: 1 }] },
+        { id: 'a', name: 'A', levels: [{ goal: 1 }] },
         {
           id: 'b',
           name: 'B',
-          levels: [{ orbiterCount: 2 }, { orbiterCount: 3 }],
+          levels: [{ goal: 2 }, { goal: 3 }],
         },
       ],
     });
@@ -88,14 +88,14 @@ describe('assemble / decompose', () => {
     };
     const out = assemblePack(bundle);
     expect(typeof out === 'string' ? out : packLevels(out)).toEqual([
-      { orbiterCount: 2 },
-      { orbiterCount: 3 },
-      { orbiterCount: 1 },
+      { goal: 2 },
+      { goal: 3 },
+      { goal: 1 },
     ]);
   });
 
   it('refuses a pack whose level key is missing from the bundle', () => {
-    const bundle = bundleOf('p', [{ orbiterCount: 2 }]);
+    const bundle = bundleOf('p', [{ goal: 2 }]);
     delete bundle.schemas.levels?.entries['p-1'];
     expect(assemblePack(bundle)).toMatch(
       /level "p-1" of block "p" is not in the bundle/,
@@ -106,7 +106,7 @@ describe('assemble / decompose', () => {
     expect(assemblePack({ packKey: 'p', schemas: {} })).toMatch(
       /no block entry/,
     );
-    const bundle = bundleOf('p', [{ orbiterCount: 2 }]);
+    const bundle = bundleOf('p', [{ goal: 2 }]);
     bundle.schemas.blocks = { entries: { p: { id: 'p', levels: ['p-1'] } } };
     expect(assemblePack(bundle)).toMatch(/block "p" is not a block entry/);
   });
@@ -145,10 +145,7 @@ describe('loadActivePack — never breaks the boot', () => {
 
   it('seeds a published pack, filling optional level fields from the defaults', async () => {
     const kit = fakeKit(async () =>
-      bundleOf('edition', [
-        { orbiterCount: 3, orbitSpeed: 1.4 },
-        { orbiterCount: 12 },
-      ]),
+      bundleOf('edition', [{ goal: 3, seed: 14 }, { goal: 12 }]),
     );
     const pack = await loadActivePack(kit, 'edition', 'edition');
     expect(pack).toMatchObject({
@@ -158,20 +155,29 @@ describe('loadActivePack — never breaks the boot', () => {
     });
     expect(levelAt(0)).toEqual({
       ...LEVEL_DEFAULTS,
-      orbiterCount: 3,
-      orbitSpeed: 1.4,
+      goal: 3,
+      seed: 14,
     });
-    expect(levelAt(1)).toEqual({ ...LEVEL_DEFAULTS, orbiterCount: 12 });
+    expect(levelAt(1)).toEqual({ ...LEVEL_DEFAULTS, goal: 12 });
+  });
+
+  it('still plays an entry published for an older level shape (unknown fields ignored)', async () => {
+    const kit = fakeKit(async () =>
+      bundleOf('older', [{ orbiterCount: 3, orbitSpeed: 1.4, seed: 7 }]),
+    );
+    const pack = await loadActivePack(kit, 'older');
+    expect(pack?.levels).toHaveLength(1);
+    expect(levelAt(0)).toEqual({ ...LEVEL_DEFAULTS, seed: 7 });
   });
 
   it('drops a level this game cannot play, keeping the rest', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     const kit = fakeKit(async () =>
-      bundleOf('mixed', [{ orbiterCount: 999 }, 'CRANE', { orbiterCount: 5 }]),
+      bundleOf('mixed', [{ goal: 0 }, 'CRANE', { goal: 5 }]),
     );
     const pack = await loadActivePack(kit, 'mixed');
     expect(pack?.levels).toHaveLength(1);
-    expect(levelAt(0).orbiterCount).toBe(5);
+    expect(levelAt(0).goal).toBe(5);
   });
 
   it('refuses a pack with no playable level and keeps the one in play', async () => {

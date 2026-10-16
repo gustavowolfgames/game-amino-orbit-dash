@@ -375,7 +375,7 @@ later. ECS is the **single source of truth** — there is no signals "clipboard.
 | A second write path (controller callbacks setting signals) | One path: game logic writes ECS; DOM reads ECS |
 | Creating/disposing the world in a screen's init/destroy | The world is **app-scoped** (`world.ts` → `getGameWorld()`); it survives across screens, so the results screen reads the final score straight from ECS |
 
-The world in `src/game/mygame/ecs/` is pre-wired — extend it.
+The world in `src/game/mygame/sim/` is pre-wired — extend it.
 Guide: [state-architecture.md](../guides/state-architecture.md).
 
 ---
@@ -391,7 +391,7 @@ raw timing primitives into the deterministic path.
 | Put a turn-based game (tap / match / trivia / card) on a frame loop | Wastes battery, invites per-frame allocation, adds nondeterminism for no gain | Resolve the turn synchronously on input via `applyTap(db, {col,row})`; observers repaint. **No scheduler.** This is the template default. |
 | Feed raw frame deltas to `stepWorld` | Continuous integration (velocity, orbit, physics) is only stable and replayable at a constant step | Accumulate real time and spend it in fixed steps via `startFixedStepLoop(engine, dt => stepWorld(db, dt))` (`engine/fixedStep.ts`) |
 | `requestAnimationFrame` / `setInterval` to drive the sim | Bypasses the engine seam and GSAP pause; can't be stepped headlessly | Go through the `EngineHandle` seam (`createTickerEngine()`); no raw rAF in game code |
-| Resolve a turn inside the pointer callback in a real-time game | Input lands off the deterministic timeline | Queue it: `db.transactions.submitIntent({col,row})`; `systemInput` drains it next frame via `applyTap` |
+| Resolve a turn inside the pointer callback in a real-time game | Input lands off the deterministic timeline | Queue it: `db.transactions.submitTap({x,y})`; a system drains `pendingTaps` next step |
 | Let an external physics engine hold its own authoritative state | Two sources of truth drift | Bridge it as ONE per-frame system: push ECS→engine, step with the fixed `dt`, write bodies back into ECS |
 | `Math.random()` / `Date.now()` inside a transaction, turn function, or system | Breaks replay and headless tests | `dt` and input arrive as injected resources (`frameDeltaMs`, `pendingTap`); seeds passed as args |
 
@@ -399,7 +399,7 @@ Decision rule: *does this state change when no event occurs?* **Yes** → per-fr
 system. **No** → event → transaction. Real-time pieces (`schedule.ts`,
 `systems/`, `engine/`, `fixedStep.ts`) ship ready to extend.
 Guide: [state-architecture.md](../guides/state-architecture.md), deep reference
-[`src/game/mygame/ecs/README.md`](../../src/game/mygame/ecs/README.md).
+[`src/game/mygame/sim/README.md`](../../src/game/mygame/sim/README.md).
 
 ---
 

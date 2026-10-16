@@ -30,7 +30,7 @@
     "use:remote": "../../scripts/use-remote.sh",
     "status": "../../scripts/status.sh",
     "typecheck:baseline": "node scripts/typecheck-baseline.mjs",
-    "check:agent": "node scripts/check-agent-surface.mjs && bun run check:assets && bun run check:manifest",
+    "check:agent": "node scripts/check-agent-surface.mjs && node scripts/check-snippets.mjs && bun run check:assets && bun run check:manifest",
     "check": "nucleo game check local",
     "check:fix": "nucleo game check local --fix",
     "prebuild": "nucleo game check local --tier 0 --no-commit-hooks --warn-only || echo \"[prebuild] nucleo not available; skipped game checks\""

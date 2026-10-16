@@ -1,25 +1,22 @@
 import { type } from 'arktype';
 
 /**
- * One level, as this game plays it — the schema a fork rewrites when its level shape changes.
+ * One level, as this game plays it: the schema a game rewrites when it knows its level shape.
  *
- * The demo's level is a ring of collectible orbiters: how many, how fast, how wide, and the
- * seed for the movers a tap spawns. Everything else (design box, orb size, scoring) stays in
- * `src/game/mygame/demo/config.ts` because it is mechanics, not content. What an absent
- * optional field means is the game's call (`src/game/content/level.ts`).
+ * The template ships the smallest useful level: a seed (the sim is deterministic, so a level
+ * replays exactly) and an optional target. A game adds its own fields here (a board, a piece
+ * count, a time limit) and fills what an absent field means in `src/game/content/level.ts`.
+ * Mechanics that never change per level stay in code (`src/game/mygame/sim/rules/`).
  *
  * Keyed `<block id>-<n>`; a `blocks` entry lists the keys in play order. Changing this shape
- * needs a version bump and a redeploy; changing an entry does not.
+ * needs a version bump and a redeploy; changing an entry does not. Fields a level carries that
+ * this shape doesn't name are ignored, so entries published for an older shape still parse.
  */
 export const LevelsDef = type({
-  /** Orbiters ringing the centre; collect them all to clear the level. */
-  orbiterCount: '1 <= number.integer <= 24',
-  /** Seed for the movers a tap spawns (deterministic sim: no Math.random). */
+  /** Seed for the level's randomness (deterministic sim: no Math.random). */
   'seed?': '0 <= number.integer <= 4294967295',
-  /** Ring angular speed, radians/sec. Negative spins the other way. */
-  'orbitSpeed?': '-3 <= number <= 3',
-  /** Ring radius in design px (the design box is 820 wide). */
-  'orbitRadius?': '120 <= number <= 380',
+  /** The level's target: what it counts (points, clears, moves) is the game's call. */
+  'goal?': '1 <= number.integer <= 1000000',
 });
 
 export type LevelEntry = typeof LevelsDef.infer;

@@ -25,8 +25,8 @@ than a recipe.
 | Add or name assets | [reference/asset-naming.md](reference/asset-naming.md), [recipes/asset-pipeline.md](recipes/asset-pipeline.md) |
 | Register assets in the manifest | [reference/manifest-contract.md](reference/manifest-contract.md) |
 | Add music or sound effects | [recipes/audio-setup.md](recipes/audio-setup.md), [reference/audio.md](reference/audio.md) |
-| Build gameplay state (ECS — the default, pre-wired in `src/game/mygame/ecs/`) | [guides/state-architecture.md](guides/state-architecture.md), [reference/ecs-patterns.md](reference/ecs-patterns.md) |
-| Add a real-time / per-frame loop (physics, movement, orbit, matter.js) | [../src/game/mygame/ecs/README.md](../src/game/mygame/ecs/README.md) (fixed-step + systems), [guides/state-architecture.md](guides/state-architecture.md) |
+| Build gameplay state (ECS — the default, pre-wired in `src/game/mygame/sim/`) | [guides/state-architecture.md](guides/state-architecture.md), [reference/ecs-patterns.md](reference/ecs-patterns.md) |
+| Add a real-time / per-frame loop (physics, movement, matter.js) | [../src/game/mygame/sim/README.md](../src/game/mygame/sim/README.md) (fixed-step + systems), [../src/game/mygame/sim/systems/README.md](../src/game/mygame/sim/systems/README.md), [guides/state-architecture.md](guides/state-architecture.md) |
 | Animate things / improve game feel | [reference/animation.md](reference/animation.md) |
 | Use shared components (check before writing new ones) | [guides/shared-components.md](guides/shared-components.md), catalog at `node_modules/@wolfgames/components/src/modules/INDEX.md` |
 | Write a new module | [guides/shared-components.md](guides/shared-components.md) (incubate in the game, promote to game-components), [modules/index.md](modules/index.md) |

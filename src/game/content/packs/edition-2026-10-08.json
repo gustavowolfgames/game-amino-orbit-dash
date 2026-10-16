@@ -6,16 +6,12 @@
       "name": "October 8, 2026",
       "levels": [
         {
-          "orbiterCount": 3,
           "seed": 11,
-          "orbitSpeed": 1.4,
-          "orbitRadius": 200
+          "goal": 15
         },
         {
-          "orbiterCount": 12,
           "seed": 12,
-          "orbitSpeed": -0.6,
-          "orbitRadius": 340
+          "goal": 40
         }
       ]
     }

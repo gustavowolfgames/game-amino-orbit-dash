@@ -64,7 +64,7 @@ export const manifest: Manifest = {
     },
 
     // ── Demo gameplay + start screen art (GPU) ──────────────────────────────
-    // The gameplay sprites (a neutral orb, the game-field background) and the
+    // The game-field background and the
     // start-screen art (title, play button, title background) are NOT loaded
     // through the coordinator/CDN bundle path. They ship committed under
     // src/game/mygame/assets/generated/*.webp and load via Vite ?url + Pixi

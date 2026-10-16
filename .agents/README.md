@@ -20,4 +20,4 @@ Why recipes: in aminoBench A/Bs on ClearPop and Tetris (ENG-4734), recipes built
 
 ## Keeping it slim
 
-`bun run check:agent` runs `scripts/check-agent-surface.mjs`: no DOM or timers in game code outside `src/game/screens/`, no orb-sample leftovers once a new game exists, a thin game controller, `CLAUDE.md` importing `AGENTS.md` with no install or dev step writing agent files, and every path a recipe cites exists. The limits live at the top of that script. Change a rule there, not in a doc. `bun run typecheck:baseline` guards the inherited type errors in `scripts/typecheck-baseline.txt`.
+`bun run check:agent` runs `scripts/check-agent-surface.mjs`: no DOM or timers in game code outside `src/game/screens/`, a thin game controller, a new game's own slug, `CLAUDE.md` importing `AGENTS.md` with no install or dev step writing agent files, and every path a recipe cites exists. The limits live at the top of that script. Change a rule there, not in a doc. `bun run typecheck:baseline` guards the inherited type errors in `scripts/typecheck-baseline.txt`.
