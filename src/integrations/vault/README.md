@@ -87,6 +87,16 @@ import { VaultHostBridge } from '~/integrations/vault';
 `app.tsx` is game-owned and **not** covered by `amino-sync` — this wiring is
 durable in a fork and never clobbered by `bun run amino:sync`.
 
+### First context during `loading`
+
+`awaitFirstVaultContext(ms)` / `firstVaultContext()` (`first-context.ts`) hear the
+Vault's first `context` passively with `onHostMessage('context')` — no `ready`,
+nothing sent — so boot can pick content before the runtime starts. The listener
+arms on import (the Vault's first send is on the iframe `load`). It resolves
+`null` at once outside a Vault and `null` on timeout; the Vault still re-sends
+`context` on `ready`, so the bridge's `onContext` sees it either way. The
+template's boot uses it in `loadBootContent` (`src/game/setup/content.ts`).
+
 ### Host analytics fields
 
 `vaultHostFields()` returns a flat snapshot of the host/session metadata

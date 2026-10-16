@@ -135,10 +135,10 @@ export const audioSettingChangedSchema = type({
 
 /**
  * Schema for start_screen_skipped event.
- * Fires when skipStartScreen routes loading directly to gameplay.
+ * Fires when loading routes directly to gameplay (src/game/screens/skipStartScreen.ts).
  */
 export const startScreenSkippedSchema = type({
-  skip_source: "'config' | 'dev_mode' | 'url_param'",
+  skip_source: "'vault' | 'config' | 'dev_mode' | 'url_param'",
 });
 
 /**

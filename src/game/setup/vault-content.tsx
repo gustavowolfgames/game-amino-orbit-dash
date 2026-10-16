@@ -13,6 +13,9 @@
  *   4. `default` after a selection is a deselection: drop the edition and its brand, then reload
  *      the deployment's own default pack and theme.
  *
+ * The first selection is normally applied during `loading` by the boot's first-context gate
+ * (`loadBootContent`); this bridge starts from it, so the Vault's re-send on `ready` is a no-op.
+ *
  * It also answers the manager's Daily Editions harvest: the schedule (`catalog/<slug>`) loaded at
  * boot goes out as `content_catalog` when the runtime starts.
  *
@@ -22,14 +25,17 @@
 import { useConfigState, useSignal } from '@wolfgames/components/solid';
 import { resetBrand } from '~/game/brand';
 import { seedActivePack } from '~/game/content';
-import { VaultHostBridge, type VaultGameContext } from '~/integrations/vault';
-import { getEditions, loadContent } from './content';
+import { type VaultGameContext, VaultHostBridge } from '~/integrations/vault';
+import { getBootSelection, getEditions, loadContent } from './content';
 
 export function VaultContentBridge() {
   const gameKit = useSignal(useConfigState().gameKit);
-  let selected: string | null = null;
+  // `undefined` until the first context: then it starts from what the boot's first-context gate
+  // applied (`onContext` only fires after `loading`, so boot has settled by then).
+  let selected: string | null | undefined;
 
   const onContext = (ctx: VaultGameContext) => {
+    if (selected === undefined) selected = getBootSelection();
     if (ctx.content.type === 'default') {
       if (selected === null) return; // nothing was selected — the boot content stands
       selected = null;
