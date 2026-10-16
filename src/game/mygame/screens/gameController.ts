@@ -43,6 +43,7 @@ import { ParticleBurst } from '@wolfgames/components/modules/primitives/particle
 import { setActiveInspectorActions } from '~/core/systems/ecs';
 import { getTheme } from '~/game/brand';
 import { getActivePack, isLastLevel, levelAt } from '~/game/content';
+import { recordLevelWon, resumeLevel, saveProgress } from '~/game/setup/progress';
 import { inVault, reportContentCompleted, reportGameCompleted } from '~/integrations/vault';
 import type { Entity } from '~/core/systems/ecs';
 import type { GameController, GameControllerDeps, SetupGame } from '~/game/mygame-contract';
@@ -204,7 +205,9 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     if (phase === 'playing' || phase === handledPhase) return;
     handledPhase = phase;
     if (phase === 'won') {
-      if (db && isLastLevel(db.resources.level)) reportPackCompleted();
+      const last = !!db && isLastLevel(db.resources.level);
+      if (last) reportPackCompleted();
+      if (db) recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
       tryPlay('sfx-clear');
       showBanner('YOU WIN!');
       setAriaText('You collected every orb.');
@@ -226,7 +229,8 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
   /**
    * Start (or restart) a run on the right level of the active pack: the next one after a win,
    * the same one on a restart, the first one when the pack changed (a Vault edition arrived).
-   * The level index and pack id live in ECS so the run's progress survives screen changes.
+   * The level index and pack id live in ECS so the run's progress survives screen changes; the
+   * first run after a reload resumes the saved level (src/game/setup/progress.ts).
    */
   const startDemo = () => {
     if (!db) return;
@@ -234,10 +238,11 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     if (banner) banner.alpha = 0;
     const pack = getActivePack();
     const prev = db.resources;
-    const next = prev.packId !== pack.id ? 0 : prev.phase === 'won' ? prev.level + 1 : prev.level;
+    const next = prev.packId !== pack.id ? resumeLevel(pack) : prev.phase === 'won' ? prev.level + 1 : prev.level;
     const index = next % pack.levels.length;
     const level = levelAt(index);
     db.transactions.startDemo({ ...level, level: index, packId: pack.id });
+    saveProgress(pack.id, index);
     setAriaText(`Level ${index + 1} of ${pack.levels.length}. Tap the drifting orbs to collect them.`);
   };
 
