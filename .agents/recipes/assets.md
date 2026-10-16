@@ -48,11 +48,21 @@ A CLI flag that returns `unknown option` means `wolf-dev` is too old. `docs/refe
 
 The only committed files under `public/assets/` are the ones this template already has, plus fonts, the favicon, and VFX config JSON. Do not add new art there.
 
-Wire music and effects to the settings menu volume and mute. The menu comes from the components recipe.
+### Settings menu: volume and music
+
+The gear menu (`src/game/screens/components/GameSettingsMenu.tsx`, from the components recipe) has a **Sounds** slider and a **Music** toggle. They only save settings (core `audioState`: `volume()` 0–1 and `musicEnabled()`); `src/game/mygame/screens/audioSettings.ts` applies them. `bindAudioSettings(audio, deps.audio)` in `setupGame` turns volume into the engine's master volume and music on/off into play/stop of the `audio-music` channel, on load and on every change.
+
+- Start music with `music.startMusic()` once the scene is up, and `music.stopMusic()` in `destroy()`. Never `play('audio-music', …)` directly: that ignores the toggle.
+- Play effects through the controller's `tryPlay`. The master volume covers them; per-sound loudness is the `volume` option on `play`.
+- A second music track (a title theme, a boss loop) is its own `bindAudioSettings(audio, deps.audio, 'audio-music-boss')`.
+
+An older game without `audioSettings.ts` (its menu changes nothing): copy the file from this template, then in `gameController.ts` add `const music = bindAudioSettings(audio, deps.audio as AudioSettings | undefined);` after the `audio` helper, replace its `tryPlay('audio-music', 'loop')` with `music.startMusic()` and its `stopMusic()` in `destroy()` with `music.stopMusic()`. `tests/unit/audio-settings.test.ts` covers the binding.
 
 ## Verify
 
 Run `bun run check:assets` and `bun run check:manifest`. After a publish, call `assets_verify` with `budget: true`. From a terminal, `bun run assets:verify` does the same. It fails on a missing file or one over its role's byte budget.
+
+Audio settings: start a game, open the gear, move **Sounds** to 0.3 and check `window.Howler.volume()` is 0.3; switch **Music** off and on and hear the music stop and start.
 
 `git status` shows the lockfile and `assets/registry.ts` when you published. It does not show new png, webp, mp3, or wav files.
 

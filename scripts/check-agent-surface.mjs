@@ -69,6 +69,7 @@ const TEMPLATE_FILES = new Set([
   'src/game/mygame/index.ts',
   'src/game/mygame/input/pointer.ts',
   'src/game/mygame/render/textures.ts',
+  'src/game/mygame/screens/audioSettings.ts',
   'src/game/mygame/screens/gameController.ts',
   'src/game/mygame/screens/index.ts',
   'src/game/mygame/screens/startView.tsx',
