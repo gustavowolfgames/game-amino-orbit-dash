@@ -2,6 +2,7 @@ import { useScreen } from '~/core/systems/screens';
 import { Button } from '~/core/ui/Button';
 import { getActivePack } from '~/game/content';
 import { getGameWorld } from '~/game/mygame/world';
+import { whenContentSettled } from '~/game/setup/content';
 
 export function ResultsScreen() {
   const { goto } = useScreen();
@@ -13,7 +14,11 @@ export function ResultsScreen() {
   const won = phase === 'won';
   const packDone = won && level >= getActivePack().levels.length - 1;
 
-  const handlePlayAgain = () => {
+  // A finished pack in the Vault's unlocked walk has started loading the next edition
+  // (src/game/setup/served-session.ts); wait for it (bounded) so the next run starts there.
+  // Otherwise the settled promise is already resolved.
+  const handlePlayAgain = async () => {
+    await whenContentSettled();
     goto('game');
   };
 

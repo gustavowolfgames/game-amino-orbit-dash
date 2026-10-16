@@ -18,7 +18,8 @@
  * Content: each run plays one level of the active Content Pack (`levelAt`,
  * src/game/content) — the bundled pack, or a published one (`?wolfPack=`, a
  * Vault edition). Winning advances to the pack's next level; winning its last
- * level reports the edition complete to the Vault.
+ * level hands off to the Vault served mode (`completeActivePack`, src/game/setup/
+ * served-session.ts): report the run, load the next unlocked edition, or exit a daily.
  *
  * Rendering: a fixed design box (DESIGN_W×DESIGN_H) scaled to fit the viewport
  * ("contain"), with a cover-fit background. Every orb is the neutral `piece-orb`
@@ -45,7 +46,7 @@ import { getTheme } from '~/game/brand';
 import { getActivePack, isLastLevel, levelAt } from '~/game/content';
 import { recordLevelWon, resumeLevel, saveProgress } from '~/game/setup/progress';
 import { createRunAnalytics } from '~/game/setup/edition-analytics';
-import { inVault, reportContentCompleted, reportGameCompleted } from '~/integrations/vault';
+import { completeActivePack } from '~/game/setup/served-session';
 import type { Entity } from '~/core/systems/ecs';
 import type { GameController, GameControllerDeps, SetupGame } from '~/game/mygame-contract';
 import { loadGameTextures, type GameTextures } from '../render/textures';
@@ -210,7 +211,7 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     if (phase === 'won') {
       const last = !!db && isLastLevel(db.resources.level);
       if (db) runAnalytics.levelWon(db.resources.level, db.resources.score);
-      if (last) reportPackCompleted();
+      if (last) completeActivePack(); // the Vault served mode decides what a finished pack means
       if (db) recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
       tryPlay('sfx-clear');
       showBanner('YOU WIN!');
@@ -253,17 +254,6 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     saveProgress(pack.id, index);
     runAnalytics.levelStarted(index, entry);
     setAriaText(`Level ${index + 1} of ${pack.levels.length}. Tap the drifting orbs to collect them.`);
-  };
-
-  /**
-   * The pack's last level was won: the edition is done. A Vault-selected pack reports its
-   * `contentId`; the default run reports the game. Both are deduped per session by the SDK.
-   */
-  const reportPackCompleted = () => {
-    if (!inVault()) return;
-    const { contentId } = getActivePack();
-    if (contentId) reportContentCompleted(contentId);
-    else reportGameCompleted();
   };
 
   /** Play a sound if the audio bundle provides it; silently no-op otherwise. */
