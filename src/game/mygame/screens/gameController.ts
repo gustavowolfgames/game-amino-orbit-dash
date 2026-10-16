@@ -44,6 +44,7 @@ import { setActiveInspectorActions } from '~/core/systems/ecs';
 import { getTheme } from '~/game/brand';
 import { getActivePack, isLastLevel, levelAt } from '~/game/content';
 import { recordLevelWon, resumeLevel, saveProgress } from '~/game/setup/progress';
+import { createRunAnalytics } from '~/game/setup/edition-analytics';
 import { inVault, reportContentCompleted, reportGameCompleted } from '~/integrations/vault';
 import type { Entity } from '~/core/systems/ecs';
 import type { GameController, GameControllerDeps, SetupGame } from '~/game/mygame-contract';
@@ -77,6 +78,8 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
   // Settled by the loading screen before this screen exists; read once per run.
   const theme = getTheme();
   const tint = (colorIndex: number) => theme.pieces[colorIndex % theme.pieces.length];
+  // level_* + edition_* events (src/game/setup/edition-analytics.ts); no-ops without a service.
+  const runAnalytics = createRunAnalytics(deps.analytics);
 
   let app: Application | null = null;
   let releasePixiApp: (() => void) | null = null;
@@ -206,6 +209,7 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     handledPhase = phase;
     if (phase === 'won') {
       const last = !!db && isLastLevel(db.resources.level);
+      if (db) runAnalytics.levelWon(db.resources.level, db.resources.score);
       if (last) reportPackCompleted();
       if (db) recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
       tryPlay('sfx-clear');
@@ -238,11 +242,16 @@ export const setupGame: SetupGame = (rawDeps: GameControllerDeps): GameControlle
     if (banner) banner.alpha = 0;
     const pack = getActivePack();
     const prev = db.resources;
-    const next = prev.packId !== pack.id ? resumeLevel(pack) : prev.phase === 'won' ? prev.level + 1 : prev.level;
+    // Read before the transaction: `prev` is the live resource object.
+    const fresh = prev.packId !== pack.id || prev.phase === 'idle';
+    const entry = fresh ? 'fresh' : prev.phase === 'won' ? 'next' : 'restart';
+    // A fresh start resumes saved progress; otherwise the next level or the same one again.
+    const next = fresh ? resumeLevel(pack) : prev.level + (entry === 'next' ? 1 : 0);
     const index = next % pack.levels.length;
     const level = levelAt(index);
     db.transactions.startDemo({ ...level, level: index, packId: pack.id });
     saveProgress(pack.id, index);
+    runAnalytics.levelStarted(index, entry);
     setAriaText(`Level ${index + 1} of ${pack.levels.length}. Tap the drifting orbs to collect them.`);
   };
 
