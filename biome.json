@@ -6,7 +6,8 @@
       "!dist",
       "!index.html",
       "!test-results",
-      "!playwright-report"
+      "!playwright-report",
+      "!kits/*/files"
     ]
   },
   "css": {

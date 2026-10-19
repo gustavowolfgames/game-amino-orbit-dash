@@ -1,0 +1,9 @@
+{
+  "$comment": "Game identity + environment for wolf-dev tooling. projectId must equal the game's Nucleo gameSlug. assetsDir opts into CDN-first assets (wolf-dev assets publish/verify). schemasDir registers schemas/registry.ts on deploy (Game Packs / Dynamic Data, docs/recipes/game-packs.md).",
+  "projectId": "mygame",
+  "gameSlug": "mygame",
+  "gameName": "Match 3",
+  "environment": "QA",
+  "assetsDir": "assets",
+  "schemasDir": "schemas"
+}

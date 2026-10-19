@@ -6,6 +6,8 @@ Open this recipe when you build a new game in this template: right after a copy,
 
 ## Do
 
+If the game is a genre with a kit (`bun run add-kit` lists them: `match3`), install it first and change it: it is a working game on this skeleton, with tests. Then follow the steps below for what you change.
+
 Get the Nucleo slug from the user. Do not invent one. If the task is a local build with no slug, set `gameSlug` to `mygame` and do not publish; the assets recipe stops at `mygame`.
 
 1. Set `gameSlug` and `gameName` in `wolf-game-kit.json`. Set `VITE_GAME_KIT_PROJECT_ID` in `.env.example` to the same slug. Assets and Dynamic Data publish under that slug, and a mismatch makes players 404. Do this before you change `src/`. Once the game has files of its own, `bun run check:agent` fails while `gameSlug` is still the template's own (`aminoecspure`). Then empty the inherited asset lockfile: set `files` to `{}` (and drop `releaseId`) in `assets/asset-manifest.cdn.json`, and the same `files` in `assets/registry.ts`. Those entries are the template's files on the template's CDN slug; under the new slug they 404 and the loader hangs. Until the game's first `assets_publish`, local dev serves `public/assets/`.
