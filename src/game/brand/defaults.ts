@@ -31,7 +31,7 @@ export const BUILD_SHEET = {
   primaryAccent: '#F6C453',
   secondaryAccent: '#5AA9E6',
   tertiaryAccent: '#E86A92',
-  /** The demo's orb palette. A partner sheet's `extraColors: null` clears it → orbs take its accents. */
+  /** The game's piece palette. A partner sheet's `extraColors: null` clears it → pieces take its accents. */
   extraColors: ['#5AA9E6', '#7FC8A9', '#F6C453', '#E86A92', '#B08BD8'],
   roles: {},
   link: 'https://wolf.games',

@@ -1,22 +1,26 @@
-import { createSignal, onMount, onCleanup, Show } from 'solid-js';
-import { Portal } from 'solid-js/web';
 import { useManifest, useRendererHost } from '@wolfgames/components/solid';
-import { Logo } from '~/core/ui/Logo';
-import { useScreen, type ScreenId } from '~/core/systems/screens';
+import { createSignal, onCleanup, onMount, Show } from 'solid-js';
+import { Portal } from 'solid-js/web';
+import { type ScaffoldTuning, useTuning } from '~/core';
 import { useAssets } from '~/core/systems/assets';
-import { useTuning, type ScaffoldTuning } from '~/core';
-import { useGameTracking } from '~/game/setup/tracking';
-
-import type { GameTuning } from '~/game/tuning';
-
+import { type ScreenId, useScreen } from '~/core/systems/screens';
+import { Logo } from '~/core/ui/Logo';
 // Game-specific start screen — swap this import for a different game
 import { setupStartScreen } from '~/game/mygame/screens/startView';
-import { cssScaleOf, placeTitleLogo, titleArt, titleBgMatch } from './components/titleFrame';
+import { useGameTracking } from '~/game/setup/tracking';
+import type { GameTuning } from '~/game/tuning';
+import {
+  cssScaleOf,
+  placeTitleLogo,
+  titleArt,
+  titleBgMatch,
+} from './components/titleFrame';
 import { useSpaceKey } from './useSpaceKey';
 
 export default function StartScreen() {
   const { goto } = useScreen();
-  const { coordinator, initGpu, unlockAudio, loadCore, loadAudio, loadBundle } = useAssets();
+  const { coordinator, initGpu, unlockAudio, loadCore, loadAudio, loadBundle } =
+    useAssets();
   const tuning = useTuning<ScaffoldTuning, GameTuning>();
   const { trackGameStart } = useGameTracking();
   let containerRef: HTMLDivElement | undefined;
@@ -30,7 +34,9 @@ export default function StartScreen() {
 
   // Setup game-specific start screen controller
   const startScreen = setupStartScreen({
-    goto: (screen) => { void goto(screen as ScreenId); },
+    goto: (screen) => {
+      void goto(screen as ScreenId);
+    },
     coordinator,
     initGpu,
     unlockAudio,
@@ -49,7 +55,11 @@ export default function StartScreen() {
     const k = cssScaleOf(stillRef);
     if (stillLogoRef) placeTitleLogo(stillLogoRef, box, k);
     if (stillBgRef?.naturalWidth) {
-      const { scale, y } = titleBgMatch(box, { width: stillBgRef.naturalWidth, height: stillBgRef.naturalHeight }, k);
+      const { scale, y } = titleBgMatch(
+        box,
+        { width: stillBgRef.naturalWidth, height: stillBgRef.naturalHeight },
+        k,
+      );
       stillBgRef.style.transform = `translateY(${y}px) scale(${scale})`;
     }
   }
@@ -89,7 +99,10 @@ export default function StartScreen() {
             {/* A still of the title's first frame (the loader's reveal ends on it), under
                 the canvas until Pixi has drawn — so the handoff never flashes empty. */}
             <Show when={!pixiReady()}>
-              <div class="absolute inset-0 pointer-events-none" ref={(el) => (stillRef = el)}>
+              <div
+                class="absolute inset-0 pointer-events-none"
+                ref={(el) => (stillRef = el)}
+              >
                 <img
                   src={title.background}
                   alt=""

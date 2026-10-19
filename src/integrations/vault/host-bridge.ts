@@ -29,8 +29,8 @@
 import {
   inVault,
   reportPlayEnded,
-  startVaultRuntime,
   type ScheduledContentMetadata,
+  startVaultRuntime,
   type VaultGameContext,
 } from '@wolfgames/client';
 import { createEffect, onCleanup } from 'solid-js';

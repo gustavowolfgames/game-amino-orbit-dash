@@ -1,3 +1,3 @@
-export { pauseState, type PauseState } from './state';
-export { initPauseKeyboard, cleanupPauseKeyboard } from './keyboard';
 export { PauseProvider, usePause } from './context';
+export { cleanupPauseKeyboard, initPauseKeyboard } from './keyboard';
+export { type PauseState, pauseState } from './state';

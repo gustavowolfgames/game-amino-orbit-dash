@@ -35,6 +35,8 @@ export interface AssembledPack {
 }
 
 /** Every level of a pack, in play order (blocks in order, each block's levels in order). */
-export function packLevels<L>(pack: { blocks: readonly { levels: readonly L[] }[] }): L[] {
+export function packLevels<L>(pack: {
+  blocks: readonly { levels: readonly L[] }[];
+}): L[] {
   return pack.blocks.flatMap((b) => b.levels);
 }

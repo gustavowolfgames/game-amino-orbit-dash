@@ -5,9 +5,13 @@
  * Game identity (projectId, slug, CDN URLs) comes from GameConfigProvider.
  */
 
-import { lazy, type Component } from 'solid-js';
 import type { ViewportMode } from '@wolfgames/components/core';
-import type { ScreenId, ScreenAssetConfig, TransitionConfig } from '~/core/systems/screens/types';
+import { type Component, lazy } from 'solid-js';
+import type {
+  ScreenAssetConfig,
+  ScreenId,
+  TransitionConfig,
+} from '~/core/systems/screens/types';
 import { LoadingScreen } from './screens/LoadingScreen';
 import { ResultsScreen } from './screens/ResultsScreen';
 

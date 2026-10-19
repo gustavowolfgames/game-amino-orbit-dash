@@ -1,9 +1,16 @@
-import { onMount, onCleanup, Show, createEffect, createSignal, untrack } from 'solid-js';
+import { useGameConfig } from '@wolfgames/components/solid';
+import {
+  createEffect,
+  createSignal,
+  onCleanup,
+  onMount,
+  Show,
+  untrack,
+} from 'solid-js';
 import type { Pane } from 'tweakpane';
 import { useTuning } from '../systems/tuning/context';
-import { bindTuningToPane, addPresetControls } from './bindings';
-import type { ScaffoldTuning, GameTuningBase } from '../systems/tuning/types';
-import { useGameConfig } from '@wolfgames/components/solid';
+import type { GameTuningBase, ScaffoldTuning } from '../systems/tuning/types';
+import { addPresetControls, bindTuningToPane } from './bindings';
 import { isDevToggleKey } from './toggleKey';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,7 +30,9 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
 
 export { isPanelOpen, setIsPanelOpen };
 
-export default function TuningPanel<G extends GameTuningBase = GameTuningBase>() {
+export default function TuningPanel<
+  G extends GameTuningBase = GameTuningBase,
+>() {
   let containerRef: HTMLDivElement | undefined;
   let pane: PaneInstance | undefined;
   const tuning = useTuning<ScaffoldTuning, G>();
@@ -65,7 +74,7 @@ export default function TuningPanel<G extends GameTuningBase = GameTuningBase>()
           pane.addBinding(
             { source: `Scaffold: ${source.scaffold}, Game: ${source.game}` },
             'source',
-            { label: 'Loaded from', disabled: true }
+            { label: 'Loaded from', disabled: true },
           );
 
           // Bind tuning values

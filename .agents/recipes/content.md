@@ -24,9 +24,17 @@ Words, questions, card layout, and level numbers belong in the pack. Systems, in
 
 The look is separate from the content. Any edition can wear any partner's brand. See `.agents/recipes/reskin.md`. Fetching and publishing are in `.agents/recipes/dynamic-data.md`.
 
+## Saved progress and a new pack
+
+`src/game/setup/progress.ts` saves where the run is, so a reload resumes the same level. It is built on `createVersionedStore` from `src/core/utils/storage.ts`. The run itself stays in ECS. The store only copies the resume point out and hands it back to `startDemo`.
+
+The save holds the pack id next to the level. When a different pack becomes active (a Vault edition, a new published default), `onActivePackChange` clears the save, and `resumeLevel(pack)` ignores a save from another pack. Winning the pack's last level clears it too.
+
+To save more, add the field to `RunProgress` and `PROGRESS_DEFAULTS`, repair it in `sanitizeProgress`, bump `PROGRESS_VERSION`, and add `migrations[<new version>]` for the old shape. Read and write the store from the controller or a screen, never inside a transaction or system. `docs/reference/progress-persistence.md` explains the store itself.
+
 ## Verify
 
-`bun run test:run` passes, including `tests/unit/content/content-load.test.ts` and `tests/unit/content/schemas.test.ts`.
+`bun run test:run` passes, including `tests/unit/content/content-load.test.ts`, `tests/unit/content/schemas.test.ts` and `tests/unit/setup/progress.test.ts`.
 
 `bun run decompose:content src/game/content/packs/default.json local/content-packs/default` splits the pack into entries, checks each one against its schema, and proves the round trip.
 

@@ -9,7 +9,7 @@ import { defaultData, LevelsDef } from './schema';
 export const levelsSchema = {
   key: 'levels',
   schema: LevelsDef,
-  version: 1,
+  version: 2,
   defaultData,
   migrations: {},
 } satisfies DynamicDataSchema<typeof LevelsDef>;

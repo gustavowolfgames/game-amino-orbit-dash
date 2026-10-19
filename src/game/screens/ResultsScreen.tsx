@@ -2,6 +2,7 @@ import { useScreen } from '~/core/systems/screens';
 import { Button } from '~/core/ui/Button';
 import { getActivePack } from '~/game/content';
 import { getGameWorld } from '~/game/mygame/world';
+import { whenContentSettled } from '~/game/setup/content';
 
 export function ResultsScreen() {
   const { goto } = useScreen();
@@ -13,7 +14,11 @@ export function ResultsScreen() {
   const won = phase === 'won';
   const packDone = won && level >= getActivePack().levels.length - 1;
 
-  const handlePlayAgain = () => {
+  // A finished pack in the Vault's unlocked walk has started loading the next edition
+  // (src/game/setup/served-session.ts); wait for it (bounded) so the next run starts there.
+  // Otherwise the settled promise is already resolved.
+  const handlePlayAgain = async () => {
+    await whenContentSettled();
     goto('game');
   };
 
@@ -29,15 +34,34 @@ export function ResultsScreen() {
     // them through for the sake of the gameplay screen's canvas.
     <div
       class="design-box-span pointer-events-auto flex flex-col items-center justify-center px-6"
-      style={{ background: 'var(--brand-ground)', color: 'var(--brand-text)', 'font-family': 'var(--font-body)' }}
+      style={{
+        background: 'var(--brand-ground)',
+        color: 'var(--brand-text)',
+        'font-family': 'var(--font-body)',
+      }}
     >
-      <h1 class="text-3xl font-bold mb-2" style={{ 'font-family': 'var(--font-display)' }}>
-        {packDone ? 'Pack Complete' : won ? `Level ${level + 1} Complete` : 'Game Over'}
+      <h1
+        class="text-3xl font-bold mb-2"
+        style={{ 'font-family': 'var(--font-display)' }}
+      >
+        {packDone
+          ? 'Pack Complete'
+          : won
+            ? `Level ${level + 1} Complete`
+            : 'Game Over'}
       </h1>
 
       <div class="text-center mb-8">
-        <p class="text-sm mb-1" style={{ color: 'var(--brand-muted)' }}>Score</p>
-        <p class="text-5xl font-bold" style={{ color: 'var(--brand-accent)', 'font-family': 'var(--font-numeric)' }}>
+        <p class="text-sm mb-1" style={{ color: 'var(--brand-muted)' }}>
+          Score
+        </p>
+        <p
+          class="text-5xl font-bold"
+          style={{
+            color: 'var(--brand-accent)',
+            'font-family': 'var(--font-numeric)',
+          }}
+        >
           {score}
         </p>
       </div>

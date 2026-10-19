@@ -3,8 +3,8 @@
  * memoizes it for the whole codebase. See `README.md` for the design.
  */
 
-import { PlayerIdentityService } from '@wolfgames/client';
 import type { PlayerIdentity } from '@wolfgames/client';
+import { PlayerIdentityService } from '@wolfgames/client';
 import { isBackendConfigured, resolvePlayerDataHost } from './host';
 import { getOrCreateLocalPlayerId, rememberResolvedPlayerId } from './localId';
 import { resolveBridgedTokenStore } from './tokenBridge';
@@ -36,7 +36,7 @@ export function getResolvedIdentityService(): PlayerIdentityService {
   };
   const standIn: GameSaveIdentity = {
     identify: async () => identity,
-    subscribe: () => () => { },
+    subscribe: () => () => {},
   };
   return standIn as PlayerIdentityService;
 }

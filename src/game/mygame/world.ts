@@ -15,7 +15,7 @@
  */
 
 import { setActiveDb } from '~/core/systems/ecs';
-import { createGameWorld, type GameDatabase } from './ecs/gamePlugin';
+import { createGameWorld, type GameDatabase } from './sim/plugin';
 
 let world: GameDatabase | null = null;
 

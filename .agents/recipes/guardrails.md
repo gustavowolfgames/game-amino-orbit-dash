@@ -14,7 +14,7 @@ After the GPU starts, draw gameplay with Pixi. DOM is for the Solid screen shell
 
 - **Taps and swipes** go through Pixi: `eventMode = 'static'` on the hit target, `'passive'` on its parents, and `pointertap` / `pointerdown` / `pointermove` handlers. Setup is in `.agents/skills/pixi-gameplay/SKILL.md`.
 - **Keyboard** is DOM, so it lives in a Solid screen, for example a `useGameKeyboard()` hook called from `src/game/screens/GameScreen.tsx`. It maps keys to intents and calls a controller method such as `controller.input('left')`. Add the listener in `onMount` and remove it in `onCleanup`.
-- Either way, input becomes an intent that a transaction or `systemInput` applies. Input never writes state directly.
+- Either way, input becomes an intent that a transaction or a system applies (taps: `pendingTaps`, from `src/game/mygame/input/pointer.ts`). Input never writes state directly.
 
 ### Animation and lifetime
 
@@ -26,7 +26,7 @@ Do not drive gameplay with `requestAnimationFrame`, `setInterval`, or `setTimeou
 
 Do not edit `src/core/`. It is scaffold synced from template-amino with `bun run amino:sync`. If the scaffold lacks something, keep the change in `src/game/` or raise it on template-amino.
 
-Install with bun. Do not commit `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. Do not put cortex `setup.mjs` on `postinstall` or `predev`.
+Install with bun. Do not commit `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. Do not add a `postinstall` or `predev` step that writes rules or agent files.
 
 Screens sit on the design canvas. Do not use `100vh`, `window.innerHeight`, or `position: fixed` in a screen. The layout rules are in `.agents/recipes/components.md`.
 

@@ -11,7 +11,7 @@
  * - spriteKey component for Inspector display names
  */
 import { Database } from '@adobe/data/ecs';
-import { Vec2, F32 } from '@adobe/data/math';
+import { F32, Vec2 } from '@adobe/data/math';
 
 // ── Plugin definition ───────────────────────────────────────────────
 
@@ -40,10 +40,34 @@ export const examplePlugin = Database.Plugin.create({
     paused: { default: false as boolean },
   },
   archetypes: {
-    SpriteButton: ['position', 'spriteKey', 'visible', 'scale', 'interactive', 'hoverScale', 'pressScale'],
-    ScorePopup: ['position', 'spriteKey', 'visible', 'alpha', 'score', 'combo', 'tweenPlaying', 'tweenDuration'],
+    SpriteButton: [
+      'position',
+      'spriteKey',
+      'visible',
+      'scale',
+      'interactive',
+      'hoverScale',
+      'pressScale',
+    ],
+    ScorePopup: [
+      'position',
+      'spriteKey',
+      'visible',
+      'alpha',
+      'score',
+      'combo',
+      'tweenPlaying',
+      'tweenDuration',
+    ],
     HealthBar: ['position', 'hp', 'maxHp', 'spriteKey', 'visible'],
-    Hotspot: ['position', 'spriteKey', 'visible', 'alpha', 'interactive', 'hoverScale'],
+    Hotspot: [
+      'position',
+      'spriteKey',
+      'visible',
+      'alpha',
+      'interactive',
+      'hoverScale',
+    ],
   },
   transactions: {
     spawnButton(store, args: { position: [number, number]; key: string }) {
@@ -57,7 +81,10 @@ export const examplePlugin = Database.Plugin.create({
         pressScale: 0.9,
       });
     },
-    spawnScorePopup(store, args: { position: [number, number]; score: number; combo: number }) {
+    spawnScorePopup(
+      store,
+      args: { position: [number, number]; score: number; combo: number },
+    ) {
       store.archetypes.ScorePopup.insert({
         position: args.position,
         spriteKey: 'score-popup',
@@ -69,7 +96,10 @@ export const examplePlugin = Database.Plugin.create({
         tweenDuration: 0.4,
       });
     },
-    spawnHealthBar(store, args: { position: [number, number]; hp: number; max: number }) {
+    spawnHealthBar(
+      store,
+      args: { position: [number, number]; hp: number; max: number },
+    ) {
       store.archetypes.HealthBar.insert({
         position: args.position,
         hp: args.hp,

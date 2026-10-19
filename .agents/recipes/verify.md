@@ -28,4 +28,4 @@ In dev, the backtick key toggles the ECS Inspector. What it shows is not proof o
 
 ## Example
 
-The agent check is `scripts/check-agent-surface.mjs` (DOM in game code, orb-sample leftovers, controller size). The baseline check is `scripts/typecheck-baseline.mjs`.
+The agent check is `scripts/check-agent-surface.mjs` (DOM in game code, controller size, the game's own slug). The baseline check is `scripts/typecheck-baseline.mjs`.

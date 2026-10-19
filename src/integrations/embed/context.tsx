@@ -1,4 +1,4 @@
-import { createContext, useContext, type ParentComponent } from 'solid-js';
+import { createContext, type ParentComponent, useContext } from 'solid-js';
 
 export type EmbedMode = 'standalone' | 'embedded';
 

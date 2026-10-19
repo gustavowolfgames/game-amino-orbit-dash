@@ -47,6 +47,8 @@ Transactions and systems stay pure. Read and write the store from a screen or a 
 
 Volume and music are already saved by `src/core/systems/audio/state.ts`. Do not copy them.
 
+The sample already has one: `src/game/setup/progress.ts` saves the level to resume on and the Content Pack it belongs to. It migrates a v1 save, repairs bad fields in `sanitizeProgress`, and resets when a new pack becomes active. Extend it rather than adding a second progress store. The snippet below is the minimal shape.
+
 ```ts
 // For example src/game/progress.ts
 import { createVersionedStore } from '~/core';
@@ -71,7 +73,7 @@ export const clearProgress = (): void => progressStore.clear();
 
 ## Reset
 
-`src/game/screens/components/GameSettingsMenu.tsx` already shows a dev-only Reset Progress row when it gets `onResetProgress`. `src/app.tsx` passes `handleResetProgress`, which only reloads the page. Call `clearProgress()` inside that handler before the reload.
+`src/game/screens/components/GameSettingsMenu.tsx` already shows a dev-only Reset Progress row when it gets `onResetProgress`. `src/app.tsx` passes `handleResetProgress`, which calls `clearProgress()` from `src/game/setup/progress.ts` and then reloads the page. Clear any new store there too.
 
 ## Verify
 

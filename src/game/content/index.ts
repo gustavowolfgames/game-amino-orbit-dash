@@ -7,6 +7,7 @@
  *   load.ts            resolve the pack key (`?wolfPack=` > Vault `contentId` > default) and fetch
  *   assemble.ts        bundle (`blocks` + `levels`) ⇄ authored pack (also `decompose:content`)
  *   catalog.ts         the Daily Editions schedule answered to the manager's harvest (Vault only)
+ *   served-mode.ts     a Vault selection → default / daily / unlocked + its packs; the edition cursor
  *   dynamic-client.ts  the one shared Dynamic Data client
  *
  * Kept apart from `../brand` (look) on purpose. See docs/recipes/game-packs.md.
@@ -21,8 +22,13 @@ export {
   seedActivePack,
 } from './active-pack';
 export { assemblePack, decomposePack, levelKey } from './assemble';
-export { type AssembledPack, type ContentPack, ContentPackDef, packLevels } from './content-pack';
 export { loadCatalog, toEditions } from './catalog';
+export {
+  type AssembledPack,
+  type ContentPack,
+  ContentPackDef,
+  packLevels,
+} from './content-pack';
 export { dynamicClient, isPackNotFound, type KitLike } from './dynamic-client';
 export {
   BUNDLED_PACK,
@@ -34,3 +40,10 @@ export {
   type ResolvedLevel,
 } from './level';
 export { loadActivePack, resolvePackKey } from './load';
+export {
+  createEditionCursor,
+  resolveServedMode,
+  scheduleDay,
+  UNLOCKED_EDITIONS_CONTENT_ID,
+  unlockedPacks,
+} from './served-mode';

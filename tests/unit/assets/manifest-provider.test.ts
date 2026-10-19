@@ -10,8 +10,8 @@
  * - Invalid postMessage data is handled gracefully
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Manifest } from '@wolfgames/components/core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const localManifest: Manifest = {
   cdnBase: '/assets',
@@ -31,7 +31,10 @@ const cdnManifest: Manifest = {
 const injectedManifest: Manifest = {
   cdnBase: 'https://injected.example.com/assets',
   bundles: [
-    { name: 'boot-injected', assets: [{ alias: 'injected', src: 'injected.png' }] },
+    {
+      name: 'boot-injected',
+      assets: [{ alias: 'injected', src: 'injected.png' }],
+    },
   ],
 };
 
@@ -61,11 +64,13 @@ describe('ManifestProvider: CDN fetch', () => {
   });
 
   it('fetches from CDN and updates manifest when response has bundles+cdnBase', async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response(JSON.stringify(cdnManifest), { status: 200 })
+    globalThis.fetch = vi.fn(
+      async () => new Response(JSON.stringify(cdnManifest), { status: 200 }),
     );
 
-    const response = await fetch('https://storage.example.com/chapters/default.json');
+    const response = await fetch(
+      'https://storage.example.com/chapters/default.json',
+    );
     const data = await response.json();
 
     expect(data.cdnBase).toBe('https://cdn.example.com/assets');
@@ -73,11 +78,13 @@ describe('ManifestProvider: CDN fetch', () => {
   });
 
   it('falls back to local defaults when CDN returns non-200', async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response('Not Found', { status: 404 })
+    globalThis.fetch = vi.fn(
+      async () => new Response('Not Found', { status: 404 }),
     );
 
-    const response = await fetch('https://storage.example.com/chapters/default.json');
+    const response = await fetch(
+      'https://storage.example.com/chapters/default.json',
+    );
     expect(response.ok).toBe(false);
 
     // Provider would keep local defaults in this case
@@ -104,12 +111,18 @@ describe('ManifestProvider: CDN fetch', () => {
   });
 
   it('updates game data from CDN when not already injected', async () => {
-    const cdnData = { chapters: [{ id: 1 }, { id: 2 }], cdnBase: 'https://cdn.example.com', bundles: [] };
-    globalThis.fetch = vi.fn(async () =>
-      new Response(JSON.stringify(cdnData), { status: 200 })
+    const cdnData = {
+      chapters: [{ id: 1 }, { id: 2 }],
+      cdnBase: 'https://cdn.example.com',
+      bundles: [],
+    };
+    globalThis.fetch = vi.fn(
+      async () => new Response(JSON.stringify(cdnData), { status: 200 }),
     );
 
-    const response = await fetch('https://storage.example.com/chapters/default.json');
+    const response = await fetch(
+      'https://storage.example.com/chapters/default.json',
+    );
     const data = await response.json();
     expect(data.chapters).toHaveLength(2);
   });
@@ -140,9 +153,10 @@ describe('ManifestProvider: postMessage injection', () => {
       },
     };
 
-    const parsed = typeof event.data.value === 'string'
-      ? JSON.parse(event.data.value)
-      : event.data.value;
+    const parsed =
+      typeof event.data.value === 'string'
+        ? JSON.parse(event.data.value)
+        : event.data.value;
 
     expect(parsed.cdnBase).toBe('https://injected.example.com/assets');
   });
@@ -155,7 +169,8 @@ describe('ManifestProvider: postMessage injection', () => {
 
   it('rejects messages without type field', () => {
     const event = { data: { value: injectedManifest } };
-    const isValid = event.data &&
+    const isValid =
+      event.data &&
       typeof event.data === 'object' &&
       'type' in event.data &&
       'value' in event.data &&
@@ -219,7 +234,7 @@ describe('ManifestProvider: injection overrides CDN', () => {
   });
 
   it('CDN data is not applied once mode is injected', () => {
-    let mode: string = 'injected';
+    const mode: string = 'injected';
     let gameData = { fromInjection: true };
 
     // Simulates the guard in ManifestProvider

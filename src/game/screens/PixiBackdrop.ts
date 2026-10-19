@@ -14,7 +14,9 @@ export function createPixiBackdrop(config: PixiBackdropConfig) {
 
   // Enforce the Z-Index Layering Contract (0-9 for Pixi)
   if (zIndex < 0 || zIndex > 9) {
-    console.warn(`[PixiBackdrop] zIndex ${zIndex} is out of bounds. Pixi elements must be between 0 and 9.`);
+    console.warn(
+      `[PixiBackdrop] zIndex ${zIndex} is out of bounds. Pixi elements must be between 0 and 9.`,
+    );
   }
 
   const canvas = app.canvas as HTMLCanvasElement;
@@ -26,7 +28,7 @@ export function createPixiBackdrop(config: PixiBackdropConfig) {
   canvas.style.width = '100%';
   canvas.style.height = '100%';
   canvas.style.zIndex = zIndex.toString();
-  
+
   // Critical: Allow Pixi canvas to receive pointer events so interactive elements work
   // We use 'auto' instead of 'none', relying on correct z-index to manage DOM/Canvas clicks
   canvas.style.pointerEvents = 'auto';
@@ -40,6 +42,6 @@ export function createPixiBackdrop(config: PixiBackdropConfig) {
       if (canvas.parentNode) {
         canvas.parentNode.removeChild(canvas);
       }
-    }
+    },
   };
 }

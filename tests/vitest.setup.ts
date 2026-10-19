@@ -23,12 +23,16 @@ if (!('caches' in globalThis)) {
         return entries.find((e) => e.request.url === keyOf(request))?.response;
       },
       async put(request: Request, response: Response) {
-        const existing = entries.findIndex((e) => e.request.url === request.url);
+        const existing = entries.findIndex(
+          (e) => e.request.url === request.url,
+        );
         if (existing !== -1) entries.splice(existing, 1);
         entries.push({ request, response });
       },
       async delete(request: Request | string) {
-        const index = entries.findIndex((e) => e.request.url === keyOf(request));
+        const index = entries.findIndex(
+          (e) => e.request.url === keyOf(request),
+        );
         if (index === -1) return false;
         entries.splice(index, 1);
         return true;

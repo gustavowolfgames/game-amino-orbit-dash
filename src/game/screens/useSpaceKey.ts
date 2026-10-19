@@ -24,5 +24,7 @@ export function useSpaceKey(onSpace?: () => void): void {
     pauseState.resume();
     window.addEventListener('keydown', onKey, { capture: true });
   });
-  onCleanup(() => window.removeEventListener('keydown', onKey, { capture: true }));
+  onCleanup(() =>
+    window.removeEventListener('keydown', onKey, { capture: true }),
+  );
 }

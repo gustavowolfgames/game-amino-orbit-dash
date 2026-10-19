@@ -1,5 +1,5 @@
-import { createContext, useContext, type ParentProps } from 'solid-js';
-import { audioState, type AudioState } from './state';
+import { createContext, type ParentProps, useContext } from 'solid-js';
+import { type AudioState, audioState } from './state';
 
 const AudioContext = createContext<AudioState>();
 

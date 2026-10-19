@@ -2,9 +2,9 @@
 
 Applicable to any game built on this scaffold; examples below use a generic tile-clearing game ("mygame").
 
-The template ships a pre-wired, **app-scoped** ECS world in `src/game/mygame/ecs/` (plugin, snapshot readers, agent service), held by `src/game/mygame/world.ts` and connected in the game controller. Put state in the plugin from move one — you extend a working world, you don't retrofit one.
+The template ships a pre-wired, **app-scoped** ECS world in `src/game/mygame/sim/` (plugin, snapshot readers, agent service), held by `src/game/mygame/world.ts` and connected in the game controller. Put state in the plugin from move one — you extend a working world, you don't retrofit one.
 
-> Deep reference for the runtime seam (schedule, systems, engine, fixed-step, matter.js bridge): [`src/game/mygame/ecs/README.md`](../../src/game/mygame/ecs/README.md).
+> Deep reference for the runtime seam (schedule, systems, engine, fixed-step, matter.js bridge): [`src/game/mygame/sim/README.md`](../../src/game/mygame/sim/README.md).
 
 ---
 
@@ -60,7 +60,7 @@ setActiveInspectorActions([]);     // clear dev surfaces
 |-------|-------|-----|
 | Score, moves, level, stars, phase | ECS resource | Source of truth, Inspector visible, observable |
 | Board cells (blocks, obstacles, powerups) | ECS entities | Source of truth, Inspector shows every cell |
-| Velocity, angle, orbit (real-time bodies) | ECS components | Integrated per frame by systems (see below) |
+| Position, velocity (real-time bodies) | ECS components | Integrated per frame by systems (see below) |
 | Stars, blocker count | ECS computed | Derived from score / entity counts |
 | Coins, lives (meta-progression) | ECS resource | Survives across screens via the app-scoped world |
 | Level config (complex nested object) | SolidJS signal / store | Too complex for ECS schemas; DOM reads it |
@@ -76,17 +76,17 @@ The plugin is the single definition of what exists in the game world. Properties
 ```typescript
 const gamePlugin = Database.Plugin.create({
   components: { ... },     // per-entity data (position, velocity, spriteKey, …)
-  resources: { ... },      // global state (score, moves, phase, elapsedMs, frameDeltaMs, pendingTap)
-  archetypes: { ... },     // entity templates (Tile; Mover/Orbiter for real-time)
+  resources: { ... },      // global state (level, goal, score, phase, elapsedMs, frameDeltaMs, rng, pendingTaps)
+  archetypes: { ... },     // entity templates (Tile, Piece, Body, …)
   computed: {
     stars: ...,            // derived from score + thresholds
   },
   transactions: {
-    resetGame: ...,        // start/restart a run
+    startRun: ...,         // start/restart a level
     addScore: ...,         // resource mutations
     advanceTime: ...,      // inject dt (real-time)
-    submitIntent: ...,     // queue input as intent (real-time)
-    // integrateMovers / integrateOrbiters — per-frame integration (real-time)
+    submitTap: ...,        // queue input as intent
+    // the game's own: spawn, move, clear, … (called by systems)
   },
   systems: {
     game_initialize: { create: () => {} },  // init-only for the turn-based starter; real-time games add per-frame systems here
@@ -113,7 +113,7 @@ export function applyTap(db: GameDatabase, args: { col: number; row: number }) {
 }
 ```
 
-These are plain exported functions, **not** entries in the plugin's `actions:` block. The block is a valid `@adobe/data` pattern (an *inline*-defined action even types its own `db`), but a **shared** resolver called from the controller, `systemInput`, and the agent surface types best as a plain export — the `actions:` generic is unconstrained, so `db.actions.executeTap(...)` gives external callers no argument/return typing. Transactions used inside the turn function stay fully typed. See `src/game/mygame/ecs/gamePlugin.ts`.
+These are plain exported functions, **not** entries in the plugin's `actions:` block. The block is a valid `@adobe/data` pattern (an *inline*-defined action even types its own `db`), but a **shared** resolver called from the controller, `systemInput`, and the agent surface types best as a plain export — the `actions:` generic is unconstrained, so `db.actions.executeTap(...)` gives external callers no argument/return typing. Transactions used inside the turn function stay fully typed. See `src/game/mygame/sim/plugin.ts`.
 
 The controller stays thin: call the turn function, then animate from the returned metadata (GSAP), then let observers repaint the HUD.
 
@@ -142,12 +142,12 @@ No manual recompute after every move. Note: a DOM screen that needs a derived va
 
 ## Real-Time Games — the per-frame path
 
-Opt in only when state changes **without** an event (velocity, orbit, physics). The pieces (all under `src/game/mygame/`):
+Use it when state changes **without** an event (velocity, timers, physics). The pieces (all under `src/game/mygame/`):
 
 | Piece | Role |
 |---|---|
-| `ecs/schedule.ts` — `stepWorld(db, dt)` | One tick: `advanceTime({dt})` then every system in `SYSTEM_ORDER`. |
-| `ecs/systems/` | Pure `db => void` systems + `SYSTEM_ORDER`. Ships `systemInput`, `systemMovement`, `systemOrbit`. |
+| `sim/schedule.ts` — `stepWorld(db, dt)` | One tick: `advanceTime({dt})` then every system in `SYSTEM_ORDER`. |
+| `sim/systems/` | Pure `db => void` systems + `SYSTEM_ORDER`. Ships empty; its README shows a goal system and a tap system. |
 | `engine/` — `createTickerEngine()` | The frame-clock seam (`EngineHandle`) over `gsap.ticker`. The sim never imports an engine; no raw `requestAnimationFrame`. |
 | `engine/fixedStep.ts` — `startFixedStepLoop` | The "Fix Your Timestep" accumulator: variable frame deltas → N steps of a **fixed** `dt`, spiral-of-death clamp, render `alpha`. |
 
@@ -156,9 +156,9 @@ const engine = createTickerEngine();
 const stop = startFixedStepLoop(engine, (dt) => stepWorld(db, dt));  // fixed dt in → stable, replayable
 ```
 
-**Input as intent.** A real-time game does not resolve a turn inside the pointer callback — it queues one: `db.transactions.submitIntent({ col, row })`. Next frame `systemInput` drains `pendingTap` via `applyTap`, keeping input on the deterministic timeline. Turn-based games skip the queue and call `applyTap` directly.
+**Input as intent.** A real-time game does not resolve a turn inside the pointer callback; it queues one: `input/pointer.ts` calls `db.transactions.submitTap({ x, y })`. Next step a system drains `pendingTaps`, keeping input on the deterministic timeline. A turn-based game can resolve the turn in a transaction called from input instead.
 
-**External physics engines (matter.js, etc.)** plug in as one per-frame system, not a second source of truth: (1) push pending ECS→engine changes, (2) step with the fixed `dt` (`Matter.Engine.update(engine, FIXED_DT)`), (3) write body positions/angles back into ECS. Full detail in [`ecs/README.md`](../../src/game/mygame/ecs/README.md).
+**External physics engines (matter.js, etc.)** plug in as one per-frame system, not a second source of truth: (1) push pending ECS→engine changes, (2) step with the fixed `dt` (`Matter.Engine.update(engine, FIXED_DT)`), (3) write body positions/angles back into ECS. Full detail in [`ecs/README.md`](../../src/game/mygame/sim/README.md).
 
 **Determinism holds either way.** `dt` and input arrive as injected resources (`frameDeltaMs`, `pendingTap`), so `stepWorld(db, FIXED_DT)` replays exactly in a headless test — the same reason `applyTap(db, {col,row})` is reproducible on its own.
 
@@ -179,12 +179,12 @@ This is about **archetype storage rows** (the packed column slots), not game-boa
 ```
 TURN-BASED (default)                         REAL-TIME (opt-in)
 User tap                                     engine.onFrame(realDt)
-  └─ applyTap(db, {col,row})                   └─ startFixedStepLoop → stepWorld(db, FIXED_DT)
+  └─ applyTurn(db, {x,y})                      └─ startFixedStepLoop → stepWorld(db, FIXED_DT)
        ├─ readStateFromEcs()  (snapshot)            ├─ advanceTime({dt})
        ├─ evaluateTap()       (pure rule)           └─ SYSTEM_ORDER:
-       ├─ db.transactions.*   (write)                    ├─ systemInput   (drain pendingTap → applyTap)
-       └─ return metadata     (GSAP)                     ├─ systemMovement (integrate velocity)
-                                                         └─ systemOrbit    (integrate orbit)
+       ├─ db.transactions.*   (write)                    ├─ systemTaps  (drain pendingTaps)
+       └─ return metadata     (GSAP)                     ├─ systemMove  (integrate velocity)
+                                                         └─ systemGoal  (win at the goal)
   ↓                                            ↓
 db.observe.resources.* → HUD / aria / DOM screens (read ECS; never a second write path)
 computed.* auto-update · setActiveDb(db) → Inspector (dev)
@@ -219,7 +219,7 @@ computed.* auto-update · setActiveDb(db) → Inspector (dev)
 
 New games built from this template skip this — the world is already wired. For an existing game that grew up on signals:
 
-1. **Add ECS infrastructure** — copy `src/game/mygame/ecs/` + `world.ts` from the template, add the `@adobe/data` dep.
+1. **Add ECS infrastructure** — copy `src/game/mygame/sim/` + `world.ts` from the template, add the `@adobe/data` dep.
 2. **Observation layer** — mirror board state as entities; see it in the Inspector.
 3. **Resources** — move score/moves/level/phase from signals to ECS resources.
 4. **Turn functions** — wrap turn logic in plain typed functions over transactions; thin the controller.

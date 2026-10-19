@@ -9,7 +9,7 @@
 
 import { type } from 'arktype';
 import { type LevelEntry, LevelsDef } from '../../../schemas/levels/schema';
-import { DEMO_SEED, ORBIT_RADIUS, ORBIT_SPEED } from '../mygame/demo/config';
+import { DEFAULT_SEED } from '../mygame/config';
 import { type ContentPack, ContentPackDef, packLevels } from './content-pack';
 import defaultPackJson from './packs/default.json';
 
@@ -20,16 +20,18 @@ export type LevelConfig = LevelEntry;
 /** A level with every optional field filled — what the game actually starts. */
 export type ResolvedLevel = Required<LevelConfig>;
 
-/** What an absent optional field means — the demo's own mechanics defaults. */
-export const LEVEL_DEFAULTS: Omit<ResolvedLevel, 'orbiterCount'> = {
-  seed: DEMO_SEED,
-  orbitSpeed: ORBIT_SPEED,
-  orbitRadius: ORBIT_RADIUS,
+/** What an absent optional field means. A game adds a default for each field it adds. */
+export const LEVEL_DEFAULTS: ResolvedLevel = {
+  seed: DEFAULT_SEED,
+  goal: 0, // no target: the game decides when a level ends
 };
+
+/** The level parser: fields the shape doesn't name (an older shape's) are dropped, not refused. */
+const parseEntry = LevelsDef.onUndeclaredKey('delete');
 
 /** Parse one pack level. Null when this game cannot play it. */
 export function parseLevel(raw: unknown): ResolvedLevel | null {
-  const out = LevelsDef(raw);
+  const out = parseEntry(raw);
   if (out instanceof type.errors) return null;
   return { ...LEVEL_DEFAULTS, ...out };
 }
@@ -42,10 +44,14 @@ export function parseLevel(raw: unknown): ResolvedLevel | null {
 export const BUNDLED_PACK: ContentPack = (() => {
   const out = ContentPackDef(defaultPackJson);
   if (out instanceof type.errors) {
-    throw new Error(`src/game/content/packs/default.json is not a pack: ${out.summary}`);
+    throw new Error(
+      `src/game/content/packs/default.json is not a pack: ${out.summary}`,
+    );
   }
   if (packLevels(out).length === 0) {
-    throw new Error('src/game/content/packs/default.json must hold at least one level');
+    throw new Error(
+      'src/game/content/packs/default.json must hold at least one level',
+    );
   }
   return out;
 })();

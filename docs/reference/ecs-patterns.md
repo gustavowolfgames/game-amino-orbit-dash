@@ -1,6 +1,6 @@
 # ECS patterns
 
-Patterns for the `@adobe/data` world behind `getGameWorld()`. The rules are `.agents/recipes/ecs.md`. The sample game, its resources, transactions, and invariants are `src/game/mygame/ecs/README.md`. This page covers what those two do not.
+Patterns for the `@adobe/data` world behind `getGameWorld()`. The rules are `.agents/recipes/ecs.md`. The world's resources, transactions, and invariants are `src/game/mygame/sim/README.md`. This page covers what those two do not.
 
 ## Plugin key order
 
@@ -16,7 +16,7 @@ A screen reads the world. It never writes a second copy.
 
 ## Input as intent
 
-A real-time game queues input and resolves it on the fixed step. In the sample, a tap calls `db.transactions.submitFire({ angle })`, which appends to the `pendingFires` resource. Next step, `inputSystem` snapshots the queue, calls `clearFire`, then calls `fire` once per shot. Input stays on the deterministic timeline, so `stepWorld` replays in a test.
+A real-time game queues input and resolves it on the fixed step. In the template, a tap calls `db.transactions.submitTap({ x, y })` (`src/game/mygame/input/pointer.ts`), which appends to the `pendingTaps` resource. Next step, a tap system reads the queue, calls a transaction per tap, then `clearTaps` (`src/game/mygame/sim/systems/README.md`). Input stays on the deterministic timeline, so `stepWorld` replays in a test.
 
 A turn-based game skips the queue. The input handler calls a turn function directly and no frame loop runs. See the cadence section of `.agents/recipes/ecs.md`.
 
@@ -34,9 +34,9 @@ export function applyMove(db: GameDatabase, move: Move) {
 }
 ```
 
-Export it as a plain function, not an entry in the plugin's `actions` block. The `actions` generic is unconstrained, so outside callers get no argument or return types. Transactions called inside stay typed. `readStateFromEcs` in `src/game/mygame/ecs/readStateFromEcs.ts` is the snapshot pattern.
+Export it as a plain function, not an entry in the plugin's `actions` block. The `actions` generic is unconstrained, so outside callers get no argument or return types. Transactions called inside stay typed. `readStateFromEcs` in `src/game/mygame/sim/readStateFromEcs.ts` is the snapshot pattern.
 
-Agents and bots drive the same path. `src/game/mygame/ecs/agentPlugin.ts` extends the game plugin with an `AgenticService` whose `fire` and `start` actions call `submitFire` and `startLevel`.
+Agents and bots drive the same path. `src/game/mygame/agent/agentPlugin.ts` extends the game plugin with an `AgenticService` whose `tap` and `start` actions call `submitTap` and `startRun`.
 
 ## Whole-snapshot reducer
 
@@ -64,11 +64,11 @@ Deleting from a live selection skips entities, because the table fills the hole 
 
 - Spread first: `for (const e of [...store.select(['velocity'])]) store.delete(e)`. `startLevel` does this.
 - Or collect ids, then delete. `popRange` does this.
-- A transaction called mid-scan can move rows too. `collisionSystem` decides from a snapshot, then applies transactions.
+- A transaction called mid-scan can move rows too. A collision system decides from a snapshot, then applies transactions.
 
 ## System order
 
-`SYSTEM_ORDER` in `src/game/mygame/ecs/systems/index.ts` is a flat list: `inputSystem`, `projectileSystem`, `chainSystem`, `collisionSystem`. Order is the contract. Collision runs last so it sees positions written this step. When the graph branches, `@adobe/data` systems can declare `schedule: { before, after }` instead.
+`SYSTEM_ORDER` in `src/game/mygame/sim/systems/index.ts` is a flat list, empty until the game adds its systems, for example `systemTaps`, `systemMove`, `systemCollide`, `systemGoal`. Order is the contract: collision runs after movement so it sees positions written this step. When the graph branches, `@adobe/data` systems can declare `schedule: { before, after }` instead.
 
 ## External physics
 
@@ -91,7 +91,7 @@ A physics engine is one per-frame system, not a second source of truth. Each ste
 
 For an older game that keeps rules in Solid:
 
-1. Copy `src/game/mygame/ecs/`, `src/game/mygame/world.ts`, and the `@adobe/data` dependency.
+1. Copy `src/game/mygame/sim/`, `src/game/mygame/world.ts`, and the `@adobe/data` dependency.
 2. Mirror board state as entities and check them in the Inspector.
 3. Move score, level, and phase from signals to resources.
 4. Wrap turn logic in turn functions over transactions.

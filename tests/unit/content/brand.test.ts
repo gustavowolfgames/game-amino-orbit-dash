@@ -5,8 +5,6 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import lawAndCrime from '../../../schemas/brand/examples/law-and-crime.json';
-import usWeekly from '../../../schemas/brand/examples/us-weekly.json';
 import {
   BUILD_SHEET,
   getTheme,
@@ -18,13 +16,24 @@ import {
 } from '~/game/brand';
 import type { KitLike } from '~/game/content';
 import type { PackBundle } from '~/game/content/dynamic-client';
+import lawAndCrime from '../../../schemas/brand/examples/law-and-crime.json';
+import usWeekly from '../../../schemas/brand/examples/us-weekly.json';
 
 const hex = (n: number) => `#${n.toString(16).padStart(6, '0').toUpperCase()}`;
 
-function fakeKit(opts: { pack?: () => Promise<PackBundle>; entry?: (schema: string, key: string) => unknown }): KitLike {
+function fakeKit(opts: {
+  pack?: () => Promise<PackBundle>;
+  entry?: (schema: string, key: string) => unknown;
+}): KitLike {
   const client = {
-    getPack: opts.pack ?? (() => Promise.reject(Object.assign(new Error('none'), { code: 'PACK_NOT_FOUND' }))),
-    getEntry: async (schema: string, key: string) => opts.entry?.(schema, key) ?? null,
+    getPack:
+      opts.pack ??
+      (() =>
+        Promise.reject(
+          Object.assign(new Error('none'), { code: 'PACK_NOT_FOUND' }),
+        )),
+    getEntry: async (schema: string, key: string) =>
+      opts.entry?.(schema, key) ?? null,
   };
   return { execute: () => ({ promise: Promise.resolve(client) }) };
 }
@@ -44,15 +53,19 @@ describe('partner sheets', () => {
     expect(validateOverride({ link: 'javascript:alert(1)' })).toBeNull();
   });
 
-  it('reskin the build: Us Weekly orbs take its accents (its null palette clears Wolf\'s)', () => {
-    const theme = resolveTheme(mergeOverride(BUILD_SHEET, validateOverride(usWeekly)!));
+  it("reskin the build: Us Weekly pieces take its accents (its null palette clears Wolf's)", () => {
+    const theme = resolveTheme(
+      mergeOverride(BUILD_SHEET, validateOverride(usWeekly)!),
+    );
     expect(theme.displayName).toBe('Us Weekly');
     expect(theme.pieces.map(hex)).toEqual(['#EC2A8C', '#F9A5C6', '#8ED1FC']);
     expect(theme.ground).toBe('#323232'); // its dark Base
   });
 
   it('honour role pins: Law & Crime paints its Secondary as the page', () => {
-    const theme = resolveTheme(mergeOverride(BUILD_SHEET, validateOverride(lawAndCrime)!));
+    const theme = resolveTheme(
+      mergeOverride(BUILD_SHEET, validateOverride(lawAndCrime)!),
+    );
     expect(theme.ground).toBe('#111C39');
     expect(theme.surface).toBe('#000000');
     expect(theme.accent).toBe('#AF8F53');
@@ -60,7 +73,8 @@ describe('partner sheets', () => {
 
   it('look different from each other and from the build', () => {
     const grounds = [BUILD_SHEET, usWeekly, lawAndCrime].map(
-      (s) => resolveTheme(mergeOverride(BUILD_SHEET, validateOverride(s)!)).ground,
+      (s) =>
+        resolveTheme(mergeOverride(BUILD_SHEET, validateOverride(s)!)).ground,
     );
     expect(new Set(grounds).size).toBe(3);
   });
@@ -69,7 +83,11 @@ describe('partner sheets', () => {
 describe('mergeOverride', () => {
   it('keeps absent keys, clears null ones, replaces roles whole', () => {
     const base = { ...BUILD_SHEET, roles: { ground: 'secondary' as const } };
-    const out = mergeOverride(base, { primaryAccent: '#000000', extraColors: null, roles: {} });
+    const out = mergeOverride(base, {
+      primaryAccent: '#000000',
+      extraColors: null,
+      roles: {},
+    });
     expect(out.primaryAccent).toBe('#000000');
     expect(out.secondaryAccent).toBe(BUILD_SHEET.secondaryAccent);
     expect(out.extraColors).toBeUndefined();
@@ -86,14 +104,20 @@ describe('loadBrand — never breaks the boot', () => {
   });
 
   it('applies the deployment theme entry', async () => {
-    const kit = fakeKit({ entry: (schema, key) => (schema === 'brand' && key === 'theme' ? lawAndCrime : null) });
+    const kit = fakeKit({
+      entry: (schema, key) =>
+        schema === 'brand' && key === 'theme' ? lawAndCrime : null,
+    });
     expect((await loadBrand(kit))?.displayName).toBe('Law & Crime');
     expect(getTheme().displayName).toBe('Law & Crime');
   });
 
   it('prefers the sheet a Content Pack carries over the deployment entry', async () => {
     const kit = fakeKit({
-      pack: async () => ({ packKey: 'ed', schemas: { brand: { entries: { theme: usWeekly } } } }),
+      pack: async () => ({
+        packKey: 'ed',
+        schemas: { brand: { entries: { theme: usWeekly } } },
+      }),
       entry: () => lawAndCrime,
     });
     expect((await loadBrand(kit, 'ed'))?.displayName).toBe('Us Weekly');

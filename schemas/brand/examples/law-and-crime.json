@@ -5,10 +5,7 @@
   "mark": null,
   "wallpaper": null,
   "hand": null,
-  "acceptInkFallback": [
-    "solid.hover",
-    "primary.hover"
-  ],
+  "acceptInkFallback": ["solid.hover", "primary.hover"],
   "roles": {
     "buttonInk": "tertiaryAccent",
     "ground": "secondary",

@@ -1,11 +1,11 @@
 import { parseEnvironment } from '@wolfgames/client';
 import {
   AnalyticsProvider,
+  DesignBleed,
   DevOnly,
   GameConfigProvider,
-  useAnalyticsService,
-  DesignBleed,
   GameShell,
+  useAnalyticsService,
   ViewportProvider,
   ViewportToggle,
 } from '@wolfgames/components/solid';
@@ -36,15 +36,18 @@ import '~/game/setup/flags'; // registers flag config at module load
 import { useAssetCoordinator } from '~/core/systems/assets';
 import { EmbedHook } from '~/game/EmbedHook';
 import { GameSettingsMenu } from '~/game/screens/components/GameSettingsMenu';
+import { registerEditionSuperProperties } from '~/game/setup/edition-analytics';
 import { createLoadingTracker } from '~/game/setup/loading-tracker';
+import { clearProgress } from '~/game/setup/progress'; // module-scope store: boot hydrates it
 import { createSessionTracker } from '~/game/setup/session-tracker';
-import { AttractGate, EmbedProvider } from '~/integrations/embed';
 import { VaultContentBridge } from '~/game/setup/vault-content';
+import { AttractGate, EmbedProvider } from '~/integrations/embed';
 
 const environment = parseEnvironment(import.meta.env.VITE_APP_ENV);
 
 /** Reset progress and reload the page */
 const handleResetProgress = () => {
+  clearProgress();
   window.location.reload();
 };
 
@@ -53,6 +56,12 @@ function SessionTrackerBridge() {
   const service = useAnalyticsService();
   const cleanup = createSessionTracker(service, gameConfig.initialScreen);
   onCleanup(cleanup);
+  return null;
+}
+
+/** Registers edition_id / edition_date as super properties, re-registered on every pack change */
+function EditionAnalyticsBridge() {
+  onCleanup(registerEditionSuperProperties(useAnalyticsService()));
   return null;
 }
 
@@ -92,6 +101,7 @@ export default function App() {
       <GameConfigProvider debug>
         <AnalyticsProvider userId={getResolvedPlayerId() ?? undefined}>
           <SessionTrackerBridge />
+          <EditionAnalyticsBridge />
           <GlobalBoundary>
             <TuningProvider gameDefaults={GAME_DEFAULTS}>
               <DevOnly>
@@ -139,9 +149,8 @@ export default function App() {
                                 real edge. DesignBleed is the frame box expressed
                                 in design coordinates.
 
-                                Inside ScreenProvider so the menu can hide itself
-                                on the `game` screen, where the in-game Pixi panel
-                                owns settings (ENG-4127). */}
+                                The one settings menu, on every screen; the game
+                                stops while it is open (settingsOpen). */}
                             <DesignBleed zIndex={9999}>
                               {/* `pointer-events: auto` per control: the bleed
                                   layer spans the whole frame and deliberately

@@ -1,4 +1,4 @@
-import { type } from "arktype";
+import { type } from 'arktype';
 
 // ============================================================================
 // SESSION EVENTS (automatic — template fires these)
@@ -9,7 +9,7 @@ import { type } from "arktype";
  * Fires once on page load.
  */
 export const sessionStartSchema = type({
-  entry_screen: "string",
+  entry_screen: 'string',
 });
 
 /**
@@ -26,7 +26,7 @@ export const sessionPauseSchema = type({
  */
 export const sessionResumeSchema = type({
   resume_reason: "'tab_visible' | 'window_focus' | 'app_foreground'",
-  pause_duration: "number",
+  pause_duration: 'number',
 });
 
 /**
@@ -43,7 +43,7 @@ export const sessionEndSchema = type({
  * @param extraProperties - Additional arktype property definitions
  */
 export function extendSessionEndSchema(
-  extraProperties: Record<string, string>
+  extraProperties: Record<string, string>,
 ): ReturnType<typeof type> {
   return type({
     session_end_reason: "'user_close' | 'timeout' | 'navigation_away'",
@@ -60,8 +60,8 @@ export function extendSessionEndSchema(
  * Fires when a screen becomes active.
  */
 export const screenEnterSchema = type({
-  screen_name: "string",
-  "previous_screen?": "string",
+  screen_name: 'string',
+  'previous_screen?': 'string',
 });
 
 /**
@@ -69,8 +69,8 @@ export const screenEnterSchema = type({
  * Fires when a screen is left.
  */
 export const screenExitSchema = type({
-  screen_name: "string",
-  time_on_screen: "number",
+  screen_name: 'string',
+  time_on_screen: 'number',
 });
 
 // ============================================================================
@@ -82,7 +82,7 @@ export const screenExitSchema = type({
  * Fires when asset loading begins.
  */
 export const loadingStartSchema = type({
-  asset_count: "number",
+  asset_count: 'number',
 });
 
 /**
@@ -90,8 +90,8 @@ export const loadingStartSchema = type({
  * Fires when asset loading finishes.
  */
 export const loadingCompleteSchema = type({
-  asset_count: "number",
-  load_duration: "number",
+  asset_count: 'number',
+  load_duration: 'number',
 });
 
 /**
@@ -99,9 +99,9 @@ export const loadingCompleteSchema = type({
  * Fires if the user leaves during loading.
  */
 export const loadingAbandonSchema = type({
-  assets_loaded: "number",
-  assets_total: "number",
-  load_duration: "number",
+  assets_loaded: 'number',
+  assets_total: 'number',
+  load_duration: 'number',
 });
 
 // ============================================================================
@@ -113,9 +113,9 @@ export const loadingAbandonSchema = type({
  * Fires automatically on errors.
  */
 export const errorCapturedSchema = type({
-  error_type: "string",
-  user_id: "string",
-  session_id: "string",
+  error_type: 'string',
+  user_id: 'string',
+  session_id: 'string',
 });
 
 /**
@@ -124,9 +124,9 @@ export const errorCapturedSchema = type({
  */
 export const audioSettingChangedSchema = type({
   setting_type: "'volume' | 'mute'",
-  old_value: "unknown",
-  new_value: "unknown",
-  screen_name: "string",
+  old_value: 'unknown',
+  new_value: 'unknown',
+  screen_name: 'string',
 });
 
 // ============================================================================
@@ -135,10 +135,10 @@ export const audioSettingChangedSchema = type({
 
 /**
  * Schema for start_screen_skipped event.
- * Fires when skipStartScreen routes loading directly to gameplay.
+ * Fires when loading routes directly to gameplay (src/game/screens/skipStartScreen.ts).
  */
 export const startScreenSkippedSchema = type({
-  skip_source: "'config' | 'dev_mode' | 'url_param'",
+  skip_source: "'vault' | 'config' | 'dev_mode' | 'url_param'",
 });
 
 /**
@@ -146,8 +146,28 @@ export const startScreenSkippedSchema = type({
  * Fires when the player starts playing.
  */
 export const gameStartSchema = type({
-  start_source: "string",
-  is_returning_player: "boolean",
+  start_source: 'string',
+  is_returning_player: 'boolean',
+});
+
+/**
+ * Schema for edition_started event.
+ * Fires when a run of the active Content Pack begins (its first level starts).
+ * `edition_date` is the pack's `YYYY-MM-DD` from the Daily Editions catalog, null when the pack
+ * is not scheduled (the bundled default, a `?wolfPack=` override outside a Vault).
+ */
+export const editionStartedSchema = type({
+  edition_id: 'string',
+  edition_date: 'string | null',
+});
+
+/**
+ * Schema for edition_completed event.
+ * Fires when the active Content Pack's last level is won. Same props as edition_started.
+ */
+export const editionCompletedSchema = type({
+  edition_id: 'string',
+  edition_date: 'string | null',
 });
 
 /**
@@ -155,9 +175,9 @@ export const gameStartSchema = type({
  * Fires when a level becomes interactive.
  */
 export const levelStartSchema = type({
-  level_id: "string",
-  "level_order?": "number",
-  "is_replay?": "boolean",
+  level_id: 'string',
+  'level_order?': 'number',
+  'is_replay?': 'boolean',
 });
 
 /**
@@ -165,10 +185,10 @@ export const levelStartSchema = type({
  * Fires when a level is finished successfully.
  */
 export const levelCompleteSchema = type({
-  level_id: "string",
-  "level_order?": "number",
-  time_to_complete: "number",
-  "score?": "number",
+  level_id: 'string',
+  'level_order?': 'number',
+  time_to_complete: 'number',
+  'score?': 'number',
 });
 
 /**
@@ -176,10 +196,10 @@ export const levelCompleteSchema = type({
  * Fires when a level ends without completion.
  */
 export const levelFailSchema = type({
-  level_id: "string",
-  "level_order?": "number",
-  fail_reason: "string",
-  time_played: "number",
+  level_id: 'string',
+  'level_order?': 'number',
+  fail_reason: 'string',
+  time_played: 'number',
 });
 
 /**
@@ -187,9 +207,9 @@ export const levelFailSchema = type({
  * Fires when a player restarts a level.
  */
 export const levelRestartSchema = type({
-  level_id: "string",
-  "level_order?": "number",
-  restart_count: "number",
+  level_id: 'string',
+  'level_order?': 'number',
+  restart_count: 'number',
 });
 
 /**
@@ -197,8 +217,8 @@ export const levelRestartSchema = type({
  * Fires when a new chapter or stage begins.
  */
 export const chapterStartSchema = type({
-  chapter_id: "string",
-  "chapter_order?": "number",
+  chapter_id: 'string',
+  'chapter_order?': 'number',
 });
 
 /**
@@ -206,8 +226,8 @@ export const chapterStartSchema = type({
  * Fires when all levels in a chapter are done.
  */
 export const chapterCompleteSchema = type({
-  chapter_id: "string",
-  "chapter_order?": "number",
-  levels_completed: "number",
-  time_to_complete: "number",
+  chapter_id: 'string',
+  'chapter_order?': 'number',
+  levels_completed: 'number',
+  time_to_complete: 'number',
 });

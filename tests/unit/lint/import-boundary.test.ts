@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'bun:test';
 import { execSync } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { describe, expect, it } from 'vitest';
 
 const ROOT = path.resolve(import.meta.dirname, '../../..');
 

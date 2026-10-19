@@ -30,23 +30,16 @@
     "use:remote": "../../scripts/use-remote.sh",
     "status": "../../scripts/status.sh",
     "typecheck:baseline": "node scripts/typecheck-baseline.mjs",
-    "check:agent": "node scripts/check-agent-surface.mjs && bun run check:assets && bun run check:manifest",
-    "agent:surface": "node scripts/agent-surface.mjs",
-    "postinstall": "node scripts/agent-surface.mjs",
-    "predev": "node scripts/agent-surface.mjs",
+    "check:agent": "node scripts/check-agent-surface.mjs && node scripts/check-snippets.mjs && bun run check:assets && bun run check:manifest",
     "check": "nucleo game check local",
     "check:fix": "nucleo game check local --fix",
     "prebuild": "nucleo game check local --tier 0 --no-commit-hooks --warn-only || echo \"[prebuild] nucleo not available; skipped game checks\""
-  },
-  "cortex": {
-    "profile": "default"
   },
   "dependencies": {
     "@adobe/data": "^0.9.103",
     "@sentry/solid": "^10.72.0",
     "@wolfgames/client": "^0.1.62",
     "@wolfgames/components": "^2.4.2",
-    "@wolfgames/cortex": "^0.5.0",
     "arktype": "^2.2.3",
     "gsap": "^3.15.0",
     "howler": "^2.2.4",
@@ -75,10 +68,5 @@
   },
   "engines": {
     "node": ">=22"
-  },
-  "agentSurface": {
-    "recipes": true,
-    "cortex": false,
-    "systems": false
   }
 }

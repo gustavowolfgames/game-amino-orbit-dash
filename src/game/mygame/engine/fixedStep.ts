@@ -88,7 +88,12 @@ export function startFixedStepLoop(
   let accumulatorMs = 0;
 
   return engine.onFrame((realDtMs) => {
-    const plan = planFixedSteps(accumulatorMs, realDtMs, fixedDtMs, maxSubSteps);
+    const plan = planFixedSteps(
+      accumulatorMs,
+      realDtMs,
+      fixedDtMs,
+      maxSubSteps,
+    );
     for (let i = 0; i < plan.steps; i++) step(fixedDtMs);
     accumulatorMs = plan.accumulatorMs;
     options?.onInterpolate?.(plan.alpha);

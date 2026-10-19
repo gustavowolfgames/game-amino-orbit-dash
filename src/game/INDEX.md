@@ -30,6 +30,7 @@ src/game/
 | Session lifecycle tracking (start/pause/resume/end) | setup/session-tracker.ts |
 | Asset loading tracking (start/complete/abandon) | setup/loading-tracker.ts |
 | Game feature flag config + types | setup/flags.ts |
+| Saved run progress (versioned store, resets on a new content pack) | setup/progress.ts |
 | Player identity (via @wolfgames/client PlayerIdentityService) | setup/tracking.ts, setup/flags.ts |
 
 ## Screens (Solid.js shells)

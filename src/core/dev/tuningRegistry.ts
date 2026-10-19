@@ -128,7 +128,10 @@ export function isScaffoldPathWired(path: string): boolean {
  * Check if any children of a path prefix are wired.
  * Returns true if at least one path starting with the prefix is wired.
  */
-export function areAllChildrenWired(pathPrefix: string, isScaffold: boolean): boolean {
+export function areAllChildrenWired(
+  pathPrefix: string,
+  isScaffold: boolean,
+): boolean {
   const paths = isScaffold ? WIRED_SCAFFOLD_PATHS : WIRED_GAME_PATHS;
   const prefix = pathPrefix + '.';
 

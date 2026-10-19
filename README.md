@@ -13,13 +13,13 @@ satisfying, compulsively replayable. The quality bar lives in
 
 **This template guides agents with a small router plus on-demand recipes, not an
 always-on rule pack.** The agent always loads a 47-line router (`AGENTS.md`), then
-opens the one recipe the task needs. Benchmarks behind the default: recipes built the
-same games about 19% cheaper than the cortex rule pack, with equal build and test
+opens the one recipe the task needs. In benchmarks, recipes built the
+same games about 19% cheaper than an always-on rule pack, with equal build and test
 results (ENG-4734, ENG-4735). Reading instructions is about half of an agent's cost,
 so what loads every turn matters.
 
 ```
-CLAUDE.md                  GENERATED from the toggles below; imports AGENTS.md
+CLAUDE.md                  one line: imports AGENTS.md (Claude Code loads CLAUDE.md)
 AGENTS.md                  the router: task → which recipe to open (always loaded)
 .agents/
 ├── recipes/               opened only when the task needs one
@@ -34,41 +34,27 @@ AGENTS.md                  the router: task → which recipe to open (always loa
 │   ├── dynamic-data.md      daily editions, vault, Games Manager
 │   ├── analytics.md         analytics events
 │   ├── assets.md            images, audio, VFX via the wolf-game-kit MCP
-│   ├── systems.md           @wolfgames/game-systems steer (toggle, off)
+│   ├── systems.md           @wolfgames/game-systems steer (opt-in, off)
 │   └── verify.md            before saying "it works"
 ├── skills/                longer Pixi and controller guidance the recipes point at
-├── specs/                 large feature plans (copy SPEC.template.md)
 └── decisions.tsv          every structural change, with its evidence
 ```
 
-### The `agentSurface` toggles
+### Plain files, nothing generated
 
-`package.json` switches each guidance layer on or off:
-
-```json
-"agentSurface": {
-  "recipes": true,
-  "cortex": false,
-  "systems": false
-}
-```
-
-| Toggle | What it loads | Default |
-|---|---|---|
-| `recipes` | `AGENTS.md` router + always-on core + on-demand `.agents/recipes/` | **on** |
-| `cortex` | the `@wolfgames/cortex` alwaysApply rule pack (generated `.claude/rules/`, skills, commands) | off |
-| `systems` | `.agents/recipes/systems.md`, the `@wolfgames/game-systems` catalog steer, every turn | off |
+`AGENTS.md` is the one agent instruction file; `CLAUDE.md` just imports it. Both are
+tracked, and nothing runs on `bun install` or `bun run dev` to write rules, skills or
+agent files.
 
 ```bash
-bun run agent:surface                                # apply the toggles (also runs on postinstall and predev)
-AGENT_SURFACE=recipes,cortex bun run agent:surface   # try a combination without editing package.json
-bun run check:agent                                  # fails if CLAUDE.md drifts from the toggles, a recipe cites a missing path, …
+bun run check:agent   # fails if CLAUDE.md stops importing AGENTS.md, a recipe cites a missing path, …
 ```
 
-- **Never edit `CLAUDE.md` by hand.** Change the toggles; `agent:surface` regenerates it.
-- **Project instructions go in a recipe,** not in a cortex rule or a `postinstall` that writes rules.
-- **`dev` is plain `vite`, not `nucleo dev`:** `nucleo dev` runs `cortex:setup`, which
-  reinstalls the rule pack, and it refuses to run without an interactive terminal.
+- **Project instructions go in a recipe,** not in an install step that writes rules.
+- **`systems.md` is opt-in:** add `@.agents/recipes/systems.md` to `CLAUDE.md` (and
+  `bun add @wolfgames/game-systems`) to load the game-systems catalog every turn.
+- **`dev` is plain `vite`, not `nucleo dev`:** `nucleo dev` runs extra setup steps and
+  refuses to run without an interactive terminal.
 
 Details: [`.agents/README.md`](.agents/README.md).
 
@@ -101,7 +87,7 @@ for `@wolfgames/*` (see [Setup](#setup) below).
 
 ```bash
 git clone <repo-url>
-bun install     # also wires AI rules/skills into .agents/ and .claude/
+bun install
 bun run dev     # http://localhost:5173
 ```
 
@@ -132,13 +118,13 @@ structure, boundaries, workflow, and the self-maintenance mandate.
 `@wolfgames/*` packages live on GitHub Packages. [`.npmrc`](.npmrc) reads
 `NODE_AUTH_TOKEN` from your shell:
 
-1. Create a classic token with `read:packages` at
+1. Create a **classic** token (not fine-grained) with `read:packages` at
    https://github.com/settings/tokens (or run `gh auth token`).
 2. Add `export NODE_AUTH_TOKEN="ghp_..."` to `~/.zshrc` and reload.
 3. Verify with `echo $NODE_AUTH_TOKEN`.
 
-Full walkthrough (including the Cursor non-interactive-shell gotcha):
-[`docs/guides/game-kit-setup.md`](docs/guides/game-kit-setup.md).
+`401` on install means the token isn't set in that shell; `403` means a
+fine-grained token or a missing `read:packages` scope.
 
 ### MCP servers
 
@@ -210,7 +196,7 @@ Dependency rule: `core/` never imports from `game/`. Reusable building blocks
 come from [`@wolfgames/components`](https://github.com/wolfgames/game-components)
 (see [shared-components guide](docs/guides/shared-components.md)).
 
-Full picture: [`docs/core/architecture.md`](docs/core/architecture.md).
+Full picture: [`docs/reference/architecture.md`](docs/reference/architecture.md).
 
 ## Tech stack
 
@@ -230,10 +216,10 @@ Everything routes through [`docs/INDEX.md`](docs/INDEX.md). Highlights:
 | Topic | Doc |
 |-------|-----|
 | Design source of truth | [docs/GAME-DESIGN.md](docs/GAME-DESIGN.md) |
-| Creating a new game | [docs/guides/new-game.md](docs/guides/new-game.md) |
+| Creating a new game | [.agents/recipes/new-game.md](.agents/recipes/new-game.md) |
 | Best practices (required) | [docs/standards/best-practices.md](docs/standards/best-practices.md) |
 | Guardrails (required) | [docs/standards/guardrails.md](docs/standards/guardrails.md) |
-| Asset naming | [docs/guides/naming-convention.md](docs/guides/naming-convention.md) |
-| Debugging | [docs/guides/debugging.md](docs/guides/debugging.md) |
+| Asset naming | [docs/reference/asset-naming.md](docs/reference/asset-naming.md) |
+| Debugging | [docs/reference/debugging.md](docs/reference/debugging.md) |
 | Agent harness support | [docs/AGENT-HARNESSES.md](docs/AGENT-HARNESSES.md) |
 | Team learnings | [docs/LEARNINGS.md](docs/LEARNINGS.md) |

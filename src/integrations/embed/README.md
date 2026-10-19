@@ -1,7 +1,7 @@
 # Embed Integration
 
-Wires the game into a publisher-embed context. Source of truth: the
-cortex skill `amino-embed-integration`.
+Wires the game into a publisher-embed context. This README and the code
+in this folder are the source of truth.
 
 ## URL contract
 

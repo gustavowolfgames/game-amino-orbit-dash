@@ -1,22 +1,21 @@
-import type { BLEND_MODES } from "pixi.js";
+import type { BLEND_MODES } from 'pixi.js';
 import {
-  Application,
+  type Application,
   Container,
   Graphics,
   Rectangle,
   Sprite,
   Texture,
   type Ticker,
-} from "pixi.js";
+} from 'pixi.js';
 import type {
-  BurstConfig,
   GradientStop,
   ParticleConfig,
   ShapeConfig,
   SpawnerData,
   VFXData,
-} from "./types";
-import { DEFAULT_SHAPE, normalizeParticleConfig } from "./types";
+} from './types';
+import { DEFAULT_SHAPE, normalizeParticleConfig } from './types';
 
 /** Evaluate curve [[t,v],...] at normalized t in [0,1] */
 function evaluateCurve(curve: number[][], t: number): number {
@@ -142,8 +141,8 @@ function getStartColor(config: ParticleConfig): {
   g: number;
   b: number;
 } {
-  const mode = config.startColorMode ?? "constant";
-  if (mode === "constant") {
+  const mode = config.startColorMode ?? 'constant';
+  if (mode === 'constant') {
     return { ...config.colorStart };
   }
   const keys = config.startColorKeys;
@@ -164,18 +163,18 @@ function getShapeSpawn(
   spawnY: number,
 ): { x: number; y: number; angle: number } {
   const sh = { ...DEFAULT_SHAPE, ...shape };
-  const type = sh.type ?? "point";
+  const type = sh.type ?? 'point';
   const radius = sh.radius ?? 10;
   const radiusThickness = sh.radiusThickness ?? 0;
   const arc = ((sh.arc ?? 360) * Math.PI) / 180;
   const angleDeg = sh.angle ?? 270;
   const baseAngle = (angleDeg * Math.PI) / 180;
 
-  if (type === "point") {
+  if (type === 'point') {
     return { x: spawnX, y: spawnY, angle: baseAngle };
   }
 
-  if (type === "circle") {
+  if (type === 'circle') {
     const arcStart = -arc / 2;
     const theta = arcStart + Math.random() * arc;
     const rMin = radius * (1 - (radiusThickness ?? 0));
@@ -186,7 +185,7 @@ function getShapeSpawn(
     return { x, y, angle: outAngle };
   }
 
-  if (type === "rectangle") {
+  if (type === 'rectangle') {
     const w = (sh.width ?? 10) / 2;
     const h = (sh.height ?? 10) / 2;
     const x = spawnX + (Math.random() - 0.5) * w * 2;
@@ -194,7 +193,7 @@ function getShapeSpawn(
     return { x, y, angle: baseAngle };
   }
 
-  if (type === "edge") {
+  if (type === 'edge') {
     const len = sh.radius ?? 10;
     const thickness = sh.radiusThickness ?? 0;
     const t = Math.random();
@@ -210,7 +209,7 @@ function getShapeSpawn(
     return { x, y, angle: perpAngle };
   }
 
-  if (type === "cone") {
+  if (type === 'cone') {
     const coneSpread = ((sh.coneAngle ?? 30) * Math.PI) / 180;
     const arcStart = baseAngle - coneSpread / 2;
     const theta = arcStart + Math.random() * coneSpread;
@@ -226,10 +225,10 @@ function getShapeSpawn(
 
 function createProceduralTexture(): Texture {
   const size = 64;
-  const canvas = document.createElement("canvas");
+  const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext('2d');
   if (ctx) {
     const gradient = ctx.createRadialGradient(
       size / 2,
@@ -239,9 +238,9 @@ function createProceduralTexture(): Texture {
       size / 2,
       size / 2,
     );
-    gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
-    gradient.addColorStop(0.5, "rgba(255, 255, 255, 0.5)");
-    gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.5)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, size, size);
   }
@@ -263,7 +262,7 @@ async function loadTexture(
     cache.set(textureName, texture);
     return texture;
   }
-  const path = basePath.replace(/\/?$/, "/") + textureName;
+  const path = basePath.replace(/\/?$/, '/') + textureName;
   try {
     const image = new Image();
     await new Promise<void>((resolve, reject) => {
@@ -291,7 +290,7 @@ export function createParticleRuntime(
   app: Application,
   options: ParticleRuntimeOptions = {},
 ) {
-  const { isPreview = false, assetBasePath = "/assets/vfx/" } = options;
+  const { isPreview = false, assetBasePath = '/assets/vfx/' } = options;
   const spawners: RuntimeSpawner[] = [];
   const textureCache = new Map<string, Texture>();
   const frameTextureCache = new Map<string, Texture[]>();
@@ -428,7 +427,7 @@ export function createParticleRuntime(
 
       const spawner: RuntimeSpawner = {
         id: spawnerData.id ?? `spawner_${Date.now()}`,
-        name: spawnerData.name ?? "Spawner",
+        name: spawnerData.name ?? 'Spawner',
         data: spawnerData,
         config,
         container,
@@ -473,7 +472,7 @@ export function createParticleRuntime(
       const angleVar =
         ((Math.random() - 0.5) * spawner.config.angleVariance * Math.PI) / 180;
       const dirFromShape =
-        shape.type === "point" ? baseAngle + angleVar : shapeAngle + angleVar;
+        shape.type === 'point' ? baseAngle + angleVar : shapeAngle + angleVar;
       const randomizeDir = shape.randomizeDirection ?? 0;
       const randomAngle = Math.random() * Math.PI * 2;
       const velocityAngle =
@@ -486,7 +485,7 @@ export function createParticleRuntime(
       const textureSize = spawner.texture.width;
       let startScale: number;
       let endScale: number;
-      if (spawner.config.sizeMode === "pixels") {
+      if (spawner.config.sizeMode === 'pixels') {
         startScale = spawner.config.sizeStartPixels / textureSize;
         endScale = spawner.config.sizeEndPixels / textureSize;
       } else {
@@ -519,11 +518,11 @@ export function createParticleRuntime(
       const rotationVar =
         (Math.random() - 0.5) * spawner.config.rotationVariance * 2;
       angularVelocity *= 1 + rotationVar;
-      if (spawner.config.rotationDirection === "clockwise") {
+      if (spawner.config.rotationDirection === 'clockwise') {
         angularVelocity = Math.abs(angularVelocity);
-      } else if (spawner.config.rotationDirection === "counter-clockwise") {
+      } else if (spawner.config.rotationDirection === 'counter-clockwise') {
         angularVelocity = -Math.abs(angularVelocity);
-      } else if (spawner.config.rotationDirection === "random") {
+      } else if (spawner.config.rotationDirection === 'random') {
         angularVelocity *= Math.random() < 0.5 ? 1 : -1;
       }
 
@@ -623,7 +622,7 @@ export function createParticleRuntime(
   }
 
   function update(ticker: Ticker): void {
-    let delta = ticker.deltaTime / 60;
+    const delta = ticker.deltaTime / 60;
     totalTime += delta;
 
     for (const spawner of spawners) {
@@ -639,8 +638,15 @@ export function createParticleRuntime(
         continue;
       }
 
-      const hasTimedBursts = spawner.config.bursts && spawner.config.bursts.length > 0;
-      if (isPreview && spawner.config.burst && !hasTimedBursts && spawner.particles.length === 0 && spawner.hasBurst) {
+      const hasTimedBursts =
+        spawner.config.bursts && spawner.config.bursts.length > 0;
+      if (
+        isPreview &&
+        spawner.config.burst &&
+        !hasTimedBursts &&
+        spawner.particles.length === 0 &&
+        spawner.hasBurst
+      ) {
         spawner.hasBurst = false;
       }
 
@@ -728,7 +734,6 @@ export function createParticleRuntime(
             p.vy += (dy / dist) * radial;
           }
           if (vol.speedModifier != null) {
-            const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy) || 1;
             const mult = vol.speedModifier;
             p.vx *= mult;
             p.vy *= mult;

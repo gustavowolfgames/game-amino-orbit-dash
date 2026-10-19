@@ -1,4 +1,4 @@
-import { createSignal, createRoot } from 'solid-js';
+import { createRoot, createSignal } from 'solid-js';
 
 export interface PauseState {
   paused: () => boolean;

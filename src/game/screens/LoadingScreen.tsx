@@ -1,14 +1,20 @@
+import {
+  useConfigState,
+  useManifest,
+  useSignal,
+} from '@wolfgames/components/solid';
 import { createMemo, createSignal, onMount } from 'solid-js';
-import { useScreen } from '~/core/systems/screens';
+import { type ScaffoldTuning, useTuning } from '~/core';
 import { useAssets, useLoadingState } from '~/core/systems/assets';
-import { useConfigState, useManifest, useSignal } from '@wolfgames/components/solid';
-import { useTuning, type ScaffoldTuning } from '~/core';
-import type { GameTuning } from '~/game/tuning';
-import { gameConfig, GAME_TITLE } from '~/game/config';
-import { loadContent } from '~/game/setup/content';
+import { useScreen } from '~/core/systems/screens';
+import { GAME_TITLE, gameConfig } from '~/game/config';
+import { loadBootContent } from '~/game/setup/content';
 import { useGameTracking } from '~/game/setup/tracking';
+import type { GameTuning } from '~/game/tuning';
+import { inVault } from '~/integrations/vault';
 import { IntroSting } from './components/IntroSting';
 import { titleArt } from './components/titleFrame';
+import { resolveSkipSource } from './skipStartScreen';
 
 export function LoadingScreen() {
   const { goto } = useScreen();
@@ -31,23 +37,22 @@ export function LoadingScreen() {
     .filter((b) => b.name.startsWith('boot-splash'))
     .map((b) => b.name);
   const titleBootBundles = m.bundles
-    .filter((b) => b.name.startsWith('boot-') && !b.name.startsWith('boot-splash'))
+    .filter(
+      (b) => b.name.startsWith('boot-') && !b.name.startsWith('boot-splash'),
+    )
     .map((b) => b.name);
   const themeBundles = bundlesByPrefix('theme-');
   const coreBundles = bundlesByPrefix('core-');
   const audioBundles = bundlesByPrefix('audio-');
 
-  type SkipSource = 'config' | 'dev_mode' | 'url_param';
-
-  const resolveSkipSource = (): SkipSource | null => {
-    if (gameConfig.skipStartScreen) return 'config';
-    if (tuning.game.devMode?.skipStartScreen) return 'dev_mode';
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('screen') === 'game') return 'url_param';
-    return null;
-  };
-
-  const skipSource = resolveSkipSource();
+  // In the Vault (or when config, dev mode or `?screen=game` asks), loading hands straight to
+  // the game. Precedence: ./skipStartScreen.ts.
+  const skipSource = resolveSkipSource({
+    inVault: inVault(),
+    configSkip: gameConfig.skipStartScreen === true,
+    devModeSkip: tuning.game.devMode?.skipStartScreen === true,
+    search: window.location.search,
+  });
   const skipToGame = skipSource !== null;
 
   // When skipping: block on splash + theme + core + audio; title boot assets load in background.
@@ -74,11 +79,15 @@ export function LoadingScreen() {
 
   onMount(async () => {
     // Content Pack + brand sheet (Dynamic Data), in parallel with the bundles. Never rejects,
-    // and is bounded — a slow or empty CDN costs the published content, never the boot.
-    const content = loadContent(gameKit());
+    // and is bounded — a slow or empty CDN costs the published content, never the boot. In a
+    // Vault it first waits (bounded) for the host's first context, so the Vault's selection —
+    // not the bundled pack — is what loads.
+    const content = loadBootContent(gameKit());
     // The next screen's code, fetched while the loader plays: a lazy screen fetched only at the
     // handoff leaves a dark frame between the loader and the title's first frame.
-    const nextScreen = gameConfig.screens[skipToGame ? 'game' : 'start'] as { preload?: () => Promise<unknown> };
+    const nextScreen = gameConfig.screens[skipToGame ? 'game' : 'start'] as {
+      preload?: () => Promise<unknown>;
+    };
     const nextScreenReady = nextScreen.preload?.();
     try {
       if (skipToGame) {

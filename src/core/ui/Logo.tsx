@@ -12,9 +12,12 @@ export function Logo(props: LogoProps) {
   onMount(async () => {
     try {
       // Get logo from branding atlas
-      const url = await coordinator.dom.getFrameURL('atlas-branding-wolf', 'logo-wide-small');
+      const url = await coordinator.dom.getFrameURL(
+        'atlas-branding-wolf',
+        'logo-wide-small',
+      );
       setSrc(url);
-    } catch (e) {
+    } catch {
       console.warn('Logo not loaded yet');
     }
   });

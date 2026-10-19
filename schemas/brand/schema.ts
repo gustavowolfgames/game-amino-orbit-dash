@@ -171,7 +171,7 @@ export const BrandDef = type({
   'badge?': type(HEX).or('null'),
   /**
    * Extra colours beside the palette, one flat ordered list. Not roles: games use them when they
-   * need several colours (this template's orbs, a game's tiles). `null` → the kit's list, which every
+   * need several colours (a game's pieces or tiles). `null` → the kit's list, which every
    * build gets by default; `[]` → none. A published list replaces the build's list
    * wholesale, never entry by entry. Capped so a CMS slip cannot ship hundreds.
    */

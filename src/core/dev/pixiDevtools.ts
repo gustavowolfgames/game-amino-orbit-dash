@@ -14,7 +14,9 @@ const NON_PRODUCTION_ENVS = new Set(['local', 'dev', 'qa', 'staging']);
  */
 const ENABLED =
   import.meta.env.DEV ||
-  NON_PRODUCTION_ENVS.has(String(import.meta.env.VITE_APP_ENV ?? '').toLowerCase());
+  NON_PRODUCTION_ENVS.has(
+    String(import.meta.env.VITE_APP_ENV ?? '').toLowerCase(),
+  );
 
 /**
  * Expose the live Pixi app as `globalThis.__PIXI_APP__` so the PixiJS DevTools

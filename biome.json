@@ -1,7 +1,13 @@
 {
   "extends": ["@wolfgames/game-dev/config/biome"],
   "files": {
-    "includes": ["**", "!dist", "!index.html"]
+    "includes": [
+      "**",
+      "!dist",
+      "!index.html",
+      "!test-results",
+      "!playwright-report"
+    ]
   },
   "css": {
     "parser": {

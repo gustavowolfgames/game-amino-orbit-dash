@@ -3,13 +3,20 @@
  *
  * `getStored`/`setStored`/`removeStored` are safe localStorage helpers with SSR
  * support and error handling. `createVersionedStore` is a thin wrapper over the
- * Wolf SDK `GameSaveService`. It keeps a sync `{ load, save, clear, key }` 
+ * Wolf SDK `GameSaveService`. It keeps a sync `{ load, save, clear, key }`
  * surface over the SDK's async API.
  */
 
+import type {
+  BaseGameData,
+  StorageConfig,
+  StorageEnvelope,
+} from '@wolfgames/client';
 import { GameSaveService } from '@wolfgames/client';
-import type { BaseGameData, StorageConfig, StorageEnvelope } from '@wolfgames/client';
-import { getResolvedIdentityService, resolvePlayerId } from '../systems/identity';
+import {
+  getResolvedIdentityService,
+  resolvePlayerId,
+} from '../systems/identity';
 
 /**
  * Get a value from localStorage with a fallback.
@@ -95,7 +102,8 @@ export interface VersionedStore<T> {
 // ── Boot-time registry: the whole public seam boot awaits ────────────────────
 const priming: Promise<unknown>[] = [];
 /** entry-client awaits this once, after resolvePlayerId(), before render(). */
-export const whenStoresReady = (): Promise<unknown> => Promise.allSettled(priming);
+export const whenStoresReady = (): Promise<unknown> =>
+  Promise.allSettled(priming);
 
 /**
  * Create a versioned store for persisting typed data.
@@ -106,7 +114,7 @@ export const whenStoresReady = (): Promise<unknown> => Promise.allSettled(primin
  * into the envelope once on first load, so a fork keeps existing player saves.
  */
 export function createVersionedStore<T extends { version: number }>(
-  config: VersionedStoreConfig<T>
+  config: VersionedStoreConfig<T>,
 ): VersionedStore<T> {
   const { key, version, defaults, migrations, validate } = config;
 
@@ -132,7 +140,8 @@ export function createVersionedStore<T extends { version: number }>(
   const sdkMigrations: NonNullable<StorageConfig<Stored>['migrations']> = {};
   if (migrations) {
     for (const v of Object.keys(migrations).map(Number)) {
-      sdkMigrations[v - 1] = (old) => ({ ...old, ...migrations[v](old) }) as Stored;
+      sdkMigrations[v - 1] = (old) =>
+        ({ ...old, ...migrations[v](old) }) as Stored;
     }
   }
 
@@ -154,7 +163,11 @@ export function createVersionedStore<T extends { version: number }>(
       if (rawOld === null) return;
       const parsed = JSON.parse(rawOld) as { version?: unknown };
       if (!isUsable(parsed)) return;
-      const data = { ...(parsed as unknown as T), gameId: key, lastPlayed: 0 } as Stored;
+      const data = {
+        ...(parsed as unknown as T),
+        gameId: key,
+        lastPlayed: 0,
+      } as Stored;
       const envelope: StorageEnvelope<Stored> = {
         version: (parsed as { version: number }).version,
         timestamp: Date.now(),

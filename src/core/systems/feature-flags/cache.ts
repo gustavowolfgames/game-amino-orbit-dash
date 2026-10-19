@@ -63,7 +63,10 @@ export function saveFlagCache<T extends object>(
   flags: T,
 ): void {
   try {
-    localStorage.setItem(getStorageKey(storagePrefix, userId), JSON.stringify(flags));
+    localStorage.setItem(
+      getStorageKey(storagePrefix, userId),
+      JSON.stringify(flags),
+    );
   } catch {
     /* Ignore quota errors */
   }

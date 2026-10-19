@@ -10,27 +10,20 @@
  * for the deployed pipeline; these bundled copies are what dev + build load.
  *
  * This is a NEUTRAL template placeholder set — swap the .webp for your game's art
- * (same filenames) and everything downstream keeps working. A single neutral orb
- * is tinted per colour index (the brand theme's piece colours); replace it with one
- * sprite per index when the art count grows (pack into a `scene-*` atlas then).
+ * (same filenames) and everything downstream keeps working. Gameplay sprites
+ * belong in a `scene-*` atlas from the asset pipeline (`.agents/recipes/assets.md`),
+ * not in this folder.
  */
 
 import { Assets, type Texture } from 'pixi.js';
-
-// Gameplay art — one neutral orb (tinted per colour index at render time) and
-// the game-field background.
-import orbUrl from '../assets/generated/piece-orb.webp?url';
 import fieldUrl from '../assets/generated/bg-game.webp?url';
-
+import titleBgUrl from '../assets/generated/bg-title.webp?url';
+import playUrl from '../assets/generated/ui-button_play.webp?url';
 // Start-screen art — the title wordmark, the round play button, and the
 // title-screen background.
 import titleUrl from '../assets/generated/ui-title.webp?url';
-import playUrl from '../assets/generated/ui-button_play.webp?url';
-import titleBgUrl from '../assets/generated/bg-title.webp?url';
 
 export interface GameTextures {
-  /** Neutral orb, tinted per colour index (theme `pieces` order) by the renderer. */
-  orb: Texture;
   /** Full-bleed game background. */
   field: Texture;
 }
@@ -41,13 +34,9 @@ export interface StartTextures {
   splash: Texture;
 }
 
-/** Load every gameplay texture the board needs. Resolves once all are decoded. */
+/** Load the gameplay textures. Resolves once all are decoded. */
 export async function loadGameTextures(): Promise<GameTextures> {
-  const [orb, field] = await Promise.all([
-    Assets.load<Texture>(orbUrl),
-    Assets.load<Texture>(fieldUrl),
-  ]);
-  return { orb, field };
+  return { field: await Assets.load<Texture>(fieldUrl) };
 }
 
 /** Load the start-screen textures. Resolves once all are decoded. */

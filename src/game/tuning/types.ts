@@ -1,5 +1,5 @@
-import type { GameTuningBase } from '~/core/systems/tuning/types';
 import type { MotionPresetName } from '@wolfgames/components/modules/logic/motion-presets';
+import type { GameTuningBase } from '~/core/systems/tuning/types';
 
 // ============================================
 // GAME TUNING TYPES — Template
@@ -45,8 +45,8 @@ export const GAME_DEFAULTS: GameTuning = {
     loadingBackgroundColor: '#BCE083',
   },
   startScreen: {
-    logoMotion:   'breathe', // scale pulse only — no tilt/sway
-    buttonMotion: 'gentle',  // float + breathe
+    logoMotion: 'breathe', // scale pulse only — no tilt/sway
+    buttonMotion: 'gentle', // float + breathe
   },
 };
 

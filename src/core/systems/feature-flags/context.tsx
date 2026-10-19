@@ -1,16 +1,19 @@
 import {
+  useAnalyticsService,
+  useConfigState,
+} from '@wolfgames/components/solid';
+import {
   createContext,
-  useContext,
-  onMount,
   onCleanup,
-  Show,
+  onMount,
   type ParentProps,
+  Show,
+  useContext,
 } from 'solid-js';
 import { createStore } from 'solid-js/store';
-import { useAnalyticsService, useConfigState } from '@wolfgames/components/solid';
-import type { FeatureFlagState } from './types';
-import { getRegisteredFlagConfig } from './registry';
 import { loadFlagCache, saveFlagCache, validateFlags } from './cache';
+import { getRegisteredFlagConfig } from './registry';
+import type { FeatureFlagState } from './types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const FeatureFlagContext = createContext<FeatureFlagState<any>>();
@@ -78,7 +81,9 @@ export function FeatureFlagProvider(props: ParentProps) {
 
   // PostHog is already initialized (service is ready before provider mounts)
   if (ph) {
-    const stopListening = ph.onFeatureFlags(() => processFlags('posthog_update'));
+    const stopListening = ph.onFeatureFlags(() =>
+      processFlags('posthog_update'),
+    );
     onCleanup(() => {
       if (typeof stopListening === 'function') stopListening();
     });
@@ -103,7 +108,9 @@ export function FeatureFlagProvider(props: ParentProps) {
 
     const timeoutId = window.setTimeout(() => {
       if (!isSettled) {
-        console.warn('[FeatureFlags] Timeout exceeded. Unblocking UI with current data.');
+        console.warn(
+          '[FeatureFlags] Timeout exceeded. Unblocking UI with current data.',
+        );
         setState('isReady', true);
         isSettled = true;
       }
@@ -114,17 +121,19 @@ export function FeatureFlagProvider(props: ParentProps) {
 
   return (
     <FeatureFlagContext.Provider value={state}>
-      <Show when={state.isReady}>
-        {props.children}
-      </Show>
+      <Show when={state.isReady}>{props.children}</Show>
     </FeatureFlagContext.Provider>
   );
 }
 
-export function useFeatureFlags<T extends object = Record<string, unknown>>(): FeatureFlagState<T> {
+export function useFeatureFlags<
+  T extends object = Record<string, unknown>,
+>(): FeatureFlagState<T> {
   const context = useContext(FeatureFlagContext);
   if (!context) {
-    throw new Error('useFeatureFlags must be used within a FeatureFlagProvider');
+    throw new Error(
+      'useFeatureFlags must be used within a FeatureFlagProvider',
+    );
   }
   return context as FeatureFlagState<T>;
 }

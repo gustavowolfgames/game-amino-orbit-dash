@@ -8,7 +8,7 @@ Everything under this folder is game code. Before adding a HUD, button, screen, 
 - If the user picked a module and it turns out to need something the game lacks (an atlas, a missing config knob), stop and tell them what is missing and the options; never switch to a custom build on your own.
 - A module whose name or description matches what you are writing is a "use it" case: use → configure/variant → compose → build new, in that order. The catalog module wins over the "avoid filters" guardrail.
 
-Once `@wolfgames/cortex` ships the catalog gate, Claude Code blocks the first write that adds `new Graphics(` / `new Text(` / `ParticleContainer` or a new screen here until the catalog has been read. When there are candidates, list them to the user and ask: use one, or build new? Their answer goes above the code and the gate lets it through:
+Before the first write that adds `new Graphics(` / `new Text(` / `ParticleContainer` or a new screen here, read the catalog. When there are candidates, list them to the user and ask: use one, or build new? Their answer goes above the code:
 
 ```ts
 // catalog: considered particle-burst, pixel-burst — user chose particle-burst   (then import it)

@@ -1,9 +1,6 @@
 export type {
-  GameTuning,
   DevModeConfig,
   GameScreensConfig,
+  GameTuning,
 } from './types';
-
-export { GAME_DEFAULTS } from './types';
-
-export { getThemeFromUrl } from './types';
+export { GAME_DEFAULTS, getThemeFromUrl } from './types';

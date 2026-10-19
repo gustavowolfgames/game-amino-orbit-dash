@@ -81,7 +81,7 @@ Call `createParticleRuntime(app)` from `src/core/systems/vfx/particleRuntime.ts`
 
 Lay the scene out in design px inside a `DesignLayer` from `@wolfgames/components/pixi`. It defaults to `DESIGN_CANVAS`, the canvas every Wolf screen uses. Wire resizes with `trackHostBox(app, hostElement, [layer])`, passing the element `init` receives, and call the returned stop function in `destroy`. Do not write `Math.min(w / DESIGN_W, h / DESIGN_H)`. Section 9.2a of `node_modules/@wolfgames/components/docs/standards/components.md` has the full API.
 
-The sample predates this. It fits its own `DESIGN_W` by `DESIGN_H` box from `src/game/mygame/demo/config.ts` by hand in `src/game/mygame/screens/gameController.ts`. Do not copy that fit into new scene code. Read the canvas size from `DESIGN_CANVAS` in `@wolfgames/components/core` wherever the sim or the view needs it. Do not redeclare it.
+The template predates this. It fits its own `DESIGN_W` by `DESIGN_H` box from `src/game/mygame/config.ts` by hand in `src/game/mygame/screens/gameController.ts`. Do not copy that fit into new scene code. Read the canvas size from `DESIGN_CANVAS` in `@wolfgames/components/core` wherever the sim or the view needs it. Do not redeclare it.
 
 ## Performance
 

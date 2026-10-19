@@ -1,1 +1,1 @@
-export { TweakpaneConfig, isOpen, setIsOpen } from '../dev';
+export { isOpen, setIsOpen, TweakpaneConfig } from '../dev';

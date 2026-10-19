@@ -10,7 +10,12 @@
  * those leaves the build's own brand in place, which is always complete and correct.
  */
 
-import { dynamicClient, type EntryClient, isPackNotFound, type KitLike } from '../content/dynamic-client';
+import {
+  dynamicClient,
+  type EntryClient,
+  isPackNotFound,
+  type KitLike,
+} from '../content/dynamic-client';
 import { BUILD_SHEET } from './defaults';
 import { loadFonts } from './fonts';
 import { mergeOverride, validateOverride } from './merge';
@@ -27,12 +32,19 @@ export const THEME_ENTRY = 'theme';
  * the pack is not bound or carries no sheet. The level loader asks for the same key and the SDK
  * caches the bundle, so this is not a second download.
  */
-async function sheetFromPack(client: EntryClient, packKey: string): Promise<unknown> {
+async function sheetFromPack(
+  client: EntryClient,
+  packKey: string,
+): Promise<unknown> {
   try {
     const sheets = (await client.getPack(packKey)).schemas.brand?.entries ?? {};
     return sheets[THEME_ENTRY] ?? Object.values(sheets)[0] ?? null;
   } catch (err) {
-    if (!isPackNotFound(err)) console.warn(`[brand] pack "${packKey}" unavailable — reading the theme entry.`, err);
+    if (!isPackNotFound(err))
+      console.warn(
+        `[brand] pack "${packKey}" unavailable — reading the theme entry.`,
+        err,
+      );
     return null;
   }
 }
@@ -41,7 +53,10 @@ async function sheetFromPack(client: EntryClient, packKey: string): Promise<unkn
  * Fetch, validate and apply the published sheet. Resolves to the theme now in force, or null
  * when the build's own brand was left untouched.
  */
-export async function loadBrand(gameKit: KitLike | null | undefined, packKey?: string): Promise<GameTheme | null> {
+export async function loadBrand(
+  gameKit: KitLike | null | undefined,
+  packKey?: string,
+): Promise<GameTheme | null> {
   if (!gameKit) return null;
 
   let raw: unknown = null;
@@ -52,21 +67,28 @@ export async function loadBrand(gameKit: KitLike | null | undefined, packKey?: s
     // empty sheet, which would merge to the same no-op through a longer path.
     raw ??= await client.getEntry('brand', THEME_ENTRY);
   } catch (err) {
-    console.warn(`[brand] theme sheet "${THEME_ENTRY}" unavailable — keeping the build's brand.`, err);
+    console.warn(
+      `[brand] theme sheet "${THEME_ENTRY}" unavailable — keeping the build's brand.`,
+      err,
+    );
     return null;
   }
   if (raw == null) return null;
 
   const override = validateOverride(raw);
   if (!override) {
-    console.warn(`[brand] theme sheet refused: not a valid brand sheet — keeping the build's brand.`);
+    console.warn(
+      `[brand] theme sheet refused: not a valid brand sheet — keeping the build's brand.`,
+    );
     return null;
   }
   if (Object.keys(override).length === 0) return null;
 
   // Fonts first (awaited) so the one theme change carries the finished look — faces in, colours on.
   const families = await loadFonts(override.fonts ?? []);
-  return applyTheme(resolveTheme(mergeOverride(BUILD_SHEET, override), families));
+  return applyTheme(
+    resolveTheme(mergeOverride(BUILD_SHEET, override), families),
+  );
 }
 
 /** Drop any published sheet and wear the build's brand again (a Vault deselection, tests). */

@@ -8,7 +8,7 @@ How to use shared building blocks from `@wolfgames/components`.
 >
 > The rest of this guide describes the structure and contract that applies to shared modules in the upstream repo (and to game-specific composition here).
 
-> **Design authority**: See [architecture.md](../core/architecture.md) for tier definitions, contracts, and extension rules.
+> **Design authority**: See [architecture.md](../reference/architecture.md) for tier definitions, contracts, and extension rules.
 
 ---
 
@@ -396,8 +396,7 @@ Create a module when:
 
 New shared modules are authored in the
 [wolfgames/game-components](https://github.com/wolfgames/game-components)
-repo, not here — this repo no longer has a `src/modules/` tier. The flow
-(cortex `component-authoring` rule has the full version):
+repo, not here — this repo no longer has a `src/modules/` tier. The flow:
 
 1. **Incubate in your game** — build it under `src/game/[gamename]/` with the
    standard module shape (`index.ts`, `defaults.ts`, `tuning.ts`,
@@ -423,6 +422,5 @@ repo, not here — this repo no longer has a `src/modules/` tier. The flow
 
 ## Related
 
-- [Architecture (design authority)](../core/architecture.md) — Tier contracts and extension rules
-- [Writing a Module](../modules/writing-a-module.md) — Detailed module authoring guide
-- [Animation Cookbook](animation-cookbook.md) — GSAP patterns used by modules
+- [Architecture (design authority)](../reference/architecture.md) — Tier contracts and extension rules
+- [Animation](../reference/animation.md) — GSAP patterns used by modules

@@ -17,7 +17,7 @@ Rules for building games in this project. Read before writing code. For anti-pat
 | Module folders | `kebab-case/` | `sprite-button/`, `level-completion/` |
 | Asset files | `{category}-{name}[_{variant}].{ext}` | `piece-dot.png`, `ui-button_play.png` |
 
-See [naming-convention.md](../guides/naming-convention.md) for the full asset naming spec.
+See [asset-naming.md](../reference/asset-naming.md) for the full asset naming spec.
 
 ### Code
 
@@ -118,7 +118,7 @@ assets when you're working without the MCP or iterating rapidly (served at
 | Audio sprite | `music-{name}.json` + `.mp3`/`.ogg` | `music-mygame-theme.json` |
 | VFX atlas | `vfx-{name}.json` + `.png` | `vfx-blast.json`, `vfx-blast.png` |
 
-See [naming-convention.md](../guides/naming-convention.md) for the full naming spec.
+See [asset-naming.md](../reference/asset-naming.md) for the full naming spec.
 
 ### Registering in the manifest
 
@@ -259,4 +259,4 @@ gsap.fromTo(sprite.scale, { x: 1.2, y: 0.8 }, { x: 1, y: 1, duration: 0.15 });
 gsap.to(sprite, { alpha: 0, duration: 0.2, onComplete: () => sprite.destroy() });
 ```
 
-See [animation-cookbook.md](../guides/animation-cookbook.md) for more patterns.
+See [animation.md](../reference/animation.md) for more patterns.
