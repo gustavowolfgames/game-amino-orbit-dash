@@ -24,7 +24,7 @@ Packed PNG sheets go in as they are. Publish finds each sheet through its atlas 
 
 Publish with `assets_publish`. `bun run assets:publish` does the same from a terminal. The `wolf-dev` CLI behind the `assets:*` scripts refuses to run without an interactive terminal, so agents use the MCP tools. It writes `assets/asset-manifest.cdn.json` and `assets/registry.ts`. Commit both. Do not commit the media. Publish keeps no originals, so keep your own copy of anything you made.
 
-Assets land under `gameSlug` in `wolf-game-kit.json`. It must equal the Nucleo slug. If it still says `mygame`, stop and set the real slug. The `projectId` argument on asset-gen tools defaults to that slug. Pass it only to reach another project's assets.
+Assets land under `gameSlug` in `wolf-game-kit.json`. It must equal the Nucleo slug. If it still says `mygame` or `aminoecspure` (this template's own slug), stop and set the real slug: art made under `aminoecspure` lands in the template's folder, not the game's. The `projectId` argument on asset-gen tools defaults to that slug. Pass it only to reach another project's assets.
 
 Freeze the draft with `assets_release` before a build that players will run.
 
