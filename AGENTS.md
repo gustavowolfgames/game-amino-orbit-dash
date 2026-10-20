@@ -19,6 +19,7 @@ Match the task, then open that file.
 
 - Building a new game in this template. Open `.agents/recipes/new-game.md`.
 - A match-3 (swap tiles, clear runs, cascades). Run `bun run add-kit match3` first: it installs a working match-3 you then change. Its guide is `kits/match3/KIT.md`.
+- A ball sort or tube sort (move balls between tubes until each is one colour). Run `bun run add-kit ballsort` first: it installs a working ball sort you then change. Its guide is `kits/ballsort/KIT.md`.
 - Gameplay state, a turn, a score, entities, or a frame loop. Open `.agents/recipes/ecs.md`.
 - Input (tap, swipe, keyboard), a leak, DOM in the game, or a "do not" rule. Open `.agents/recipes/guardrails.md`.
 - A sprite, canvas HUD, transition, VFX, or other Pixi drawing. Open `.agents/recipes/pixi.md`.
