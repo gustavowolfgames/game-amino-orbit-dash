@@ -43,7 +43,10 @@ Thumbs.db
 Desktop.ini
 
 # MCP (machine-local — provisioned by workspace setup / Nucleo Studio)
+# Older Studio runs wrote API keys into the Zed and .agents files.
 .mcp.json
+.zed/settings.json
+.agents/mcp.json
 
 # CDN-first asset working dir — only the lockfile and registry.ts are
 # committed (see assets/README.md).
