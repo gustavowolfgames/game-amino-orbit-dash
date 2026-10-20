@@ -92,7 +92,7 @@ A physics engine is one per-frame system, not a second source of truth. Each ste
 For an older game that keeps rules in Solid:
 
 1. Copy `src/game/mygame/sim/`, `src/game/mygame/world.ts`, and the `@adobe/data` dependency.
-2. Mirror board state as entities and check them in the Inspector.
+2. Mirror board state into the world (entities for things that move, one array resource for a fixed board) and check it in the Inspector.
 3. Move score, level, and phase from signals to resources.
 4. Wrap turn logic in turn functions over transactions.
 5. Point screens at the world and delete the signals.

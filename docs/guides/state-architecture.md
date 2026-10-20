@@ -59,7 +59,8 @@ setActiveInspectorActions([]);     // clear dev surfaces
 | State | Where | Why |
 |-------|-------|-----|
 | Score, moves, level, stars, phase | ECS resource | Source of truth, Inspector visible, observable |
-| Board cells (blocks, obstacles, powerups) | ECS entities | Source of truth, Inspector shows every cell |
+| Board things that move, spawn or clear (blocks, gems, obstacles, powerups) | ECS entities | Source of truth, Inspector shows every one |
+| A fixed board's squares (sudoku, wordle, crossword) | ECS resource: one dense array | Squares never move; rules take the array as is, with no copy out and back |
 | Position, velocity (real-time bodies) | ECS components | Integrated per frame by systems (see below) |
 | Stars, blocker count | ECS computed | Derived from score / entity counts |
 | Coins, lives (meta-progression) | ECS resource | Survives across screens via the app-scoped world |
@@ -220,7 +221,7 @@ computed.* auto-update · setActiveDb(db) → Inspector (dev)
 New games built from this template skip this — the world is already wired. For an existing game that grew up on signals:
 
 1. **Add ECS infrastructure** — copy `src/game/mygame/sim/` + `world.ts` from the template, add the `@adobe/data` dep.
-2. **Observation layer** — mirror board state as entities; see it in the Inspector.
+2. **Observation layer** — mirror board state into ECS (entities for things that move, one array resource for a fixed board); see it in the Inspector.
 3. **Resources** — move score/moves/level/phase from signals to ECS resources.
 4. **Turn functions** — wrap turn logic in plain typed functions over transactions; thin the controller.
 5. **Computed** — derived state (stars, blocker count) auto-updates.

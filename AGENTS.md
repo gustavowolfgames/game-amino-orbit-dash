@@ -9,7 +9,7 @@ This game is SolidJS and Pixi 8. Gameplay state lives in the `@adobe/data` ECS w
 These hold for every change, whether or not you open a recipe.
 
 1. **No DOM in game code.** Outside `src/game/screens/`, `src/game/setup/` and `src/game/brand/` (theming), nothing under `src/game/` touches `document`, `window` listeners, `element.style`, `requestAnimationFrame`, `setTimeout`, or `setInterval`. Keyboard and other DOM input is wired in a Solid screen and passed to the controller as intents.
-2. **ECS models the world.** Grid cells, pieces, and bodies are archetype entities with a `spriteKey`. Resources hold only global values (score, phase, level, rng). State changes only inside `db.transactions`, with a seeded rng and no `Math.random`.
+2. **ECS models the world.** Things that keep their identity as they move, or appear and clear during play (pieces, falling blocks, bodies, projectiles), are archetype entities with a `spriteKey`. A fixed board whose squares never move, only change value (sudoku, wordle, a crossword), is one dense array in a resource, indexed by position. Other resources hold only global values (score, phase, level, rng). State changes only inside `db.transactions`, with a seeded rng and no `Math.random`.
 3. **`src/core/` is read-only.**
 4. **A new game fills the skeleton.** `src/game/mygame/` has a slot for each part (`sim/`, `input/`, `render/`, `agent/`), each with a README. Build the game there, one folder, and finish with `bun run check:agent`. Follow `.agents/recipes/new-game.md`.
 

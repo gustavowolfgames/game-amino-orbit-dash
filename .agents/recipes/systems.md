@@ -16,7 +16,7 @@ Typical picks:
 - Physics and action: `systems/physics` (matter.js), `systems/collision`, `systems/health`, `systems/lifetime`, `systems/spawner`, `logic/raycast`.
 - Any game: `logic/rng` (seeded), `logic/vec2`, `logic/pool`.
 
-The rules in `.agents/recipes/ecs.md` still hold: ECS is the source of truth, state changes only in transactions, entities for things on the board.
+The rules in `.agents/recipes/ecs.md` still hold: ECS is the source of truth, state changes only in transactions, entities for things with identity, one array for a fixed board.
 
 ## Verify
 
