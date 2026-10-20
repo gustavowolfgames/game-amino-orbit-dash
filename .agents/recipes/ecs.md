@@ -10,11 +10,12 @@ Read and write gameplay state through `getGameWorld()` in `src/game/mygame/world
 
 Write state only inside `db.transactions`. A DOM screen may read the world to render. It does not keep a second copy of the rules in a signal or a store.
 
-### Model the world as entities
+### Model the world: entities, or one array for a fixed board
 
-- **Things on the board are entities.** A grid cell, a falling piece's blocks, a body, a projectile: each is a row in an archetype with its own components (`col`, `row`, `color`, ...) and a `spriteKey`, so the Inspector can name it. Do not keep the board as one array or matrix inside a resource.
-- **Resources are global values only:** score, phase, level, moves or lines left, the rng state, the active piece's pose.
-- **Replace a whole board in one transaction** (clear and rebuild): delete every entity of the archetype, then insert the new state. Pure rule code can work on a plain array copy (`readStateFromEcs`), as long as the result is written back as entities.
+- **Things with identity are entities.** A falling piece's blocks, a match-3 gem, a card, a body, a projectile: anything that keeps its identity as it moves, or appears and clears during play, is a row in an archetype with its own components (`col`, `row`, `color`, ...) and a `spriteKey`, so the Inspector can name it.
+- **A fixed board is an array.** When the squares never move and only their value changes (sudoku, wordle, a crossword, minesweeper), keep the board as one dense array in a resource, indexed by `row * cols + col`. Rules read it as is. One entity per square would add an index component and a copy out and back on every move, and a turn-based board gets nothing for it. The cost is that the Inspector shows the board as one resource, not a row per square. Move a per-square fact onto rows only when the game needs to query it.
+- **Other resources are global values only:** score, phase, level, moves or lines left, the rng state, the active piece's pose.
+- **Replace a whole board in one transaction** (clear and rebuild). For an entity board, delete every entity of the archetype, then insert the new state. Pure rule code can work on a plain array copy (`readStateFromEcs`), as long as the result is written back as entities. An array board is replaced by assigning a new array.
 - **Entity ids are reused.** A deleted entity's id comes back for the next insert, often as another kind. A renderer that keeps a view per entity id must treat an id whose kind changed, or a new run (a `runId` resource bumped by the start transaction), as a new entity and rebuild its view.
 - Plugin property order is fixed: `extends`, `services`, `components`, `resources`, `archetypes`, `computed`, `transactions`, `actions`, `systems`.
 

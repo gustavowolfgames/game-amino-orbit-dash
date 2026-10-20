@@ -13,7 +13,7 @@ the whole game runs headless in a unit test.
               ┌──────────────── ECS world (plugin.ts) ────────────────┐
  systems/ ───▶│ resources: level · packId · goal · score · phase       │
  rules/ (pure)│            elapsedMs · frameDeltaMs · rng · pendingTaps│
-              │ entities:  the game's archetypes (pieces, cells, …)    │
+              │ entities:  the game's archetypes (pieces, bodies, …)   │
               └──────────────────────────┬────────────────────────────┘
                  readStateFromEcs ──────▶ ../render, ../agent, tests
 ```

@@ -4,8 +4,9 @@
  * The core every game starts from: the run's lifecycle, the level it plays, the
  * determinism seam (injected time, seeded rng) and the input queue. It holds no
  * game yet. A game adds its own `components`, `archetypes` and `transactions`
- * here (see `./README.md`): pieces, cells and bodies are archetype entities with
- * a `spriteKey`; resources hold only global values.
+ * here (see `./README.md`): pieces and bodies are archetype entities with a
+ * `spriteKey`; a fixed board whose squares never move is one dense array in a
+ * resource; other resources hold only global values.
  *
  * ECS is the **source of truth** (guardrail: game state lives in ECS, not
  * signals). All state changes go through transactions. Determinism holds: `dt`
