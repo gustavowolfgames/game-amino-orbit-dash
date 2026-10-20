@@ -1,27 +1,18 @@
 /**
  * textures — load the template's placeholder art for the Pixi renderers.
  *
- * The art is committed under `../assets/generated/`. We import each `.webp` with
- * Vite's `?url` so it resolves in both the dev server and the production build,
- * then hand the URLs to Pixi's `Assets.load`. Self-contained: no CDN round-trip,
- * no AssetClient env config, works identically everywhere.
+ * The art comes through the asset manifest (`scene-title`, `scene-game` in
+ * src/game/asset-manifest.ts), so it resolves against the lockfile like every
+ * other asset: the CDN once published, `public/assets/` when the lockfile does
+ * not list it (a new game that emptied the template's lockfile).
  *
- * The same files are ALSO published to the CDN (assets/asset-manifest.cdn.json)
- * for the deployed pipeline; these bundled copies are what dev + build load.
- *
- * This is a NEUTRAL template placeholder set — swap the .webp for your game's art
- * (same filenames) and everything downstream keeps working. Gameplay sprites
- * belong in a `scene-*` atlas from the asset pipeline (`.agents/recipes/assets.md`),
- * not in this folder.
+ * This is a NEUTRAL template placeholder set — publish your game's art under the
+ * same names and everything downstream keeps working. Gameplay sprites belong in
+ * a `scene-*` atlas from the asset pipeline (`.agents/recipes/assets.md`).
  */
 
-import { Assets, type Texture } from 'pixi.js';
-import fieldUrl from '../assets/generated/bg-game.webp?url';
-import titleBgUrl from '../assets/generated/bg-title.webp?url';
-import playUrl from '../assets/generated/ui-button_play.webp?url';
-// Start-screen art — the title wordmark, the round play button, and the
-// title-screen background.
-import titleUrl from '../assets/generated/ui-title.webp?url';
+import type { Texture } from 'pixi.js';
+import type { AssetCoordinatorFacade } from '~/core/systems/assets';
 
 export interface GameTextures {
   /** Full-bleed game background. */
@@ -34,17 +25,31 @@ export interface StartTextures {
   splash: Texture;
 }
 
-/** Load the gameplay textures. Resolves once all are decoded. */
-export async function loadGameTextures(): Promise<GameTextures> {
-  return { field: await Assets.load<Texture>(fieldUrl) };
+type Coordinator = Pick<AssetCoordinatorFacade, 'loadScene' | 'getGpuLoader'>;
+
+function texture(coordinator: Coordinator, alias: string): Texture {
+  const tex = coordinator.getGpuLoader()?.get<Texture>(alias);
+  if (!tex)
+    throw new Error(`texture "${alias}" is not in a loaded scene bundle`);
+  return tex;
 }
 
-/** Load the start-screen textures. Resolves once all are decoded. */
-export async function loadStartTextures(): Promise<StartTextures> {
-  const [title, play, splash] = await Promise.all([
-    Assets.load<Texture>(titleUrl),
-    Assets.load<Texture>(playUrl),
-    Assets.load<Texture>(titleBgUrl),
-  ]);
-  return { title, play, splash };
+/** Load the gameplay textures. Needs `initGpu()` first. */
+export async function loadGameTextures(
+  coordinator: Coordinator,
+): Promise<GameTextures> {
+  await coordinator.loadScene('game');
+  return { field: texture(coordinator, 'bg-game') };
+}
+
+/** Load the start-screen textures. Needs `initGpu()` first. */
+export async function loadStartTextures(
+  coordinator: Coordinator,
+): Promise<StartTextures> {
+  await coordinator.loadScene('title');
+  return {
+    title: texture(coordinator, 'ui-title'),
+    play: texture(coordinator, 'ui-button_play'),
+    splash: texture(coordinator, 'bg-title'),
+  };
 }

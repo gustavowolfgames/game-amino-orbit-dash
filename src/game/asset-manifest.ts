@@ -63,15 +63,21 @@ export const manifest: Manifest = {
       ],
     },
 
-    // ── Demo gameplay + start screen art (GPU) ──────────────────────────────
-    // The game-field background and the
-    // start-screen art (title, play button, title background) are NOT loaded
-    // through the coordinator/CDN bundle path. They ship committed under
-    // src/game/mygame/assets/generated/*.webp and load via Vite ?url + Pixi
-    // Assets (src/game/mygame/render/textures.ts) — self-contained, no CDN
-    // round-trip, works identically in dev and the production build. The same
-    // files are also published to the CDN (assets/asset-manifest.cdn.json) for
-    // the deployed pipeline; no bundle entry is needed here.
+    // ── Start screen + gameplay art (GPU) ───────────────────────────────────
+    // Loaded by src/game/mygame/render/textures.ts. The title screen's DOM
+    // stills (titleFrame.titleArt) read the bg-title and ui-title URLs from here.
+    {
+      name: 'scene-title',
+      assets: [
+        { alias: 'bg-title', src: 'bg-title.webp' },
+        { alias: 'ui-title', src: 'ui-title.webp' },
+        { alias: 'ui-button_play', src: 'ui-button_play.webp' },
+      ],
+    },
+    {
+      name: 'scene-game',
+      assets: [{ alias: 'bg-game', src: 'bg-game.webp' }],
+    },
 
     // ── Audio (Howler) ──────────────────────────────────────────────────────
     // One Howl per JSON sidecar, keyed by alias = the channel the game plays

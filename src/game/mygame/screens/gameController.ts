@@ -242,7 +242,7 @@ export const setupGame: SetupGame = (
           releasePixiApp = exposePixiApp(application);
           container.appendChild(application.canvas as HTMLCanvasElement);
 
-          const { field } = await loadGameTextures();
+          const { field } = await loadGameTextures(deps.coordinator);
           if (destroyed || !db) return;
 
           buildScene(application.stage, field);

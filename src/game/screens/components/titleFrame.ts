@@ -8,8 +8,7 @@
  */
 
 import { DESIGN_CANVAS, resolveDesignFrame } from '@wolfgames/components/core';
-import bundledBgUrl from '~/game/mygame/assets/generated/bg-title.webp?url';
-import bundledLogoUrl from '~/game/mygame/assets/generated/ui-title.webp?url';
+import { LOCAL_ASSET_PATH } from '~/game/asset-manifest';
 
 /** What `titleArt` reads from the resolved asset manifest (`useManifest().manifest()`). */
 interface ManifestLike {
@@ -19,8 +18,8 @@ interface ManifestLike {
 
 /**
  * The title screen's background and logo as URLs for DOM layers (the loader's reveal and the
- * start screen's still): the manifest's `bg-title` / `ui-title` (the CDN in a build) when the
- * game publishes them, else the bundled art the title screen also falls back to.
+ * start screen's still): the manifest's `bg-title` / `ui-title`, the same files the title
+ * screen draws. A game that drops those aliases gets the `public/assets/` copies.
  */
 export function titleArt(manifest: ManifestLike): {
   background: string;
@@ -33,8 +32,8 @@ export function titleArt(manifest: ManifestLike): {
     return asset ? `${asset.base ?? manifest.cdnBase}/${asset.src}` : null;
   };
   return {
-    background: url('bg-title') ?? bundledBgUrl,
-    logo: url('ui-title') ?? bundledLogoUrl,
+    background: url('bg-title') ?? `${LOCAL_ASSET_PATH}/bg-title.webp`,
+    logo: url('ui-title') ?? `${LOCAL_ASSET_PATH}/ui-title.webp`,
   };
 }
 
