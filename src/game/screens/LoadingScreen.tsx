@@ -85,9 +85,7 @@ export function LoadingScreen() {
     const content = loadBootContent(gameKit());
     // The next screen's code, fetched while the loader plays: a lazy screen fetched only at the
     // handoff leaves a dark frame between the loader and the title's first frame.
-    const nextScreen = gameConfig.screens[skipToGame ? 'game' : 'start'] as {
-      preload?: () => Promise<unknown>;
-    };
+    const nextScreen = gameConfig.screens[skipToGame ? 'game' : 'start'];
     const nextScreenReady = nextScreen.preload?.();
     try {
       if (skipToGame) {

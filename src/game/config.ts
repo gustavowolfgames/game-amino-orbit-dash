@@ -6,7 +6,7 @@
  */
 
 import type { ViewportMode } from '@wolfgames/components/core';
-import { type Component, lazy } from 'solid-js';
+import { type JSX, lazy } from 'solid-js';
 import type {
   ScreenAssetConfig,
   ScreenId,
@@ -48,13 +48,14 @@ export interface GameData {
 // SCREEN WIRING
 // ============================================================================
 
+/** A screen takes no props. A `lazy()` screen also carries `preload()`, which the
+ *  loader calls to fetch the next screen's chunk while it plays. */
+export type ScreenComponent = (() => JSX.Element) & {
+  preload?: () => Promise<unknown>;
+};
+
 export interface GameConfig {
-  screens: {
-    loading: Component;
-    start: Component;
-    game: Component;
-    results: Component;
-  };
+  screens: Record<ScreenId, ScreenComponent>;
   /** Per-screen asset requirements. The screen manager loads required bundles
    *  before showing the screen and background-loads optional bundles. */
   screenAssets?: Partial<Record<ScreenId, ScreenAssetConfig>>;

@@ -40,6 +40,10 @@ and drain it in the first system (`../sim/systems/README.md`). Clear the queue
 in `startRun` too.
 
 Pointer gestures are read here, on the Pixi stage. Keyboard keys are DOM
-events, so they are wired in the Solid screen (`src/game/screens/GameScreen.tsx`)
-and call the same transaction through a controller method. Game code under
+events, so they are wired in the Solid screen (`src/game/screens/GameScreen.tsx`
+calls `useGameKeyboard` from `src/game/screens/useGameKeyboard.ts`). Each key
+reaches the controller as a typed `GameIntent` (`src/game/mygame-contract.ts`)
+through `controller.input`, which calls the same transaction. Change the key map
+and the `GameIntent` union for your game. Space never toggles the scaffold pause
+there; Escape and P do. Game code under
 `src/game/mygame/` never adds a DOM listener (`bun run check:agent` fails on one).
