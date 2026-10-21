@@ -3,19 +3,14 @@
 //
 // Usage: bun scripts/amino-drift.ts
 //
-// Compares amino-owned paths in the current repo against amino/main.
+// Compares the template-owned paths (SYNC_PATHS in amino-sync.ts) against
+// amino/main, the template-amino-ecs-pure remote.
 // Reports any files that differ. Exits non-zero if drift is found.
 
 import { execSync } from 'node:child_process';
+import { repoSlug, SYNC_PATHS, TEMPLATE_URL } from './amino-sync';
 
-const AMINO_PATHS = [
-  'src/core/',
-  'vite.config.ts',
-  'tsconfig.json',
-  'vitest.config.ts',
-  'biome.json',
-  '.gitattributes',
-];
+const AMINO_PATHS = SYNC_PATHS;
 
 function git(args: string): string {
   return execSync(`git ${args}`, {
@@ -29,17 +24,25 @@ function run(): void {
   const branch = process.env.AMINO_BRANCH || 'main';
   const ref = `${remote}/${branch}`;
 
-  // Ensure remote exists
+  const url = process.env.AMINO_URL || TEMPLATE_URL;
+
+  // Ensure remote exists, and points at the template this game was forked from
+  let existing: string;
   try {
-    git(`remote get-url ${remote}`);
+    existing = git(`remote get-url ${remote}`);
   } catch {
     console.error(`[drift] Amino remote "${remote}" not found.`);
     console.error(
       "[drift] Run 'bun run amino:sync' first, or add it manually:",
     );
+    console.error(`[drift]   git remote add ${remote} ${url}`);
+    process.exit(1);
+  }
+  if (repoSlug(existing) !== repoSlug(url)) {
     console.error(
-      `[drift]   git remote add ${remote} git@github.com:wolfgames/template-amino.git`,
+      `[drift] Remote "${remote}" points at ${existing}, not ${url}.`,
     );
+    console.error(`[drift]   git remote set-url ${remote} ${url}`);
     process.exit(1);
   }
 

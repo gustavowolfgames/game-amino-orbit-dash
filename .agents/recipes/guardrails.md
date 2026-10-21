@@ -28,7 +28,7 @@ The game draws with Pixi, on the one canvas the scaffold owns. Do not add a seco
 
 ### Repo boundaries
 
-Do not edit `src/core/`. It is scaffold synced from template-amino with `bun run amino:sync`. If the scaffold lacks something, keep the change in `src/game/` or raise it on template-amino.
+Do not edit `src/core/`. It is scaffold synced from template-amino-ecs-pure with `bun run amino:sync`, which also overwrites `.agents/recipes/` and `.agents/skills/`. If the scaffold lacks something, keep the change in `src/game/` or raise it on template-amino-ecs-pure.
 
 Install with bun. Do not commit `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. Do not add a `postinstall` or `predev` step that writes rules or agent files.
 
