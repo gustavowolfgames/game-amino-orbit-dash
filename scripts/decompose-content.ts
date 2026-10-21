@@ -9,7 +9,7 @@
  * its schema, proves it joins back into the same pack, and writes what the publish commands take:
  * `blocks.batch.json` and `levels.batch.json` for `schema data batch-create`, and
  * `pack-entries.json` for `pack entries set`. The publish itself is the recipe's step list
- * (docs/recipes/game-packs.md) — the CLI needs a terminal, so nothing here runs it.
+ * (.agents/recipes/dynamic-data.md) — the CLI needs a terminal, so nothing here runs it.
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';

@@ -12,8 +12,8 @@ After the GPU starts, draw gameplay with Pixi. DOM is for the Solid screen shell
 
 ### Input
 
-- **Taps and swipes** go through Pixi: `eventMode = 'static'` on the hit target, `'passive'` on its parents, and `pointertap` / `pointerdown` / `pointermove` handlers. Setup is in `.agents/skills/pixi-gameplay/SKILL.md`.
-- **Keyboard** is DOM, so it lives in a Solid screen, for example a `useGameKeyboard()` hook called from `src/game/screens/GameScreen.tsx`. It maps keys to intents and calls a controller method such as `controller.input('left')`. Add the listener in `onMount` and remove it in `onCleanup`.
+- **Taps and swipes** go through Pixi: `eventMode = 'static'` on the hit target, `'passive'` on its parents, and `pointerdown` / `pointermove` handlers. Use `pointerdown`, not `pointertap`, for taps: `pointertap` drops a tap with the slightest drag or a fast double tap (`src/game/mygame/input/pointer.ts`). Setup is in `.agents/skills/pixi-gameplay/SKILL.md`.
+- **Keyboard** is DOM, so it lives in a Solid screen such as `src/game/screens/GameScreen.tsx`: a `keydown` listener added in `onMount` and removed in `onCleanup`. It maps keys to intents and passes them to the controller, which calls a transaction or queues the intent. The template ships no keyboard input yet.
 - Either way, input calls a transaction, or queues an intent that a system applies on the next step (taps: `bindTapInput` in `src/game/mygame/input/pointer.ts`). Input never writes state directly.
 
 ### Animation and lifetime
@@ -21,6 +21,10 @@ After the GPU starts, draw gameplay with Pixi. DOM is for the Solid screen shell
 Kill GSAP tweens of a sprite before you remove it and destroy it. Destroy children after the tween is dead.
 
 Do not drive gameplay with `requestAnimationFrame`, `setInterval`, or `setTimeout`. Use the cadence in `.agents/recipes/ecs.md`. For delays use `gsap.delayedCall`.
+
+### One renderer
+
+The game draws with Pixi, on the one canvas the scaffold owns. Do not add a second `<canvas>`, a second engine (Phaser, Three.js), or a hand-built WebGL context; custom shapes are Pixi `Graphics`. The one exception is `gameMode: 'layered'` in `src/game/mygame-contract.ts`: an opt-in extra GPU layer (a 3D layer, an embedded 3D widget) that the controller creates, tears down in reverse order, and draws only as a read-only view of the same ECS world, never a second game-state store.
 
 ### Repo boundaries
 

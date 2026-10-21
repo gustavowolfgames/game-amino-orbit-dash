@@ -20,8 +20,8 @@
  *                 embedded 3D widget (e.g. a dice roller). Every layer/widget is
  *                 an independent read-only projection of the SAME ECS world; call
  *                 `initGpu()` before mount for any GPU-based layer. This is the
- *                 sanctioned exception to guardrail #16 (see
- *                 `docs/standards/guardrails.md` Section 16) — the extra context
+ *                 sanctioned exception to the one-renderer rule (see
+ *                 `.agents/recipes/guardrails.md`, "One renderer") — the extra context
  *                 must share ECS as the single source of truth, never a second
  *                 game-state store. The `composeLayers` helper that implements
  *                 the full-layer case is provided per-game (promoted to
@@ -70,7 +70,7 @@ export interface GameController {
    * When 'layered', the controller owns an opt-in extra GPU context (a composed
    * stack of layers or a bounded embedded 3D widget) over the container and is
    * responsible for its own GPU init for any GPU-based layer — the sanctioned
-   * exception to guardrail #16 (see `docs/standards/guardrails.md` Section 16).
+   * exception to the one-renderer rule (see `.agents/recipes/guardrails.md`, "One renderer").
    * Defaults to 'dom' if omitted.
    */
   gameMode?: GameMode;

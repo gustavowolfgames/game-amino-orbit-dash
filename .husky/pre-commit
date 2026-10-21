@@ -22,6 +22,6 @@ fi
 
 # Asset pipeline guardrails: naming convention, size budget for bundled media,
 # no hardcoded CDN hosts in src/, and manifest structure.
-# See docs/reference/asset-naming.md and docs/reference/manifest-contract.md.
+# Rules: .agents/recipes/assets.md (Names).
 bun run check:assets || exit 1
 bun run check:manifest || exit 1

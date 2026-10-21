@@ -56,7 +56,7 @@ new Text({
 
 - `none` skips the node.
 - `passive` lets children receive events.
-- `static` receives taps. The sample input plane uses this and listens for `pointermove` and `pointertap`.
+- `static` receives taps. The input plane in `src/game/mygame/input/pointer.ts` uses this and listens for `pointerdown`, not `pointertap`, which drops a tap with the slightest drag.
 - `dynamic` also receives mock pointer events from the ticker when the pointer is still, so a moving target can react. Use it only for that case.
 
 ## Time

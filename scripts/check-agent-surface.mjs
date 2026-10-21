@@ -7,8 +7,9 @@
 //   3. A new game's controller stays thin (CONTROLLER_MAX_LINES).
 //   4. AGENTS.md is the one agent entry point: CLAUDE.md imports it, and nothing runs
 //      on install or dev to write agent files.
-//   5. Every repo path the router, recipes and skills cite exists (or is a path the
-//      recipes tell you to create).
+//   5. Every repo path the router, recipes, skills, README and src/game's own instruction
+//      files cite exists (or is a path the recipes tell you to create). docs/ holds only
+//      docs/GAME-DESIGN.md, so a cite of any other docs/ file fails here.
 //   6. A new game does not keep the template's slug: wolf-game-kit.json gameSlug is the
 //      CDN and Dynamic Data namespace, so a game left on it publishes as the template.
 //
@@ -187,7 +188,14 @@ for (const k of ['preinstall', 'postinstall', 'predev']) {
 }
 
 // 5. Cited paths exist.
-const docs = [path.join(root, 'AGENTS.md')].filter((f) => existsSync(f));
+const docs = [
+  'AGENTS.md',
+  'README.md',
+  'src/game/AGENTS.md',
+  'src/game/INDEX.md',
+]
+  .map((f) => path.join(root, f))
+  .filter((f) => existsSync(f));
 for (const d of [
   path.join(root, '.agents/recipes'),
   path.join(root, '.agents/skills'),
@@ -198,7 +206,7 @@ for (const d of [
 }
 for (const doc of docs) {
   for (const [, p] of readFileSync(doc, 'utf8').matchAll(
-    /`((?:src|scripts|tests)\/[A-Za-z0-9_./<>-]+)`/g,
+    /`((?:src|scripts|tests|schemas|docs|\.agents)\/[A-Za-z0-9_./<>-]+)`/g,
   )) {
     const clean = p.replace(/[.,]$/, '');
     if (CITED_TO_CREATE.some((re) => re.test(clean))) continue;

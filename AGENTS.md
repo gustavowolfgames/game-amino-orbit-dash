@@ -24,8 +24,7 @@ Match the task, then open that file.
 - `setupGame`, a screen change, or `gameController.ts`. Open `.agents/recipes/game-controller.md`.
 - A HUD, button, screen, popup, or other visible element. Open `.agents/recipes/components.md`.
 - Colors, type, logos, or a partner skin. Open `.agents/recipes/reskin.md`.
-- Levels, questions, cards, or a content pack. Open `.agents/recipes/content.md`.
-- A daily edition, a vault schedule, or Games Manager config. Open `.agents/recipes/dynamic-data.md`.
+- Levels, questions, cards, a content pack, a daily edition, a vault schedule, or Games Manager config. Open `.agents/recipes/dynamic-data.md`.
 - An analytics event. Open `.agents/recipes/analytics.md`.
 - Images, audio, VFX, or the settings menu's volume and music. Open `.agents/recipes/assets.md`.
 - You are about to say the change works. Open `.agents/recipes/verify.md`.
@@ -44,4 +43,4 @@ Install with `bun install`. Start the dev server with `bun run dev`. Before you 
 
 ## Boundaries
 
-Do not edit `src/core/`. Do not add a `postinstall` or `predev` step that writes rules or agent files. Recipes link to `docs/reference/` when a task needs more depth. Open those only from a recipe.
+Do not edit `src/core/`. Do not add a `postinstall` or `predev` step that writes rules or agent files. The recipes in `.agents/recipes/` are the only instructions; `docs/` holds only `docs/GAME-DESIGN.md`, the game's own design.

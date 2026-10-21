@@ -32,7 +32,16 @@ Sound, the screen-reader line, HUD flashes and one-shot effects react to events,
 
 Inside a transaction or a system, do not import Pixi, read the DOM, or call `Math.random` or `Date.now`. Pass a seeded rng in, or keep its state in a resource. `src/game/mygame/sim/rng.ts` is the seeded generator; its state is the `rng` resource.
 
-Do not edit `src/core/`. Plugin shape, computed values, and the known foot-guns are in `docs/reference/ecs-patterns.md`.
+Do not edit `src/core/`.
+
+### Known foot-guns
+
+- **Only committed transactions notify observers.** A direct write on `db.store` does not, so anything a HUD or screen reacts to (`score`, `phase`) changes through `db.transactions`.
+- **Deleting from a live selection skips entities**, because the table fills the hole with its last row. Spread first (`for (const e of [...store.select(['velocity'])]) store.delete(e)`) or collect ids, then delete. A collision system decides from a snapshot, then applies transactions.
+- **A screen reads, never keeps a copy.** Read `getGameWorld().resources.score`, or `db.observe.resources.score(cb)` and call the returned unobserve in teardown. A Solid signal may mirror an observable for JSX; game logic never writes it. A derived value is a `computed` on the plugin, not recomputed in the view.
+- **Schema types:** numbers use `F32`, `I32` or `Vec2` from `~/core/systems/ecs` (`I32` when a value can go negative, even for a moment). Strings and booleans use an inline schema with `as const`. A nullable field needs `Schema.Nullable(schema)` from `@adobe/data/schema`; a bare `nullable: true` is ignored.
+- **External physics** is one per-frame system, not a second source of truth: push ECS changes into the engine, step it with the fixed `dt`, write positions back through a transaction.
+- **Stays out of ECS:** tween targets and particle lifetimes (GSAP owns them), and level content (the pack, read through `getActivePack()`; `.agents/recipes/dynamic-data.md`).
 
 ## Verify
 

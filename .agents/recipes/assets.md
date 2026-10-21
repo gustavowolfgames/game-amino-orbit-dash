@@ -18,7 +18,7 @@ Line art, UI, and text need `role: "ui-text"` on the tool that makes them. That 
 
 ### Stage and publish
 
-Stage files in `assets/src/`, which is gitignored. Rename them to `docs/reference/asset-naming.md`. Do not compress them first. Publish encodes images on the way up, so a file you squashed first gets squashed twice. Very large files skip the encoder, so shrink those yourself. The size limit is in `docs/reference/asset-pipeline.md`.
+Stage files in `assets/src/`, which is gitignored. Rename them to the naming rule under **Names** below. Do not compress them first. Publish encodes images on the way up, so a file you squashed first gets squashed twice. Files over 8 MiB skip the encoder and ship exactly as staged, so shrink those yourself.
 
 Packed PNG sheets go in as they are. Publish finds each sheet through its atlas JSON and keeps it lossless at full size. A sheet you add with `assets_set` from a local file needs `role: "atlas"`, because `assets_set` does not read the JSON. Atlas JSON that Pixi loads goes under `assets/src/json-data/`. DOM atlases and audio-sprite JSON stay at the top level.
 
@@ -34,6 +34,24 @@ Register bundles in `src/game/asset-manifest.ts`, with lockfile keys as the `src
 
 Do not land code that references an asset that does not exist yet. A placeholder needs the user's approval, and each one is flagged for replacement.
 
+### Names
+
+`bun run check:assets` and `bun run check:manifest` enforce these, and print a fix with `--suggest`. When this page and the scripts disagree, the scripts win.
+
+- **Files** in `assets/src/` and `public/assets/`: `{category}-{name}[_{variant}].{ext}`, lowercase, a hyphen after the category and underscores inside the name (`item-hot_cocoa.webp`). Categories: `piece-`, `exit-`, `character-`, `bg-`, `item-`, `prop-`, `ui-`, `vfx-`, `sfx-`, `music-`. A new category needs a new prefix in `scripts/check-asset-naming.ts` first.
+- **Bundles** in `src/game/asset-manifest.ts`: lowercase letters, digits and hyphens, unique. The prefix picks when and how a bundle loads, so a bundle without one never loads:
+
+  | Prefix | Loads | Use for |
+  |---|---|---|
+  | `boot-` | DOM, before the engine (`boot-splash` first) | splash art |
+  | `theme-` | DOM, before the GPU | branding and logo |
+  | `audio-` | Howler | sound effects and music |
+  | `core-` | Pixi | in-game UI atlases |
+  | `scene-` | Pixi, through `loadScene('<name>')` | game sheets, backgrounds, characters |
+
+  Game art goes in `scene-` or `core-`. A `theme-` bundle never reaches Pixi, and the sprite lookup fails without an error.
+- **Assets**: every asset sets its own `alias`, unique across bundles. `src` is the lockfile key, relative, with no leading `/`, no `..` and no URL. Do not set `base` on a published asset.
+
 ### Size
 
 Do not regenerate art to get resolution back. `assets_pull` with `original: true` writes the bytes each delivery file came from, where asset-gen kept them. `optimize: false` ships art exactly as authored. `max` on `assets_set` caps a local file's long edge. For asset-gen art, call `optimize_image` with `maxDimension` on its original, then set the result. `assets_optimize` with `dry-run: true` shows what a sweep of older art would save.
@@ -44,7 +62,7 @@ The MCP config is machine-local. `.mcp.json` is gitignored. The key goes in that
 
 `Invalid API key` means the key belongs to a different environment than the one the tools call. Ask the user to run `wolf-dev auth asset-gen`, which prints where calls land. You cannot run it yourself.
 
-A CLI flag that returns `unknown option` means `wolf-dev` is too old. `docs/reference/asset-pipeline.md` names the minimum version for each flag. The user updates with `bun install -g @wolfgames/dev@latest`.
+A CLI flag that returns `unknown option` means `wolf-dev` is too old: the `assets:*` scripts need 0.2.46 or later, and sprite sheets need 0.2.57. The user updates the global install with `bun install -g @wolfgames/dev@latest`.
 
 The only committed files under `public/assets/` are the ones this template already has, plus fonts, the favicon, and VFX config JSON. Do not add new art there.
 
@@ -68,4 +86,4 @@ Audio settings: start a game, open the gear, move **Sounds** to 0.3 and check `w
 
 ## Example
 
-The publish and verify scripts are `assets:publish` and `assets:verify` in `package.json`. Naming checks live in `scripts/check-asset-naming.ts`. Budget roles by key name are in `docs/reference/asset-pipeline.md`.
+The publish and verify scripts are `assets:publish` and `assets:verify` in `package.json`. Naming checks live in `scripts/check-asset-naming.ts`. The budget role comes from words in the lockfile key: `atlas-`/`vfx-` → atlas, `bg-`/`scene`/`cover` → background, `ui-`/`button`/`icon`/`logo` → ui, `prop-`/`item-`/`piece-` → prop, `host`/`portrait`/`avatar` → host, anything else unattributed. Pass `name` on every asset-gen call so the key carries the right word.

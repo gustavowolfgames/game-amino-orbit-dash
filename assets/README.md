@@ -26,8 +26,7 @@ committed record of what's published and a gitignored working area:
 - **DOM-loaded atlases and audio-sprite JSON stay outside `json-data/`** —
   their refs rewrite relative to the manifest `cdnBase` (`assets/<hashed>`),
   which is how the components loaders resolve them.
-- Filenames follow `docs/reference/asset-naming.md` (`bun run check:assets`).
+- Filenames follow the naming rules in `.agents/recipes/assets.md` (`bun run check:assets`).
 
 Boot chrome (splash, Wolf branding, fonts, favicon, core VFX) stays bundled in
-`public/assets/` and never goes through this pipeline — see
-`docs/recipes/asset-pipeline.md`.
+`public/assets/` and never goes through this pipeline (`.agents/recipes/assets.md`).
