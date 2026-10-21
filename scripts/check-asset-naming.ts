@@ -238,9 +238,7 @@ function main(): void {
       if (suggested && suggested !== basename)
         console.error(`    → suggest: ${suggested}`);
     }
-    console.error(
-      '\nSee .agents/recipes/assets.md (Names).\n',
-    );
+    console.error('\nSee .agents/recipes/assets.md (Names).\n');
   }
 
   // ---- 2. Size budget: heavy game media must not be bundled ----

@@ -20,7 +20,7 @@ Paste the command and the exit status. Do not say the tests passed unless you ra
 
 In dev, the backtick key toggles the ECS Inspector. What it shows is not proof of ECS state. Proof is the unit test or a value read from `getGameWorld()`.
 
-`bun run amino:drift` reports local changes to scaffold paths. `bun run amino:verify` runs the typecheck baseline, lint, and build after `amino:sync`. Its lint step fails on Biome errors inherited from template-amino. Run them when you touched scaffold sync, not for an ordinary feature.
+`bun run amino:drift` reports local changes to the template-owned paths (`src/core/`, `.agents/recipes/`, `.agents/skills/`, build configs) against template-amino-ecs-pure. `bun run amino:verify` runs the typecheck baseline, lint, and build after `amino:sync`. Run them when you touched scaffold sync, not for an ordinary feature.
 
 ## Verify
 
