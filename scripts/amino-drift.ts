@@ -55,14 +55,14 @@ function run(): void {
 
   for (const syncPath of AMINO_PATHS) {
     try {
-      const diff = git(`diff ${ref} -- ${syncPath}`);
-      if (diff) {
-        // Get list of changed files for this path
-        const files = git(`diff --name-only ${ref} -- ${syncPath}`);
-        for (const file of files.split('\n').filter(Boolean)) {
-          drifted.push(file);
-          console.log(`[drift]   modified: ${file}`);
-        }
+      // --diff-filter=a leaves out files that exist only here: a recipe the game
+      // added itself is not drift, and amino:sync never touches it.
+      const files = git(
+        `diff --name-only --diff-filter=a ${ref} -- ${syncPath}`,
+      );
+      for (const file of files.split('\n').filter(Boolean)) {
+        drifted.push(file);
+        console.log(`[drift]   modified: ${file}`);
       }
     } catch {
       // Path may not exist in amino — skip
