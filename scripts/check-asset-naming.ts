@@ -3,10 +3,10 @@
  * Asset pipeline checks. Exits 1 on any violation.
  *
  * 1. Naming — filenames in public/assets/ AND assets/src/ must follow the naming
- *    convention (docs/reference/asset-naming.md).
+ *    convention (.agents/recipes/assets.md, Names).
  *    assets/src/_staging/ (raw downloads) and markdown docs are skipped.
  * 2. Size budget — game media over 200KB must NOT live in public/assets/; it belongs
- *    in assets/src/ and on the CDN (docs/recipes/asset-pipeline.md). Exempt: fonts/,
+ *    in assets/src/ and on the CDN (.agents/recipes/assets.md). Exempt: fonts/,
  *    vfx/, proxy/, favicon*. Bundling only — `assets:verify` weighs what the CDN serves.
  * 3. No hardcoded CDN hosts — src/** must not contain media.<env>.wolf.games URLs.
  *    URLs resolve through CdnManifestProvider; no source file may know CDN hosts.
@@ -239,7 +239,7 @@ function main(): void {
         console.error(`    → suggest: ${suggested}`);
     }
     console.error(
-      '\nSee docs/reference/asset-naming.md and docs/reference/manifest-contract.md.\n',
+      '\nSee .agents/recipes/assets.md (Names).\n',
     );
   }
 
@@ -258,7 +258,7 @@ function main(): void {
     console.error(
       '\nMove to assets/src/ and publish with `bun run assets:publish`, which encodes\n' +
         "images on the way up — don't hand-compress to get under this line.\n" +
-        'Exempt: fonts/, vfx/, proxy/, favicon*. See docs/recipes/asset-pipeline.md.\n',
+        'Exempt: fonts/, vfx/, proxy/, favicon*. See .agents/recipes/assets.md.\n',
     );
   }
 

@@ -59,7 +59,7 @@ const PUBLIC_ASSETS = path.resolve(import.meta.dirname, '../../public/assets');
 /**
  * With a slug set, the asset client asks the media CDN for lockfile names (`bg-splash-<hash>.webp`)
  * that are not published for this slug. Serve the local originals instead, so this suite tests
- * Dynamic Data rather than the asset publish (docs/recipes/asset-pipeline.md).
+ * Dynamic Data rather than the asset publish (.agents/recipes/assets.md).
  */
 async function serveLocalArt(page: Page) {
   await page.route(

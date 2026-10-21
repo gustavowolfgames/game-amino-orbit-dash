@@ -23,15 +23,14 @@ CLAUDE.md                  one line: imports AGENTS.md (Claude Code loads CLAUDE
 AGENTS.md                  the router: task → which recipe to open (always loaded)
 .agents/
 ├── recipes/               opened only when the task needs one
-│   ├── new-game.md          build a new game / replace the sample
+│   ├── new-game.md          build a new game in the skeleton
 │   ├── ecs.md               state, turns, score, entities, frame loop
 │   ├── guardrails.md        input, leaks, DOM, "do not" rules
 │   ├── pixi.md              sprites, canvas HUD, VFX
 │   ├── game-controller.md   setupGame, screen changes
 │   ├── components.md        any visible element → @wolfgames/components
 │   ├── reskin.md            colors, type, logos, partner skin
-│   ├── content.md           levels, questions, content packs
-│   ├── dynamic-data.md      daily editions, vault, Games Manager
+│   ├── dynamic-data.md      levels, content packs, daily editions, Vault, Games Manager
 │   ├── analytics.md         analytics events
 │   ├── assets.md            images, audio, VFX via the wolf-game-kit MCP
 │   ├── systems.md           @wolfgames/game-systems steer (opt-in, off)
@@ -96,15 +95,13 @@ bun run dev     # http://localhost:5173
 | Dev server | `bun run dev` |
 | Unit tests | `bun run test:run` |
 | E2E smoke | `bun run test:e2e` |
-| Typecheck | `bun run typecheck` |
+| Typecheck | `bun run typecheck:baseline` (fails only on new errors) |
 | Format | `bun run format` |
 | Build | `bun run build` |
 
-Start with [`docs/INDEX.md`](docs/INDEX.md) — it routes every task to the
-right doc. Required pre-reads before writing game code:
-[best-practices](docs/standards/best-practices.md) and
-[guardrails](docs/standards/guardrails.md); the hard boundaries live in
-[`AGENTS.md`](AGENTS.md).
+Start with [`AGENTS.md`](AGENTS.md): it routes every task to one recipe in
+[`.agents/recipes/`](.agents/recipes/). Read
+[`guardrails.md`](.agents/recipes/guardrails.md) before writing game code.
 
 ### I'm an AI agent
 
@@ -168,8 +165,8 @@ Add other servers (e.g. Playwright for E2E debugging) to your local
 ## How the AI context stays fresh
 
 Agent instructions live in this repo (see [Agent surface](#agent-surface-how-agents-get-their-instructions)),
-so they change with the code in the same PR. The repo also learns over time: agents
-append to [`docs/LEARNINGS.md`](docs/LEARNINGS.md) and keep
+so they change with the code in the same PR. Structural changes are logged with their
+evidence in [`.agents/decisions.tsv`](.agents/decisions.tsv), and agents keep
 [`docs/GAME-DESIGN.md`](docs/GAME-DESIGN.md) current as part of every task.
 
 ## Architecture
@@ -181,22 +178,19 @@ src/
 │   ├── ui/            # Button, Logo, MobileViewport, PauseOverlay
 │   └── dev/           # TuningPanel (Tweakpane), inspector
 │
-├── game/              # YOUR GAME
+├── game/              # YOUR GAME (map: src/game/INDEX.md)
 │   ├── config.ts      # Identity, environment, screen wiring
-│   ├── state.ts       # Runtime signals
-│   ├── asset-manifest.ts  # Asset bundles (see manifest-contract recipe)
+│   ├── asset-manifest.ts  # Asset bundles (naming: .agents/recipes/assets.md)
 │   ├── screens/       # Loading, Start, Game, Results shells
-│   ├── setup/ audio/ tuning/
-│   └── mygame/        # Placeholder game — replace with yours
+│   ├── content/ brand/ setup/ tuning/
+│   └── mygame/        # The game: ECS world, sim, input, render, agent
 │
 └── integrations/      # Publisher embed integration
 ```
 
 Dependency rule: `core/` never imports from `game/`. Reusable building blocks
 come from [`@wolfgames/components`](https://github.com/wolfgames/game-components)
-(see [shared-components guide](docs/guides/shared-components.md)).
-
-Full picture: [`docs/reference/architecture.md`](docs/reference/architecture.md).
+(see [`.agents/recipes/components.md`](.agents/recipes/components.md)).
 
 ## Tech stack
 
@@ -211,15 +205,15 @@ Full picture: [`docs/reference/architecture.md`](docs/reference/architecture.md)
 
 ## Documentation
 
-Everything routes through [`docs/INDEX.md`](docs/INDEX.md). Highlights:
+The recipes in [`.agents/recipes/`](.agents/recipes/) are the only instructions, and
+[`AGENTS.md`](AGENTS.md) says which one to open. `docs/` holds one file,
+[`docs/GAME-DESIGN.md`](docs/GAME-DESIGN.md): the game's own design.
 
-| Topic | Doc |
-|-------|-----|
-| Design source of truth | [docs/GAME-DESIGN.md](docs/GAME-DESIGN.md) |
-| Creating a new game | [.agents/recipes/new-game.md](.agents/recipes/new-game.md) |
-| Best practices (required) | [docs/standards/best-practices.md](docs/standards/best-practices.md) |
-| Guardrails (required) | [docs/standards/guardrails.md](docs/standards/guardrails.md) |
-| Asset naming | [docs/reference/asset-naming.md](docs/reference/asset-naming.md) |
-| Debugging | [docs/reference/debugging.md](docs/reference/debugging.md) |
-| Agent harness support | [docs/AGENT-HARNESSES.md](docs/AGENT-HARNESSES.md) |
-| Team learnings | [docs/LEARNINGS.md](docs/LEARNINGS.md) |
+| Topic | Recipe |
+|-------|--------|
+| Creating a new game | [new-game.md](.agents/recipes/new-game.md) |
+| Rules that break the game when ignored | [guardrails.md](.agents/recipes/guardrails.md) |
+| State, entities, the frame loop | [ecs.md](.agents/recipes/ecs.md) |
+| Art, audio, naming | [assets.md](.agents/recipes/assets.md) |
+| Levels, packs, editions, Vault | [dynamic-data.md](.agents/recipes/dynamic-data.md) |
+| Before saying it works | [verify.md](.agents/recipes/verify.md) |

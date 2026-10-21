@@ -6,7 +6,7 @@ Open this recipe before you add a HUD, button, menu, screen, background, popup, 
 
 ## Do
 
-Read `node_modules/@wolfgames/components/src/modules/catalog.json` before the first edit (fallback: `INDEX.md` next to it on older packages). It lists every module with what it does, its `surface`, its import and its README path.
+Read `node_modules/@wolfgames/components/src/modules/INDEX.md` before the first edit. It lists every module with what it does, when to use it, and its folder; the import is `@wolfgames/components/modules/<folder>`. Each module's `manifest.ts` gives its `surface`.
 
 Pick the closest modules and read each module's `README.md` in that folder. Check its Variants section before you change how it looks. Open its `manifest.ts` and match `surface` to where the element will live. `src/game/screens/**/*.tsx` may use `dom` or `logic`. The Pixi scene may use `pixi` or `logic`.
 
@@ -26,7 +26,7 @@ A screen root uses the `design-box-span` class. GameShell passes pointer events 
 
 The full rules are section 9 of `node_modules/@wolfgames/components/docs/standards/components.md`. Code comments that cite docs/standards/components.md mean that file.
 
-Settings and pause UI wrap the catalog `options-menu` module from a screen in `src/game/screens/`. Do not build a menu in `src/core/ui/`; that is scaffold.
+The settings menu is the catalog `settings-menu-dom` module, mounted once in `src/game/screens/components/GameSettingsMenu.tsx`. Pause and settings UI extend that, from a screen in `src/game/screens/`. Do not build a menu in `src/core/ui/`; that is scaffold.
 
 ### SolidJS mechanics (shells only — game state lives in ECS, per `ecs.md`)
 

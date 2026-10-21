@@ -3,7 +3,7 @@
  *
  * ECS stays the source of truth while a run is live (`level`, `packId` resources). This store
  * only copies the resume point out so a reload lands on the same level, and hands it back to
- * `startDemo` on the next run. Rules:
+ * the `startRun` transaction on the next run. Rules:
  *
  *   • Versioned on `createVersionedStore` (src/core/utils/storage.ts): `version`, a migration
  *     per shape change, and a `validate` that resets unusable data. A save from a newer build
@@ -16,7 +16,7 @@
  *   • Cleared when the pack's last level is won, so the next run starts the pack over.
  *
  * Built at module scope so boot's `whenStoresReady()` hydrates it before the first screen.
- * A new game keeps this shape and swaps the fields (see docs/reference/progress-persistence.md).
+ * A new game keeps this shape and swaps the fields (see .agents/recipes/dynamic-data.md, "Saved progress").
  */
 
 import { createVersionedStore } from '~/core/utils/storage';

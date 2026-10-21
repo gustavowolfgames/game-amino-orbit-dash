@@ -23,9 +23,9 @@ Get the Nucleo slug from the user. Do not invent one. If the task is a local bui
    - Tests: add the game's transactions and systems to `tests/unit/schedule.test.ts`.
 5. Tuning lives in `src/game/tuning/types.ts` (`GameTuning`, `GAME_DEFAULTS`). Team overrides go in `public/config/tuning/game.json`. Stored values load first, so clear the `tuning_game` key in the browser when the shape changes. `tuning_scaffold` holds core values. Leave it.
 6. Replace the sample flags in `src/game/setup/flags.ts` (`GameFeatureFlags`, `DEFAULT_FLAGS`, validators) and the trackers in `src/game/setup/tracking.ts`. The flag cache key is `<slug>_ff_`, so it changes with the slug.
-7. Put levels, questions, or cards in one pack. Follow `.agents/recipes/content.md`.
+7. Put levels, questions, or cards in one pack. Follow `.agents/recipes/dynamic-data.md`.
 8. Build screens and HUD from catalog modules. Follow `.agents/recipes/components.md`.
-9. Get art, audio, and VFX from the wolf-game-kit MCP. Follow `.agents/recipes/assets.md` and `docs/reference/asset-naming.md`. Rename the sample channel `audio-sfx-mygame` in `src/game/audio/sounds.ts` and the example bundle names in `src/game/asset-manifest.ts`.
+9. Get art, audio, and VFX from the wolf-game-kit MCP. Follow `.agents/recipes/assets.md`, including its naming rules. Rename the sample channel `audio-sfx-mygame` in `src/game/audio/sounds.ts` and the example bundle names in `src/game/asset-manifest.ts`.
 
 Ship with the wolf-game-kit MCP once the verify steps pass.
 
@@ -45,4 +45,4 @@ Ship with the wolf-game-kit MCP once the verify steps pass.
 
 ## Example
 
-The slug lives in `wolf-game-kit.json` and `.env.example`. The world holder is `src/game/mygame/world.ts`. How the world, systems and fixed step fit together is `src/game/mygame/sim/README.md`. ECS patterns beyond the rules are in `docs/reference/ecs-patterns.md`.
+The slug lives in `wolf-game-kit.json` and `.env.example`. The world holder is `src/game/mygame/world.ts`. How the world, systems and fixed step fit together is `src/game/mygame/sim/README.md`. The ECS foot-guns are in `.agents/recipes/ecs.md`.

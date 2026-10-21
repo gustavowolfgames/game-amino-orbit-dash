@@ -1,10 +1,10 @@
 # src/game — check the catalog before you draw
 
-Everything under this folder is game code. Before adding a HUD, button, screen, popup, timer, background or effect, read `node_modules/@wolfgames/components/src/modules/catalog.json` (fallback: `INDEX.md` next to it) and use a module from it. About 80 exist; most "new component" work is a config-and-wrap job.
+Everything under this folder is game code. Before adding a HUD, button, screen, popup, timer, background or effect, read `node_modules/@wolfgames/components/src/modules/INDEX.md` and use a module from it. About 80 exist; most "new component" work is a config-and-wrap job. Each module's `manifest.ts` gives its `surface`.
 
 - `screens/**/*.tsx` is DOM (Solid): only modules with `surface: dom` or `logic`.
 - `<game>/**` is the Pixi scene: only `surface: pixi` or `logic`.
-- Import the record's `packageImport` as given. Restyle with a variant or config, never a copy.
+- Import from the module's folder as the index gives it: `@wolfgames/components/modules/<Path>`. Restyle with a variant or config, never a copy.
 - If the user picked a module and it turns out to need something the game lacks (an atlas, a missing config knob), stop and tell them what is missing and the options; never switch to a custom build on your own.
 - A module whose name or description matches what you are writing is a "use it" case: use → configure/variant → compose → build new, in that order. The catalog module wins over the "avoid filters" guardrail.
 
