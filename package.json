@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@adobe/data": "^0.9.103",
-    "@sentry/solid": "^10.72.0",
+    "@sentry/browser": "^10.73.0",
     "@wolfgames/client": "^0.1.62",
     "@wolfgames/components": "^2.4.2",
     "arktype": "^2.2.3",

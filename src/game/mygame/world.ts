@@ -28,7 +28,10 @@ export function getGameWorld(): GameDatabase {
   return world;
 }
 
-/** Release the world — full app teardown only, not per-screen unmount. */
+/**
+ * Release the world — full app teardown only, not per-screen unmount.
+ * @public Template API for a game that tears the app down; the shipped app never does.
+ */
 export function disposeGameWorld(): void {
   setActiveDb(null);
   world = null;

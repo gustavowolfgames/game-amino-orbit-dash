@@ -29,13 +29,6 @@ export const GAME_TITLE = 'My Game';
 // These types are used by useGameData() and the ManifestProvider.
 // ============================================================================
 
-/** Dialogue message for companion/NPC interactions */
-export interface DialogueMessage {
-  id: string;
-  speaker?: string;
-  text: string;
-}
-
 /**
  * Game data fetched from server / injected by host.
  * Replace with your game's actual data shape.

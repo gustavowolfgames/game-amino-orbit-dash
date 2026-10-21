@@ -6,7 +6,7 @@
       "name": "template-amino",
       "dependencies": {
         "@adobe/data": "^0.9.103",
-        "@sentry/solid": "^10.72.0",
+        "@sentry/browser": "^10.73.0",
         "@wolfgames/client": "^0.1.62",
         "@wolfgames/components": "^2.4.2",
         "arktype": "^2.2.3",
@@ -324,8 +324,6 @@
     "@sentry/replay": ["@sentry/replay@10.73.0", "", { "dependencies": { "@sentry/browser-utils": "10.73.0", "@sentry/core": "10.73.0" } }, "sha512-nN2wjN/Y0J5BOJV5hqRHUEBfxwUsipp1PKjcDHh6Fpxnrtfldu3Y99E8cQInseo5heFdzEvrOHBBrqWZXOHVKQ=="],
 
     "@sentry/replay-canvas": ["@sentry/replay-canvas@10.73.0", "", { "dependencies": { "@sentry/core": "10.73.0", "@sentry/replay": "10.73.0" } }, "sha512-sxa2lKkHPfF/j5xFpW7gocthWXRqyoHz8KCPy6yGc8plT477nl57iGSKhQDYsx1Ny10TLjs7YkIuPP1GY/Ax2Q=="],
-
-    "@sentry/solid": ["@sentry/solid@10.73.0", "", { "dependencies": { "@sentry/browser": "10.73.0", "@sentry/conventions": "^0.16.0", "@sentry/core": "10.73.0" }, "peerDependencies": { "@solidjs/router": ">=0.13.4 <2.0.0-0", "@tanstack/solid-router": "^1.132.27", "solid-js": "^1.8.4" }, "optionalPeers": ["@solidjs/router", "@tanstack/solid-router"] }, "sha512-Wfsf1MuIgbOuMdRsu8OSdt2hSo2wgf4Ap50+J4/wX/OM3BaqQtrfecmzoCYW37n2aH75XAo3sqiaXVuc8Z0FTQ=="],
 
     "@tailwindcss/node": ["@tailwindcss/node@4.3.3", "", { "dependencies": { "@jridgewell/remapping": "^2.3.5", "enhanced-resolve": "^5.24.1", "jiti": "^2.7.0", "lightningcss": "1.32.0", "magic-string": "^0.30.21", "source-map-js": "^1.2.1", "tailwindcss": "4.3.3" } }, "sha512-/T8IKEsf9VTU6tLjgC7+sv2mOPtQxzE2jMw7u4Tt40Tx+QSZxpzh95/H6cMKoja9XuW7iMdLJYBB0o9G1CaAgg=="],
 
