@@ -29,7 +29,7 @@ const DOM_PATTERN =
 /** The template's own src/game files. Any other .ts/.tsx there, or a registered system,
  *  means a new game exists. */
 // Regenerate when the template's own src/game files change:
-//   git ls-files 'src/game/*.ts' 'src/game/*.tsx'
+//   git ls-files 'src/game/*.ts' 'src/game/*.tsx'   (sorted)
 const TEMPLATE_FILES = new Set([
   'src/game/content/served-mode.ts',
   'src/game/screens/components/titleFrame.ts',
@@ -61,6 +61,7 @@ const TEMPLATE_FILES = new Set([
   'src/game/lib/sentry-client.ts',
   'src/game/mygame-contract.ts',
   'src/game/mygame/agent/agentPlugin.ts',
+  'src/game/mygame/agent/createAgentService.ts',
   'src/game/mygame/config.ts',
   'src/game/mygame/engine/createTickerEngine.ts',
   'src/game/mygame/engine/fixedStep.ts',
@@ -69,12 +70,13 @@ const TEMPLATE_FILES = new Set([
   'src/game/mygame/index.ts',
   'src/game/mygame/input/pointer.ts',
   'src/game/mygame/render/textures.ts',
-  'src/game/mygame/screens/audioSettings.ts',
+  'src/game/mygame/screens/cues.ts',
+  'src/game/mygame/screens/gameAudio.ts',
   'src/game/mygame/screens/gameController.ts',
   'src/game/mygame/screens/index.ts',
   'src/game/mygame/screens/startView.tsx',
+  'src/game/mygame/sim/events.ts',
   'src/game/mygame/sim/plugin.ts',
-  'src/game/mygame/sim/readStateFromEcs.ts',
   'src/game/mygame/sim/rng.ts',
   'src/game/mygame/sim/schedule.ts',
   'src/game/mygame/sim/systems/index.ts',
@@ -88,9 +90,11 @@ const TEMPLATE_FILES = new Set([
   'src/game/screens/components/GameSettingsMenu.tsx',
   'src/game/screens/components/IntroSting.tsx',
   'src/game/screens/components/index.ts',
+  'src/game/screens/components/titleFrame.ts',
   'src/game/screens/index.ts',
   'src/game/screens/useCompanionDialogue.ts',
   'src/game/screens/useGameData.ts',
+  'src/game/screens/useSpaceKey.ts',
   'src/game/settingsOpen.ts',
   'src/game/settingsTheme.ts',
   'src/game/setup/content.ts',

@@ -14,7 +14,7 @@ After the GPU starts, draw gameplay with Pixi. DOM is for the Solid screen shell
 
 - **Taps and swipes** go through Pixi: `eventMode = 'static'` on the hit target, `'passive'` on its parents, and `pointertap` / `pointerdown` / `pointermove` handlers. Setup is in `.agents/skills/pixi-gameplay/SKILL.md`.
 - **Keyboard** is DOM, so it lives in a Solid screen, for example a `useGameKeyboard()` hook called from `src/game/screens/GameScreen.tsx`. It maps keys to intents and calls a controller method such as `controller.input('left')`. Add the listener in `onMount` and remove it in `onCleanup`.
-- Either way, input becomes an intent that a transaction or a system applies (taps: `pendingTaps`, from `src/game/mygame/input/pointer.ts`). Input never writes state directly.
+- Either way, input calls a transaction, or queues an intent that a system applies on the next step (taps: `bindTapInput` in `src/game/mygame/input/pointer.ts`). Input never writes state directly.
 
 ### Animation and lifetime
 

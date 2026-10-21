@@ -6,11 +6,13 @@
  *
  *   • Pixi app + a fixed design box (DESIGN_W×DESIGN_H) scaled to fit
  *     ("contain"), with a cover-fit background in screen space.
- *   • Input as intent (`../input/pointer.ts`): a tap queues `submitTap`; a system
- *     in `../sim/systems/` drains it next step.
+ *   • Input (`../input/pointer.ts`): a tap calls the example `tap` transaction.
  *   • The fixed-step sim (`startFixedStepLoop` → `stepWorld` → `SYSTEM_ORDER`)
  *     plus a per-frame `render` where the game projects ECS into its views
  *     (`../render/`).
+ *   • Feedback: `render` drains the sim's events (`drainEvents`) once a frame
+ *     and runs them through the cue table (`./cues.ts`): sound through
+ *     `./gameAudio.ts`, the screen-reader line through `ariaText`.
  *   • Content: each run plays one level of the active Content Pack (`levelAt`,
  *     src/game/content). Winning moves to the pack's next level; winning its last
  *     level reports the edition complete to the Vault.
@@ -57,13 +59,22 @@ import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
 import { loadGameTextures } from '../render/textures';
-import type { GameDatabase, GamePhase } from '../sim/plugin';
+import { drainEvents } from '../sim/events';
+import type { GameDatabase, GameEvent, GamePhase } from '../sim/plugin';
 import { stepWorld } from '../sim/schedule';
 import { getGameWorld } from '../world';
-import { type AudioSettings, bindAudioSettings } from './audioSettings';
+import { createCues } from './cues';
+import { type AudioSettings, createGameAudio } from './gameAudio';
 
 /** Delay (s) before handing off to results, so the last frame reads. */
 const END_PAUSE = 0.9;
+
+/** The audio channels this game plays (aliases in src/game/asset-manifest.ts). */
+const SOUNDS = {
+  sfx: ['sfx-pop', 'sfx-clear'],
+  music: ['audio-music'],
+} as const;
+type Sfx = (typeof SOUNDS.sfx)[number];
 
 /** Deps optionally carry `goto` (GameScreen injects it) for the results hop. */
 type Deps = GameControllerDeps & { goto?: (screen: string) => void };
@@ -97,14 +108,39 @@ export const setupGame: SetupGame = (
   /** Guard so a terminal phase only triggers one transition. */
   let handledPhase: GamePhase | null = null;
 
+  // ── Audio + feedback ───────────────────────────────────────────────────────
+  // The gear menu's volume and music toggle apply through `settings`; a missing
+  // engine or channel is a no-op (./gameAudio.ts).
+  const audio = createGameAudio(() => deps.coordinator?.audio, {
+    ...SOUNDS,
+    settings: deps.audio as AudioSettings | undefined,
+  });
+  /** What each sim event sounds like and says (./cues.ts). */
+  const cues = createCues<GameEvent, Sfx>(
+    {
+      scored: { sfx: 'sfx-pop', gapMs: 60 },
+      phase: {
+        sfx: (e) => (e.phase === 'won' ? 'sfx-clear' : null),
+        aria: (e) =>
+          e.phase === 'won'
+            ? 'Level complete.'
+            : e.phase === 'lost'
+              ? 'Run over.'
+              : null,
+      },
+    },
+    { play: audio.play, say: setAriaText },
+  );
+
   // ── Per-frame render (projection of ECS) ───────────────────────────────────
-  // The game reconciles its views against ECS here (read via ../sim/readStateFromEcs).
+  // The game reconciles its views against ECS here, then plays the frame's events.
   const render = (_dtSec: number) => {
     if (!db || destroyed) return;
     hud?.setValues({
       level: `${db.resources.level + 1}/${getActivePack().levels.length}`,
       score: db.resources.score,
     });
+    cues(drainEvents(db), db.resources.elapsedMs);
     handlePhase(db.resources.phase);
   };
 
@@ -118,9 +154,7 @@ export const setupGame: SetupGame = (
       if (db) runAnalytics.levelWon(db.resources.level, db.resources.score);
       if (last) completeActivePack(); // the Vault served mode decides what a finished pack means
       if (db) recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
-      tryPlay('sfx-clear');
     }
-    setAriaText(phase === 'won' ? 'Level complete.' : 'Run over.');
     gsap.delayedCall(END_PAUSE, () => {
       if (!destroyed) deps.goto?.('results');
     });
@@ -150,26 +184,6 @@ export const setupGame: SetupGame = (
     runAnalytics.levelStarted(index, entry);
     setAriaText(`Level ${index + 1} of ${pack.levels.length}.`);
   };
-
-  // ── Audio (optional: a missing channel is a no-op) ─────────────────────────
-  type Audio = {
-    play: (channel: string, mode?: string) => void;
-    stop: (channel: string) => void;
-  };
-  const audio = () => deps.coordinator.audio as Audio | undefined;
-  const tryPlay = (channel: string, mode?: string) => {
-    try {
-      audio()?.play(channel, mode);
-    } catch {
-      /* audio optional */
-    }
-  };
-  // The settings menu's volume and music toggle, applied to the engine
-  // (./audioSettings.ts). Music starts through it, never by playing directly.
-  const music = bindAudioSettings(
-    audio,
-    deps.audio as AudioSettings | undefined,
-  );
 
   // ── Layout ────────────────────────────────────────────────────────────────
   const layout = () => {
@@ -248,16 +262,17 @@ export const setupGame: SetupGame = (
           buildScene(application.stage, field);
           layout();
           application.renderer.on('resize', layout);
+          const world = db;
           unbindInput = bindTapInput(
             application,
             root as Container,
-            db,
+            (point) => world.transactions.tap(point),
             () => !(pauseState.paused() || settingsOpen()),
           );
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
-          music.startMusic(); // audio unlocked on the start-screen tap; respects the toggle
+          audio.music('audio-music'); // audio unlocked on the start-screen tap; respects the toggle
 
           engine = createTickerEngine();
           stopSim = startFixedStepLoop(engine, (dt) => {
@@ -284,7 +299,7 @@ export const setupGame: SetupGame = (
 
     destroy() {
       destroyed = true;
-      music.stopMusic();
+      audio.stopAll();
       stopSim?.();
       stopRender?.();
       stopSim = stopRender = null;

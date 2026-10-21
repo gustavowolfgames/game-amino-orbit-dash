@@ -5,38 +5,45 @@ no game decisions: if a value matters to the game, it lives in `../sim`. The
 controller creates each view, adds its container to the design-space root, and
 calls `update(db, dtSec)` from its per-frame `render`.
 
+Two inputs, two jobs:
+
+- **State** (`db.resources`, entities): what is on screen right now. Read it
+  every frame in `update`.
+- **Events** (`../sim/events.ts`): what just happened (a hit, a clear, a lap).
+  A one-shot effect hangs off the controller's cue table as a `run` hook
+  (`../screens/README.md`), so the view never diffs counters to find out.
+
 Check `@wolfgames/components` first (`.agents/recipes/components.md`): a HUD,
 a button, a popup or a particle effect is usually a module to configure. The
 controller's HUD is `hud-display`; this view uses `fly-text`:
 
 ```ts
 // check: ScorePopups.ts
-// catalog: fly-text for the "+points" popups
+// catalog: fly-text for the "+1" popups
 import { FlyText } from '@wolfgames/components/modules/primitives/fly-text';
 import { Container } from 'pixi.js';
 import { getTheme } from '~/game/brand';
-import { DESIGN_W } from '../config';
-import type { GameDatabase } from '../sim/plugin';
+import type { EventOfType } from '../sim/events';
+import type { GameEvent } from '../sim/plugin';
 
-/** A "+points" popup each time the score goes up. */
+/** A "+1" popup where each point was scored. */
 export class ScorePopups {
   readonly container = new Container();
   private readonly live: FlyText[] = [];
-  private lastScore = 0;
 
-  update(db: GameDatabase, dtSec: number): void {
-    const { score } = db.resources;
-    if (score > this.lastScore) {
-      const popup = new FlyText({
-        text: `+${score - this.lastScore}`,
-        x: DESIGN_W / 2,
-        y: 200,
-        fill: getTheme().accent,
-      });
-      this.container.addChild(popup);
-      this.live.push(popup);
-    }
-    this.lastScore = score;
+  /** Cue hook: `scored: { sfx: 'sfx-pop', run: (e) => popups.add(e) }`. */
+  add(e: EventOfType<GameEvent, 'scored'>): void {
+    const popup = new FlyText({
+      text: '+1',
+      x: e.x,
+      y: e.y,
+      fill: getTheme().accent,
+    });
+    this.container.addChild(popup);
+    this.live.push(popup);
+  }
+
+  update(dtSec: number): void {
     for (let i = this.live.length - 1; i >= 0; i--) {
       this.live[i].update(dtSec);
       if (this.live[i].destroyed) this.live.splice(i, 1); // fly-text ends itself
@@ -52,8 +59,9 @@ export class ScorePopups {
 
 For entities, keep a `Map<Entity, Sprite>`: each frame, create a sprite for a
 new entity, move the ones that exist, and destroy the ones whose entity is
-gone. Read entities through a reader in `../sim/readStateFromEcs.ts`, and draw
-them from a `scene-*` atlas (`.agents/recipes/assets.md`).
+gone. Read entities with a plain reader next to the plugin (`readPieces(db)`,
+`../sim/README.md`), and draw them from a `scene-*` atlas
+(`.agents/recipes/assets.md`).
 
 Colours and fonts come from `getTheme()`, so a partner brand recolours the game.
 Animate with GSAP, kill tweens before `destroy`, create nothing per frame that

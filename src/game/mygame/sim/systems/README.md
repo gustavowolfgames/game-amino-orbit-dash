@@ -12,28 +12,25 @@ import type { GameDatabase } from '../plugin';
 export function systemGoal(db: GameDatabase): void {
   const { phase, goal, score } = db.resources;
   if (phase === 'playing' && goal > 0 && score >= goal) {
-    db.transactions.setPhase('won');
+    db.transactions.setPhase('won'); // emits { type: 'phase', phase: 'won' }
   }
 }
 ```
 
-Input arrives as queued taps. The system that resolves them runs first and
-clears the queue:
+A system that should be heard or seen (a hit, a landing, a lap) calls a
+transaction that `emit`s the event; it never leaves a counter for the
+controller to diff. See "Events" in `../README.md`.
+
+Real-time input arrives as an intent resource that the first system drains
+(`../../input/README.md` shows the queue and its transaction):
 
 ```ts
-// check: systemTaps.ts
-import type { GameDatabase } from '../plugin';
-
-/**
- * Order: first. Reads pendingTaps (design space). Clears them once resolved.
- * This one scores a point per tap; a game finds what is under each tap
- * (`tap.x`, `tap.y`) and calls the transaction for it.
- */
-export function systemTaps(db: GameDatabase): void {
-  const taps = db.resources.pendingTaps;
-  if (taps.length === 0) return;
-  db.transactions.addScore({ points: taps.length });
-  db.transactions.clearTaps();
+/** Order: first. Resolves queued swipes, then clears them. */
+export function systemSwipes(db: GameDatabase): void {
+  const swipes = db.resources.pendingSwipes;
+  if (swipes.length === 0) return;
+  for (const s of swipes) db.transactions.movePlayer(s); // emits 'moved'
+  db.transactions.clearSwipes();
 }
 ```
 
@@ -41,9 +38,9 @@ Register every system in `index.ts`, in order. Order is contract: a system can
 rely on what an earlier one wrote this step.
 
 ```ts
-export const SYSTEM_ORDER = [systemTaps, systemGoal];
+export const SYSTEM_ORDER = [systemSwipes, systemMove, systemGoal];
 ```
 
-A turn-based game (nothing moves until the player acts) can skip the frame loop:
-resolve the turn in a transaction called from input, and leave `SYSTEM_ORDER`
-empty.
+A turn-based game (nothing moves until the player acts) can skip systems:
+resolve the turn in a transaction called from input, as the template's `tap`
+does, and leave `SYSTEM_ORDER` empty.

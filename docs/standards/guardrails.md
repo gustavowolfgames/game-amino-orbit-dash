@@ -391,9 +391,9 @@ raw timing primitives into the deterministic path.
 | Put a turn-based game (tap / match / trivia / card) on a frame loop | Wastes battery, invites per-frame allocation, adds nondeterminism for no gain | Resolve the turn synchronously on input via `applyTap(db, {col,row})`; observers repaint. **No scheduler.** This is the template default. |
 | Feed raw frame deltas to `stepWorld` | Continuous integration (velocity, orbit, physics) is only stable and replayable at a constant step | Accumulate real time and spend it in fixed steps via `startFixedStepLoop(engine, dt => stepWorld(db, dt))` (`engine/fixedStep.ts`) |
 | `requestAnimationFrame` / `setInterval` to drive the sim | Bypasses the engine seam and GSAP pause; can't be stepped headlessly | Go through the `EngineHandle` seam (`createTickerEngine()`); no raw rAF in game code |
-| Resolve a turn inside the pointer callback in a real-time game | Input lands off the deterministic timeline | Queue it: `db.transactions.submitTap({x,y})`; a system drains `pendingTaps` next step |
+| Resolve a turn inside the pointer callback in a real-time game | Input lands off the deterministic timeline | Queue it as an intent (`db.transactions.submitSwipe(...)` → a `pendingSwipes` resource); the first system drains it next step |
 | Let an external physics engine hold its own authoritative state | Two sources of truth drift | Bridge it as ONE per-frame system: push ECS→engine, step with the fixed `dt`, write bodies back into ECS |
-| `Math.random()` / `Date.now()` inside a transaction, turn function, or system | Breaks replay and headless tests | `dt` and input arrive as injected resources (`frameDeltaMs`, `pendingTap`); seeds passed as args |
+| `Math.random()` / `Date.now()` inside a transaction, turn function, or system | Breaks replay and headless tests | `dt` and input arrive as injected resources (`frameDeltaMs`, an intent queue); seeds passed as args |
 
 Decision rule: *does this state change when no event occurs?* **Yes** → per-frame
 system. **No** → event → transaction. Real-time pieces (`schedule.ts`,
