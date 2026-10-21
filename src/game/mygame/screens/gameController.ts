@@ -4,8 +4,9 @@
  * This is the template core, not a game. It owns the renderer lifecycle and the
  * wiring every game needs, and draws only the background and the HUD:
  *
- *   • Pixi app + a fixed design box (DESIGN_W×DESIGN_H) scaled to fit
- *     ("contain"), with a cover-fit background in screen space.
+ *   • Pixi app + a `DesignLayer` on `DESIGN_CANVAS` (390×844, the canvas the
+ *     title screen uses), fitted by `trackHostBox`, with a cover-fit background
+ *     in screen space.
  *   • Input (`../input/pointer.ts`): a tap calls the example `tap` transaction.
  *   • The fixed-step sim (`startFixedStepLoop` → `stepWorld` → `SYSTEM_ORDER`)
  *     plus a per-frame `render` where the game projects ECS into its views
@@ -33,8 +34,9 @@
 
 // catalog: hud-display for the level/score HUD
 import { HudDisplay } from '@wolfgames/components/modules/primitives/hud-display';
+import { DesignLayer, trackHostBox } from '@wolfgames/components/pixi';
 import gsap from 'gsap';
-import { Application, Container, Sprite, type Texture } from 'pixi.js';
+import { Application, type Container, Sprite, type Texture } from 'pixi.js';
 import { createSignal } from 'solid-js';
 import { exposePixiApp } from '~/core/dev/pixiDevtools';
 import { setActiveInspectorActions } from '~/core/systems/ecs';
@@ -54,7 +56,6 @@ import {
   saveProgress,
 } from '~/game/setup/progress';
 import { completeActivePack } from '~/game/setup/served-session';
-import { DESIGN_H, DESIGN_W } from '../config';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
@@ -68,6 +69,10 @@ import { type AudioSettings, createGameAudio } from './gameAudio';
 
 /** Delay (s) before handing off to results, so the last frame reads. */
 const END_PAUSE = 0.9;
+
+/** HUD placement in design px on DESIGN_CANVAS (390×844). hud-display spaces
+ *  its entries for its default 20px text, so the whole group is scaled. */
+const HUD = { x: 13, y: 16, scale: 0.76 };
 
 /** The audio channels this game plays (aliases in src/game/asset-manifest.ts). */
 const SOUNDS = {
@@ -96,11 +101,12 @@ export const setupGame: SetupGame = (
   let stopSim: (() => void) | null = null;
   let stopRender: (() => void) | null = null;
   let unbindInput: (() => void) | null = null;
+  let stopResize: (() => void) | null = null;
   let destroyed = false;
   let initPromise: Promise<void> | null = null;
 
-  /** Design-space root: the game's views go in here. */
-  let root: Container | null = null;
+  /** Design-space root on DESIGN_CANVAS: the game's views go in here. */
+  let root: DesignLayer | null = null;
   /** Full-bleed background (screen space). */
   let fieldBg: Sprite | null = null;
   let hud: HudDisplay | null = null;
@@ -186,13 +192,9 @@ export const setupGame: SetupGame = (
   };
 
   // ── Layout ────────────────────────────────────────────────────────────────
-  const layout = () => {
-    if (!app || !root) return;
-    const w = app.screen.width;
-    const h = app.screen.height;
-    const scale = Math.min(w / DESIGN_W, h / DESIGN_H);
-    root.scale.set(scale);
-    root.position.set((w - DESIGN_W * scale) / 2, (h - DESIGN_H * scale) / 2);
+  // `trackHostBox` fits the renderer and `root`; this is its callback for the
+  // screen-space background, which takes the raw box.
+  const fitBackground = (w: number, h: number) => {
     // Cover-fit the background so it always fills the viewport, cropping overflow.
     if (fieldBg) {
       const tw = fieldBg.texture.width;
@@ -206,7 +208,7 @@ export const setupGame: SetupGame = (
 
   // ── Scene construction ─────────────────────────────────────────────────────
   const buildScene = (stage: Container, field: Texture) => {
-    root = new Container();
+    root = new DesignLayer();
     root.eventMode = 'passive';
 
     fieldBg = new Sprite(field);
@@ -225,10 +227,8 @@ export const setupGame: SetupGame = (
       fontFamily: theme.fonts.numeric,
       stroke: '', // no outline: the theme colour reads on the theme ground
     });
-    // hud-display spaces its entries for its default 20px text; scale the whole
-    // group (text and spacing together) to read at design size on a phone.
-    hud.scale.set(1.6);
-    hud.position.set(28, 28);
+    hud.scale.set(HUD.scale);
+    hud.position.set(HUD.x, HUD.y);
     hud.eventMode = 'none';
     root.addChild(hud);
   };
@@ -260,12 +260,16 @@ export const setupGame: SetupGame = (
           if (destroyed || !db) return;
 
           buildScene(application.stage, field);
-          layout();
-          application.renderer.on('resize', layout);
+          stopResize = trackHostBox(
+            application,
+            container,
+            [root as DesignLayer],
+            fitBackground,
+          );
           const world = db;
           unbindInput = bindTapInput(
             application,
-            root as Container,
+            root as DesignLayer,
             (point) => world.transactions.tap(point),
             () => !(pauseState.paused() || settingsOpen()),
           );
@@ -307,6 +311,8 @@ export const setupGame: SetupGame = (
       engine = null;
       unbindInput?.();
       unbindInput = null;
+      stopResize?.();
+      stopResize = null;
 
       const teardown = () => {
         releasePixiApp?.();
