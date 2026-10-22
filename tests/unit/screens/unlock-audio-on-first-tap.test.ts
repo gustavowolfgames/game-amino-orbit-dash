@@ -7,6 +7,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { unlockAudioOnFirstTap } from '~/game/screens/unlockAudioOnFirstTap';
 
 const fire = (t: EventTarget, type: string) => t.dispatchEvent(new Event(type));
+const key = (t: EventTarget, k: string) => {
+  const e = new Event('keydown');
+  Object.defineProperty(e, 'key', { value: k });
+  t.dispatchEvent(e);
+};
 
 describe('unlockAudioOnFirstTap', () => {
   it('unlocks on press and release of the first tap, then stops listening', () => {
@@ -41,5 +46,16 @@ describe('unlockAudioOnFirstTap', () => {
     fire(target, 'pointerdown');
     fire(target, 'pointerup');
     expect(unlock).not.toHaveBeenCalled();
+  });
+
+  it('Escape is not a gesture: the first tap after it still unlocks', () => {
+    const target = new EventTarget();
+    const unlock = vi.fn();
+    unlockAudioOnFirstTap(unlock, target);
+    key(target, 'Escape');
+    expect(unlock).not.toHaveBeenCalled();
+    fire(target, 'pointerdown');
+    fire(target, 'pointerup');
+    expect(unlock).toHaveBeenCalledTimes(2);
   });
 });

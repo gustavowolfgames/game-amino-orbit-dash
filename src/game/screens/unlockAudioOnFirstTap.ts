@@ -7,8 +7,8 @@
  * suspended. This listens on the window, in the capture phase, so the first tap anywhere
  * (canvas, menu, host overlay) resumes it. It calls `unlock` on press and on release
  * (iOS Safari counts the release as the gesture) and removes itself after the first
- * release or key press. It outlives the loading screen on purpose: the first tap lands
- * on the game screen.
+ * release or key press (not Escape, which browsers do not count as one). It outlives
+ * the loading screen on purpose: the first tap lands on the game screen.
  */
 
 const PRESS = ['pointerdown'] as const;
@@ -23,7 +23,10 @@ export function unlockAudioOnFirstTap(
   const onPress = () => {
     unlock();
   };
-  const onEnd = () => {
+  const onEnd = (e: Event) => {
+    // Escape is not a user activation (HTML spec): unlocking on it fails, and removing the
+    // listeners would leave the real first tap with nothing to retry on.
+    if ((e as KeyboardEvent).key === 'Escape') return;
     unlock();
     remove();
   };
