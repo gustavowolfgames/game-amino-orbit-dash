@@ -36,6 +36,9 @@ const CONFETTI = { sizeMin: 6, sizeMax: 12, lifetime: 1.6 } as const;
 /** When screen-results starts popping its earned stars (s into its entrance). */
 const STARS_AT = 1.6;
 
+/** When its buttons have landed (s into its entrance: slide-up from 2.3 / 2.4, 0.35 long). */
+const BUTTONS_AT = 2.75;
+
 /** Frame names in `RESULTS_ATLAS`. One star art serves all three slots. */
 export const RESULTS_FRAMES = {
   star: 'ui-star',
@@ -69,6 +72,8 @@ export interface EndScreenOptions {
 export interface EndScreen {
   /** The card is up (input to the board is off). */
   readonly open: boolean;
+  /** Its buttons are visible and take taps / keys (a tap before they land does nothing). */
+  readonly ready: boolean;
   celebrate(): void;
   /** Shows the card; returns its screen-reader line (the card's buttons are canvas, not DOM). */
   show(outcome: EndOutcome): string;
@@ -107,6 +112,8 @@ export function createEndScreen(
   const { width, height } = DESIGN_CANVAS;
   let card: ScreenResults | null = null;
   let open = false;
+  let ready = false;
+  let readyCall: gsap.core.Tween | null = null;
   const setOpen = (next: boolean) => {
     if (next === open) return;
     open = next;
@@ -137,8 +144,8 @@ export function createEndScreen(
       starLeftEmptyFrameName: RESULTS_FRAMES.starEmpty,
       starMiddleEmptyFrameName: RESULTS_FRAMES.starEmpty,
       starRightEmptyFrameName: RESULTS_FRAMES.starEmpty,
-      onPrimary: () => open && options.onPrimary(),
-      onSecondary: () => open && options.onSecondary(),
+      onPrimary: () => open && ready && options.onPrimary(),
+      onSecondary: () => open && ready && options.onSecondary(),
     });
     next.eventMode = 'passive';
     // Under the confetti, so the shower falls over the card.
@@ -162,6 +169,10 @@ export function createEndScreen(
       return open;
     },
 
+    get ready() {
+      return open && ready;
+    },
+
     celebrate() {
       void flash.flash(options.palette().flash, 0.35, 0.18);
       confetti.burst(width / 2, height * 0.42, {
@@ -177,6 +188,11 @@ export function createEndScreen(
       card.visible = true;
       card.alpha = 1;
       setOpen(true);
+      ready = false;
+      readyCall?.kill();
+      readyCall = gsap.delayedCall(BUTTONS_AT, () => {
+        ready = true;
+      });
       const copy = endCopy(outcome);
       card.show({ score: outcome.score, ...copy }); // replays its entrance
       showers?.kill();
@@ -198,6 +214,8 @@ export function createEndScreen(
 
     hide() {
       setOpen(false);
+      ready = false;
+      readyCall?.kill();
       showers?.kill();
       showers = null;
       const shown = card;
@@ -219,6 +237,7 @@ export function createEndScreen(
 
     destroy() {
       setOpen(false);
+      readyCall?.kill();
       showers?.kill();
       showers = null;
       dropCard();

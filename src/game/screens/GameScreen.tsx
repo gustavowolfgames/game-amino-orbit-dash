@@ -92,6 +92,25 @@ export default function GameScreen() {
           {controller.ariaText()}
         </div>
 
+        {/* The end card's buttons are canvas: these give screen readers (touch ones too) real
+          buttons for the same two actions, through the same intents as the keyboard. */}
+        <Show when={controller.endScreenOpen?.()}>
+          <div class="sr-only">
+            <button
+              type="button"
+              onClick={() => controller.input?.({ type: 'action' })}
+            >
+              Continue
+            </button>
+            <button
+              type="button"
+              onClick={() => controller.input?.({ type: 'back' })}
+            >
+              Main menu
+            </button>
+          </div>
+        </Show>
+
         {/* Wolf Games logo at bottom center; off while the game's end card has its buttons there */}
         <Show when={!controller.endScreenOpen?.()}>
           <div class="absolute bottom-8 left-1/2 -translate-x-1/2">

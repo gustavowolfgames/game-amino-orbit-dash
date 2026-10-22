@@ -57,7 +57,8 @@ test('a won level ends on the in-game card, and Next plays the next level', asyn
   expect(errors).toEqual([]);
 });
 
-test('the card answers the keyboard: Enter plays on', async ({ page }) => {
+/** Play level 1 to its end card and wait for the card's line. */
+async function winLevelOne(page: Page) {
   await page.goto('/?screen=game');
   await expect(ariaLine(page)).toHaveText(/^Level 1 of \d+/, {
     timeout: 20_000,
@@ -67,6 +68,28 @@ test('the card answers the keyboard: Enter plays on', async ({ page }) => {
   await expect(ariaLine(page)).toHaveText(
     /Score 10\. Enter: next level\. Escape: main menu\./,
   );
+}
+
+test('the card answers the keyboard once its buttons are up', async ({
+  page,
+}) => {
+  await winLevelOne(page);
+  // Buttons land ~2.75s into the entrance: an Enter or a tap before that does nothing.
+  await page.keyboard.press('Enter');
+  const next = await toPage(page, PRIMARY);
+  await page.mouse.click(next.x, next.y);
+  await page.waitForTimeout(500);
+  await expect(ariaLine(page)).toHaveText(/^Level complete/);
+
+  await page.waitForTimeout(2600);
   await page.keyboard.press('Enter');
   await expect(ariaLine(page)).toHaveText(/^Level 2 of \d+/);
+});
+
+test('screen readers get real buttons for the card', async ({ page }) => {
+  await winLevelOne(page);
+  await page.waitForTimeout(3100);
+  // Visually hidden, so no pointer can hit it: a screen reader activates it with a click event.
+  await page.getByRole('button', { name: 'Main menu' }).dispatchEvent('click');
+  await expect(page.locator('#app canvas')).toHaveCount(0, { timeout: 10_000 }); // the title screen is DOM
 });

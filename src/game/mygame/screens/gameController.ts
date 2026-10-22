@@ -388,7 +388,7 @@ export const setupGame: SetupGame = (
 
     /** Keyboard (useGameKeyboard): the end card's buttons. The template's board takes none. */
     input(intent) {
-      if (!endScreen?.open) return;
+      if (!endScreen?.ready) return;
       if (intent.type === 'action') void playOn();
       else if (intent.type === 'back') deps.goto?.('start');
     },
