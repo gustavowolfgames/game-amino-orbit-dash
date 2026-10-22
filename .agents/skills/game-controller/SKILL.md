@@ -22,7 +22,7 @@ The template's controller is thin: the renderer, the level flow, the fixed-step 
 
 `scripts/check-agent-surface.mjs` fails when a new game's `gameController.ts` grows past `CONTROLLER_MAX_LINES` (400). Move the new function into a sibling module. Do not raise the cap.
 
-Keyboard listeners do not belong here. A Solid screen such as `src/game/screens/GameScreen.tsx` listens for keys, maps them to intents and hands them to the game; pointer input is `bindTapInput` in `src/game/mygame/input/pointer.ts`. Both call a transaction or queue an intent. The template ships no keyboard input yet. See `.agents/recipes/guardrails.md`.
+Keyboard listeners do not belong here. `useGameKeyboard` (`src/game/screens/useGameKeyboard.ts`, called by `GameScreen.tsx`) maps keys to a `GameIntent` and calls the controller's optional `input(intent)`, which turns it into a transaction or queues it. Pointer input is `bindTapInput` in `src/game/mygame/input/pointer.ts`. Change the key map and the `GameIntent` union in `src/game/mygame-contract.ts` for the game. See `.agents/recipes/guardrails.md`.
 
 Screen ids are `loading`, `start`, `game`, and `results` (`src/core/systems/screens/types.ts`). There is no `game_over`. End of play is `deps.goto?.('results')`. Home is `deps.goto?.('start')`. `deps.goto` is typed `(screen: string) => void`, so a wrong id compiles and fails at runtime. Do not construct a second `Application` for the results screen.
 
