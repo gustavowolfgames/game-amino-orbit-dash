@@ -9,6 +9,7 @@ import { Logo } from '~/core/ui/Logo';
 // Game-specific controller — swap this import for a different game
 import { setupGame } from '~/game/mygame/screens/gameController';
 import { useGameData } from '~/game/screens/useGameData';
+import { useGameKeyboard } from '~/game/screens/useGameKeyboard';
 import { useGameTracking } from '~/game/setup/tracking';
 import type { GameTuning } from '~/game/tuning';
 
@@ -32,6 +33,11 @@ export default function GameScreen() {
     analytics,
     goto: (screen: string) => void goto(screen as never),
   });
+
+  // Keyboard → controller intents (DOM input stays in the screen). It also calls
+  // useSpaceKey, so Space never toggles the scaffold pause during play (ENG-4797);
+  // Escape / P pause instead.
+  useGameKeyboard(controller);
 
   onMount(() => {
     if (containerRef) controller.init(containerRef);
@@ -59,6 +65,7 @@ export default function GameScreen() {
     <>
       <div
         class="design-box-span"
+        data-screen="game"
         classList={{ 'pointer-events-auto': !isPixi }}
         style={isPixi ? undefined : { background: 'var(--brand-ground)' }}
       >

@@ -57,9 +57,21 @@ export interface GameControllerDeps {
   goto?: (screen: string) => void;
 }
 
+/**
+ * A player intent from DOM input (keyboard) wired in the Solid screen by
+ * `useGameKeyboard` (src/game/screens/useGameKeyboard.ts). The controller turns it into
+ * a transaction (or a view change); input never writes state directly. Replace the
+ * union with your game's own intents, and the key map in `useGameKeyboard` with it.
+ */
+export type GameIntent =
+  | { type: 'move'; dir: 'left' | 'right' | 'up' | 'down' }
+  | { type: 'action' };
+
 export interface GameController {
   /** Mount the game into a container div (Pixi canvas, DOM, etc.) */
   init: (container: HTMLDivElement) => void;
+  /** Optional: receive keyboard input as intents (see `useGameKeyboard`). Not called while paused. */
+  input?: (intent: GameIntent) => void;
   /** Tear down the game and release resources */
   destroy: () => void;
   /** Reactive accessibility text for screen readers */
