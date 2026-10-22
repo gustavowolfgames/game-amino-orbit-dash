@@ -10,34 +10,69 @@
  * A focused control (a text field, a button, a menu toggle) keeps its Space: it types the space
  * or presses the button, `onSpace` does not run, and the event is stopped at `document` (after
  * the control and Solid's delegated handlers saw it) so the core listener still never pauses.
+ * While paused, only a text field keeps it: elsewhere Space resumes.
  */
 
 import { onCleanup, onMount } from 'solid-js';
 
 import { pauseState } from '~/core/systems/pause';
 
-const CONTROLS =
-  'input, textarea, select, button, a[href], [contenteditable=""], [contenteditable="true"], [role="button"], [role="textbox"], [role="switch"], [role="checkbox"], [role="slider"]';
+/** Typing targets: every key is theirs. */
+const TEXT_ENTRY =
+  'textarea, select, [contenteditable=""], [contenteditable="true"], [role="textbox"], input:not([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"], [type="range"])';
+/** Sliders: the arrows (and Space / Enter) are theirs. */
+const SLIDER = 'input[type="range"], [role="slider"]';
+/** Pressables: only Space and Enter are theirs. Arrows, WASD, P and Escape stay the game's, so a
+ *  button left focused by a click (Chrome keeps focus on the settings gear) does not eat them. */
+const PRESSABLE =
+  'button, a[href], input, [role="button"], [role="switch"], [role="checkbox"], [role="radio"]';
 
-/** True when a key event is aimed at a focused control that has its own use for the key. */
-export function isFocusedControl(target: EventTarget | null): boolean {
-  return (
-    target instanceof Element &&
-    ((target instanceof HTMLElement && target.isContentEditable) ||
-      target.closest(CONTROLS) !== null)
-  );
+const PRESS_KEYS: ReadonlySet<string> = new Set([
+  'Space',
+  'Enter',
+  'NumpadEnter',
+]);
+const ARROWS: ReadonlySet<string> = new Set([
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowUp',
+  'ArrowDown',
+]);
+
+/** True when the focused element a key event is aimed at has its own use for that key. */
+export function controlOwnsKey(
+  target: EventTarget | null,
+  code: string,
+): boolean {
+  if (!(target instanceof Element)) return false;
+  if (
+    (target instanceof HTMLElement && target.isContentEditable) ||
+    target.closest(TEXT_ENTRY)
+  )
+    return true;
+  if (ARROWS.has(code)) return target.closest(SLIDER) !== null;
+  return PRESS_KEYS.has(code) && target.closest(PRESSABLE) !== null;
 }
+
+/** A control keeps its Space, except a pressable while paused: there Space resumes the game
+ *  (the core overlay's "Press SPACE to resume"), not a click on whatever button kept focus. */
+const yieldsSpace = (target: EventTarget | null) =>
+  controlOwnsKey(target, 'Space') &&
+  !(
+    pauseState.paused() &&
+    !(target instanceof Element && target.closest(TEXT_ENTRY))
+  );
 
 export function useSpaceKey(onSpace?: () => void): void {
   const onKey = (e: KeyboardEvent) => {
-    if (e.code !== 'Space' || isFocusedControl(e.target)) return;
+    if (e.code !== 'Space' || yieldsSpace(e.target)) return;
     e.preventDefault();
     e.stopImmediatePropagation();
     if (!e.repeat) onSpace?.();
   };
   // A control's Space: let the control have it, but keep it from the core pause on `window`.
   const onControlSpace = (e: KeyboardEvent) => {
-    if (e.code === 'Space' && isFocusedControl(e.target)) e.stopPropagation();
+    if (e.code === 'Space' && yieldsSpace(e.target)) e.stopPropagation();
   };
 
   onMount(() => {

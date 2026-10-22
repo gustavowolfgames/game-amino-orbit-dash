@@ -169,6 +169,30 @@ describe('game screen keyboard (useGameKeyboard)', () => {
       expect(intents).toEqual([]);
     });
 
+    it('a button left focused by a click does not eat the game keys (the settings gear)', () => {
+      pressOn(button, 'ArrowLeft');
+      pressOn(button, 'KeyW');
+      expect(intents).toEqual([
+        { type: 'move', dir: 'left' },
+        { type: 'move', dir: 'up' },
+      ]);
+      pressOn(button, 'KeyP');
+      expect(pauseState.paused()).toBe(true); // P and Escape still pause
+    });
+
+    it('paused, Space on a focused button resumes instead of pressing it', () => {
+      pauseState.pause();
+      const event = pressOn(button, 'Space');
+      expect(event.defaultPrevented).toBe(true);
+      expect(pauseState.paused()).toBe(false);
+    });
+
+    it('paused, Space in a text field still types a space', () => {
+      pauseState.pause();
+      expect(pressOn(field, 'Space').defaultPrevented).toBe(false);
+      expect(pauseState.paused()).toBe(true);
+    });
+
     it('Space with the settings menu open reaches its focused control', () => {
       setSettingsOpen(true);
       expect(pressOn(button, 'Space').defaultPrevented).toBe(false);

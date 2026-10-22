@@ -15,7 +15,8 @@
  * paused, Space resumes, which keeps the core overlay's "Press SPACE to resume" true.
  *
  * Nothing fires while the settings menu is open (the menu owns the keyboard then), or for a key
- * aimed at a focused control such as the Inspector's filter field or a button. Listeners run
+ * a focused control owns: any key in a text field (the Inspector's filter), the arrows on a
+ * slider, Space / Enter on a button. Other keys on a focused button are still the game's. Listeners run
  * in the capture phase so an Escape that closes the menu is seen while the menu is still open,
  * and does not also pause the game.
  *
@@ -26,7 +27,7 @@ import { onCleanup, onMount } from 'solid-js';
 
 import { pauseState } from '~/core/systems/pause';
 import type { GameController, GameIntent } from '~/game/mygame-contract';
-import { isFocusedControl, useSpaceKey } from '~/game/screens/useSpaceKey';
+import { controlOwnsKey, useSpaceKey } from '~/game/screens/useSpaceKey';
 import { settingsOpen } from '~/game/settingsOpen';
 
 /** Key code → intent. Space is handled through `useSpaceKey`. */
@@ -63,7 +64,7 @@ export function useGameKeyboard(
 
   const onKey = (e: KeyboardEvent) => {
     if (settingsOpen() || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (isFocusedControl(e.target)) return; // typing, or pressing a focused button
+    if (controlOwnsKey(e.target, e.code)) return; // typing, or Enter on a focused button
     if (PAUSE_KEYS.has(e.code)) {
       e.preventDefault();
       if (!e.repeat) pauseState.toggle();
