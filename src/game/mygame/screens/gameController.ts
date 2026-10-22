@@ -35,8 +35,7 @@
  *            renderer teardown → setActiveInspectorActions([])
  */
 
-// catalog: hud-display for the level/score HUD
-import { HudDisplay } from '@wolfgames/components/modules/primitives/hud-display';
+import type { HudDisplay } from '@wolfgames/components/modules/primitives/hud-display';
 import { DesignLayer, trackHostBox } from '@wolfgames/components/pixi';
 import gsap from 'gsap';
 import {
@@ -71,6 +70,7 @@ import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
 import { createEndScreen, type EndScreen } from '../render/endScreen';
+import { createHud } from '../render/hud';
 import { ensureResultsArt } from '../render/resultsArt';
 import { loadGameTextures } from '../render/textures';
 import { drainEvents } from '../sim/events';
@@ -82,10 +82,6 @@ import { type AudioSettings, createGameAudio } from './gameAudio';
 
 /** Delay (s) before the end screen, so the last frame (and the confetti) reads. */
 const END_PAUSE = 0.9;
-
-/** HUD placement in design px on DESIGN_CANVAS (390×844). hud-display spaces
- *  its entries for its default 20px text, so the whole group is scaled. */
-const HUD = { x: 13, y: 16, scale: 0.76 };
 
 /** The audio channels this game plays (aliases in src/game/asset-manifest.ts). */
 const SOUNDS = {
@@ -103,8 +99,9 @@ export const setupGame: SetupGame = (
   const deps = rawDeps as Deps;
   const [ariaText, setAriaText] = createSignal('Loading…');
   const [endScreenOpen, setEndScreenOpen] = createSignal(false);
-  // Settled by the loading screen before this screen exists; read once per run.
-  const theme = getTheme();
+  // Settled by the loading screen before this screen exists; re-read when a Vault edition
+  // brings its own brand (`restyle`).
+  let theme = getTheme();
   // level_* + edition_* events (src/game/setup/edition-analytics.ts); no-ops without a service.
   const runAnalytics = createRunAnalytics(deps.analytics);
 
@@ -200,7 +197,18 @@ export const setupGame: SetupGame = (
   const playOn = async () => {
     endScreen?.hide();
     await whenContentSettled();
-    if (!destroyed) startRun();
+    if (destroyed) return;
+    restyle();
+    startRun();
+  };
+
+  /** The next edition may carry another brand: the ground and HUD follow it (the end
+   *  screen reads `theme` each time it fires). The DOM round trip used to rebuild these. */
+  const restyle = () => {
+    if (getTheme() === theme) return;
+    theme = getTheme();
+    if (app) app.renderer.background.color = theme.ground;
+    if (root) buildHud(root);
   };
 
   /**
@@ -254,31 +262,26 @@ export const setupGame: SetupGame = (
     fieldBg.eventMode = 'none';
     stage.addChild(fieldBg);
     stage.addChild(root);
-
-    hud = new HudDisplay({
-      entries: [
-        { key: 'level', label: 'LEVEL ', value: '' },
-        { key: 'score', label: 'SCORE ', value: 0 },
-      ],
-      direction: 'horizontal',
-      fill: theme.text,
-      fontFamily: theme.fonts.numeric,
-      stroke: '', // no outline: the theme colour reads on the theme ground
-    });
-    hud.scale.set(HUD.scale);
-    hud.position.set(HUD.x, HUD.y);
-    hud.eventMode = 'none';
-    root.addChild(hud);
+    buildHud(root);
 
     const gpu = deps.coordinator.getGpuLoader();
     if (gpu && END_SCREEN === 'pixi')
       endScreen = createEndScreen(root, gpu, {
-        colors: theme.pieces,
-        flashColor: new Color(theme.accent).toNumber(),
+        palette: () => ({
+          colors: theme.pieces,
+          flash: new Color(theme.accent).toNumber(),
+        }),
         onPrimary: () => void playOn(),
         onSecondary: () => deps.goto?.('start'),
         onOpenChange: setEndScreenOpen,
       });
+  };
+
+  /** The level/score HUD in the current theme (replaces the old one on a restyle). */
+  const buildHud = (parent: Container) => {
+    hud?.destroy();
+    hud = createHud(theme);
+    parent.addChildAt(hud, 0); // under the end screen
   };
 
   return {

@@ -55,10 +55,9 @@ export interface EndOutcome {
 }
 
 export interface EndScreenOptions {
-  /** Confetti colours (the theme's piece palette). */
-  colors: readonly number[];
-  /** Flash colour (the theme's accent). */
-  flashColor: number;
+  /** Confetti colours (the theme's piece palette) and the flash colour (its accent). Read each
+   *  time the screen fires, so a brand that changed mid-session (a Vault edition) is followed. */
+  palette: () => { colors: readonly number[]; flash: number };
   /** Next level / Try again / Play again. */
   onPrimary: () => void;
   /** Main menu. */
@@ -114,7 +113,10 @@ export function createEndScreen(
   };
 
   /** The theme's pieces, its accent, and white, so it reads on any ground. */
-  const colors = [...options.colors, options.flashColor, 0xffffff];
+  const confettiColors = () => {
+    const { colors, flash } = options.palette();
+    return [...colors, flash, 0xffffff];
+  };
   let showers: gsap.core.Tween | null = null;
   const confetti = new ParticleBurst();
   confetti.eventMode = 'none';
@@ -160,10 +162,10 @@ export function createEndScreen(
     },
 
     celebrate() {
-      void flash.flash(options.flashColor, 0.35, 0.18);
+      void flash.flash(options.palette().flash, 0.35, 0.18);
       confetti.burst(width / 2, height * 0.42, {
         ...CONFETTI,
-        colors,
+        colors: confettiColors(),
         count: 70,
       });
     },
@@ -179,6 +181,7 @@ export function createEndScreen(
       // A won card: confetti showers over it as the stars pop (their pop starts at 1.6s).
       showers = outcome.won
         ? gsap.delayedCall(STARS_AT, () => {
+            const colors = confettiColors();
             for (const x of [0.25, 0.5, 0.75])
               confetti.cascade(width * x, height * 0.22, {
                 ...CONFETTI,
