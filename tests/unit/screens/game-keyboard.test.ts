@@ -138,6 +138,14 @@ describe('game screen keyboard (useGameKeyboard)', () => {
       expect(intents).toEqual([{ type: 'action' }]);
     });
 
+    it('paused over the card, Escape resumes instead of leaving', () => {
+      cardOpen = true;
+      pauseState.pause();
+      press('Escape');
+      expect(pauseState.paused()).toBe(false);
+      expect(intents).toEqual([]);
+    });
+
     it('without the card, Escape still pauses', () => {
       press('Escape');
       expect(pauseState.paused()).toBe(true);

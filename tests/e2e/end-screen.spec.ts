@@ -65,7 +65,7 @@ test('the card answers the keyboard: Enter plays on', async ({ page }) => {
   const centre = await toPage(page, { x: 195, y: 420 });
   for (let i = 0; i < 10; i++) await page.mouse.click(centre.x, centre.y);
   await expect(ariaLine(page)).toHaveText(
-    /Enter: next level\. Escape: main menu\./,
+    /Score 10\. Enter: next level\. Escape: main menu\./,
   );
   await page.keyboard.press('Enter');
   await expect(ariaLine(page)).toHaveText(/^Level 2 of \d+/);

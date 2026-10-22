@@ -63,7 +63,12 @@ export function useGameKeyboard(
 
   const onKey = (e: KeyboardEvent) => {
     if (settingsOpen() || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.code === 'Escape' && controller.endScreenOpen?.()) {
+    // Paused over the card, Escape resumes first (the pause overlay is on top).
+    if (
+      e.code === 'Escape' &&
+      controller.endScreenOpen?.() &&
+      !pauseState.paused()
+    ) {
       e.preventDefault();
       if (!e.repeat) send({ type: 'back' }); // the end card's Main menu, not a pause
       return;

@@ -193,7 +193,7 @@ export function createEndScreen(
           })
         : null;
       const done = outcome.won ? 'Level complete' : 'Run over';
-      return `${done}. Enter: ${copy.primaryLabel.toLowerCase()}. Escape: main menu.`;
+      return `${done}. Score ${outcome.score}. Enter: ${copy.primaryLabel.toLowerCase()}. Escape: main menu.`;
     },
 
     hide() {
