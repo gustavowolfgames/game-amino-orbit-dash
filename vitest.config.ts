@@ -8,6 +8,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    // The amino-* CLI tests spawn bun against git fixtures; they are slow, so they
+    // run on their own with `bun run test:scripts` (vitest.scripts.config.ts).
+    exclude: ['**/node_modules/**', 'tests/scripts/**'],
     globals: false,
     // Stubs the browser CacheStorage API that @adobe/data expects at import
     // time — required for headless ECS tests in Node.

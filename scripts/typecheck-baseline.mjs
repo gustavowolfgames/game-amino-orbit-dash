@@ -1,6 +1,8 @@
 // Runs tsc and compares its errors to scripts/typecheck-baseline.txt.
-// The baseline holds errors inherited from template-amino, keyed by file and TS code
-// so line shifts do not matter. A new error fails. A fixed one asks for --update.
+// The template's baseline is empty: it type-checks clean, so any error fails.
+// A game that inherits errors it cannot fix yet (e.g. from a dependency) may record
+// them with --update, keyed by file and TS code so line shifts do not matter.
+// A new error fails. A fixed one asks for --update.
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -90,5 +92,7 @@ if (fixed.length > 0) {
   );
 }
 process.stdout.write(
-  `PASS typecheck baseline (${total} inherited errors, none new)\n`,
+  total === 0
+    ? 'PASS typecheck (0 errors)\n'
+    : `PASS typecheck baseline (${total} recorded errors, none new)\n`,
 );
