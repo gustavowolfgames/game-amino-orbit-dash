@@ -79,9 +79,9 @@ Call `createParticleRuntime(app)` from `src/core/systems/vfx/particleRuntime.ts`
 
 ## Stage fit
 
-Lay the scene out in design px inside a `DesignLayer` from `@wolfgames/components/pixi`. It defaults to `DESIGN_CANVAS`, the canvas every Wolf screen uses. Wire resizes with `trackHostBox(app, hostElement, [layer])`, passing the element `init` receives, and call the returned stop function in `destroy`. Do not write `Math.min(w / DESIGN_W, h / DESIGN_H)`. Section 9.2a of `node_modules/@wolfgames/components/docs/standards/components.md` has the full API.
+Lay the scene out in design px inside a `DesignLayer` from `@wolfgames/components/pixi`. It defaults to `DESIGN_CANVAS`, the canvas every Wolf screen uses. Wire resizes with `trackHostBox(app, hostElement, [layer])`, passing the element `init` receives, and call the returned stop function in `destroy`. Do not write your own `Math.min(w / width, h / height)` fit. Section 9.2a of `node_modules/@wolfgames/components/docs/standards/components.md` has the full API.
 
-The template predates this. It fits its own `DESIGN_W` by `DESIGN_H` box from `src/game/mygame/config.ts` by hand in `src/game/mygame/screens/gameController.ts`. Do not copy that fit into new scene code. Read the canvas size from `DESIGN_CANVAS` in `@wolfgames/components/core` wherever the sim or the view needs it. Do not redeclare it.
+The title screen (`src/game/mygame/screens/startView.tsx`) and the play screen (`src/game/mygame/screens/gameController.ts`) both do this, so a module laid out for 390×844 lands the same on both. A full-bleed background stays on the stage in screen space and cover-fits in the `trackHostBox` callback. Taps map to design px with the layer's `toDesign(e.global.x, e.global.y)` (`src/game/mygame/input/pointer.ts`). Read the canvas size from `DESIGN_CANVAS` in `@wolfgames/components/core` wherever the sim or the view needs it. Do not redeclare it.
 
 ## Performance
 

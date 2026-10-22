@@ -2,7 +2,8 @@
 
 A view reads the world and draws it with Pixi. It holds no game state and makes
 no game decisions: if a value matters to the game, it lives in `../sim`. The
-controller creates each view, adds its container to the design-space root, and
+controller creates each view, adds its container to the design-space root (a `DesignLayer` on
+`DESIGN_CANVAS`, 390×844: place children in those px), and
 calls `update(db, dtSec)` from its per-frame `render`.
 
 Two inputs, two jobs:
