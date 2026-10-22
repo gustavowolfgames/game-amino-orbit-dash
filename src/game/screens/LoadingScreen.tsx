@@ -15,6 +15,7 @@ import { inVault } from '~/integrations/vault';
 import { IntroSting } from './components/IntroSting';
 import { titleArt } from './components/titleFrame';
 import { resolveSkipSource } from './skipStartScreen';
+import { unlockAudioOnFirstTap } from './unlockAudioOnFirstTap';
 
 export function LoadingScreen() {
   const { goto } = useScreen();
@@ -96,7 +97,10 @@ export function LoadingScreen() {
         for (const name of titleBootBundles) assets.backgroundLoadBundle(name);
         await assets.loadBoot();
         await assets.loadTheme();
+        // No title screen means no Play tap to unlock audio on. Try now (works when the host
+        // already has user activation) and again on the player's first tap.
         assets.unlockAudio();
+        unlockAudioOnFirstTap(assets.unlockAudio);
         await assets.initGpu();
         await assets.loadCore();
         try {
