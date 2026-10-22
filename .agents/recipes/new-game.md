@@ -25,7 +25,7 @@ Get the Nucleo slug from the user. Do not invent one. If the task is a local bui
 6. Replace the sample flags in `src/game/setup/flags.ts` (`GameFeatureFlags`, `DEFAULT_FLAGS`, validators) and the trackers in `src/game/setup/tracking.ts`. The flag cache key is `<slug>_ff_`, so it changes with the slug.
 7. Put levels, questions, or cards in one pack. Follow `.agents/recipes/dynamic-data.md`.
 8. Build screens and HUD from catalog modules. Follow `.agents/recipes/components.md`.
-9. Get art, audio, and VFX from the wolf-game-kit MCP. Follow `.agents/recipes/assets.md`, including its naming rules. Rename the sample channel `audio-sfx-mygame` in `src/game/audio/sounds.ts` and the example bundle names in `src/game/asset-manifest.ts`.
+9. Get art, audio, and VFX from the wolf-game-kit MCP. Follow `.agents/recipes/assets.md`, including its naming rules. Rename the example bundle names in `src/game/asset-manifest.ts`, and list the game's `audio-*` channels in its `createGameAudio` call (`src/game/mygame/screens/gameAudio.ts`).
 
 Ship with the wolf-game-kit MCP once the verify steps pass.
 
