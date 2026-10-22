@@ -3,6 +3,7 @@ import {
   useManifest,
   useSignal,
 } from '@wolfgames/components/solid';
+import { Howler } from 'howler';
 import { createMemo, createSignal, onMount } from 'solid-js';
 import { type ScaffoldTuning, useTuning } from '~/core';
 import { useAssets, useLoadingState } from '~/core/systems/assets';
@@ -98,7 +99,10 @@ export function LoadingScreen() {
         // No title screen means no Play tap to unlock audio on. Try now (works when the host
         // already has user activation) and again on the player's first tap.
         assets.unlockAudio();
-        unlockAudioOnFirstTap(assets.unlockAudio);
+        unlockAudioOnFirstTap(
+          assets.unlockAudio,
+          () => Howler.ctx?.state === 'running',
+        );
         await assets.initGpu();
         await assets.loadCore();
         try {
