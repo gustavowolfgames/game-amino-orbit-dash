@@ -12,17 +12,21 @@
  * (`setActiveDb`). Controllers and screens read the world; they do not create or
  * destroy it. Headless tests still call `createGameWorld()` directly for an
  * isolated world — this holder is for the running app.
+ *
+ * The running world carries the agent service (`./agent/agentPlugin.ts`), so a
+ * bot or MCP client can read states and call actions on the live game with
+ * `getGameWorld().services.agent.execute(action, input)`.
  */
 
 import { setActiveDb } from '~/core/systems/ecs';
-import { createGameWorld, type GameDatabase } from './sim/plugin';
+import { createGameAgentWorld, type GameAgentDatabase } from './agent/agentPlugin';
 
-let world: GameDatabase | null = null;
+let world: GameAgentDatabase | null = null;
 
 /** The app-scoped world, created (and bound to the Inspector) on first use. */
-export function getGameWorld(): GameDatabase {
+export function getGameWorld(): GameAgentDatabase {
   if (!world) {
-    world = createGameWorld();
+    world = createGameAgentWorld();
     setActiveDb(world); // dev Inspector (backtick) shows this world
   }
   return world;

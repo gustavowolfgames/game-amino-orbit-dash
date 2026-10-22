@@ -1,7 +1,8 @@
 # agent: the game as states and actions
 
 An agent (a bot, a test harness, an MCP client) reads **states** and calls
-**actions** with `db.services.agent.execute(action, input)`.
+**actions** with `db.services.agent.execute(action, input)`. The running game's
+world has it too: `getGameWorld()` (`../world.ts`) is built from this plugin.
 
 - `createAgentService.ts` is generic: it turns a declaration into an
   `AgenticService` (@adobe/data). Leave it as is.
