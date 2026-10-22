@@ -25,6 +25,17 @@ const press = (code: string, init: KeyboardEventInit = {}) => {
   return event;
 };
 
+/** A keydown aimed at `el` (dispatched on it, so it bubbles to document and window). */
+const pressOn = (el: Element, code: string) => {
+  const event = new KeyboardEvent('keydown', {
+    code,
+    bubbles: true,
+    cancelable: true,
+  });
+  el.dispatchEvent(event);
+  return event;
+};
+
 describe('game screen keyboard (useGameKeyboard)', () => {
   let intents: GameIntent[];
   let dispose: () => void;
@@ -117,5 +128,51 @@ describe('game screen keyboard (useGameKeyboard)', () => {
     dispose();
     press('ArrowLeft');
     expect(intents).toEqual([]);
+  });
+
+  describe('a focused control keeps its keys', () => {
+    let field: HTMLInputElement;
+    let button: HTMLButtonElement;
+    beforeEach(() => {
+      field = document.createElement('input');
+      button = document.createElement('button');
+      document.body.append(field, button);
+    });
+    afterEach(() => {
+      field.remove();
+      button.remove();
+    });
+
+    it('typing W A S D or arrows in a text field sends no intent and is not cancelled', () => {
+      for (const code of [
+        'KeyW',
+        'KeyA',
+        'KeyS',
+        'KeyD',
+        'ArrowLeft',
+        'Enter',
+      ]) {
+        expect(pressOn(field, code).defaultPrevented).toBe(false);
+      }
+      expect(intents).toEqual([]);
+    });
+
+    it('P in a text field does not pause', () => {
+      pressOn(field, 'KeyP');
+      expect(pauseState.paused()).toBe(false);
+    });
+
+    it('Space on a focused button presses the button, and still never pauses', () => {
+      const event = pressOn(button, 'Space');
+      expect(event.defaultPrevented).toBe(false); // native activation stays
+      expect(pauseState.paused()).toBe(false); // the core listener never saw it
+      expect(intents).toEqual([]);
+    });
+
+    it('Space with the settings menu open reaches its focused control', () => {
+      setSettingsOpen(true);
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(false);
+      expect(pauseState.paused()).toBe(false);
+    });
   });
 });
