@@ -70,7 +70,8 @@ export interface EndScreen {
   /** The card is up (input to the board is off). */
   readonly open: boolean;
   celebrate(): void;
-  show(outcome: EndOutcome): void;
+  /** Shows the card; returns its screen-reader line (the card's buttons are canvas, not DOM). */
+  show(outcome: EndOutcome): string;
   hide(): void;
   tick(dtSec: number): void;
   destroy(): void;
@@ -176,7 +177,8 @@ export function createEndScreen(
       card.visible = true;
       card.alpha = 1;
       setOpen(true);
-      card.show({ score: outcome.score, ...endCopy(outcome) }); // replays its entrance
+      const copy = endCopy(outcome);
+      card.show({ score: outcome.score, ...copy }); // replays its entrance
       showers?.kill();
       // A won card: confetti showers over it as the stars pop (their pop starts at 1.6s).
       showers = outcome.won
@@ -190,6 +192,8 @@ export function createEndScreen(
               });
           })
         : null;
+      const done = outcome.won ? 'Level complete' : 'Run over';
+      return `${done}. Enter: ${copy.primaryLabel.toLowerCase()}. Escape: main menu.`;
     },
 
     hide() {

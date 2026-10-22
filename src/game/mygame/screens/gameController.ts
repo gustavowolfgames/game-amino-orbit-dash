@@ -187,8 +187,8 @@ export const setupGame: SetupGame = (
     };
     gsap.delayedCall(END_PAUSE, () => {
       if (destroyed) return;
-      if (END_SCREEN === 'dom') deps.goto?.('results');
-      else endScreen?.show(outcome);
+      if (END_SCREEN === 'dom') return deps.goto?.('results');
+      setAriaText(endScreen?.show(outcome) ?? '');
     });
   };
 
@@ -202,8 +202,7 @@ export const setupGame: SetupGame = (
     startRun();
   };
 
-  /** The next edition may carry another brand: the ground and HUD follow it (the end
-   *  screen reads `theme` each time it fires). The DOM round trip used to rebuild these. */
+  /** A new edition's brand: the ground and HUD follow it (the end screen reads `theme`). */
   const restyle = () => {
     if (getTheme() === theme) return;
     theme = getTheme();
@@ -385,6 +384,13 @@ export const setupGame: SetupGame = (
         db = null;
       };
       void (initPromise ? initPromise.then(teardown, teardown) : teardown());
+    },
+
+    /** Keyboard (useGameKeyboard): the end card's buttons. The template's board takes none. */
+    input(intent) {
+      if (!endScreen?.open) return;
+      if (intent.type === 'action') void playOn();
+      else if (intent.type === 'back') deps.goto?.('start');
     },
 
     ariaText,

@@ -56,3 +56,17 @@ test('a won level ends on the in-game card, and Next plays the next level', asyn
   await expect(ariaLine(page)).toHaveText(/^Level 2 of \d+/);
   expect(errors).toEqual([]);
 });
+
+test('the card answers the keyboard: Enter plays on', async ({ page }) => {
+  await page.goto('/?screen=game');
+  await expect(ariaLine(page)).toHaveText(/^Level 1 of \d+/, {
+    timeout: 20_000,
+  });
+  const centre = await toPage(page, { x: 195, y: 420 });
+  for (let i = 0; i < 10; i++) await page.mouse.click(centre.x, centre.y);
+  await expect(ariaLine(page)).toHaveText(
+    /Enter: next level\. Escape: main menu\./,
+  );
+  await page.keyboard.press('Enter');
+  await expect(ariaLine(page)).toHaveText(/^Level 2 of \d+/);
+});

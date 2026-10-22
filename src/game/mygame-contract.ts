@@ -65,7 +65,9 @@ export interface GameControllerDeps {
  */
 export type GameIntent =
   | { type: 'move'; dir: 'left' | 'right' | 'up' | 'down' }
-  | { type: 'action' };
+  | { type: 'action' }
+  /** Escape while the game's own end screen is up: leave it (Main menu). */
+  | { type: 'back' };
 
 export interface GameController {
   /** Mount the game into a container div (Pixi canvas, DOM, etc.) */

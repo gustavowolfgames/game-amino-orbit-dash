@@ -28,6 +28,7 @@ const press = (code: string, init: KeyboardEventInit = {}) => {
 describe('game screen keyboard (useGameKeyboard)', () => {
   let intents: GameIntent[];
   let dispose: () => void;
+  let cardOpen = false;
 
   beforeAll(() => {
     // The scaffold's global listener, as app.tsx installs it.
@@ -36,11 +37,15 @@ describe('game screen keyboard (useGameKeyboard)', () => {
 
   beforeEach(() => {
     intents = [];
+    cardOpen = false;
     pauseState.resume();
     setSettingsOpen(false);
     createRoot((d) => {
       dispose = d;
-      useGameKeyboard({ input: (intent) => intents.push(intent) });
+      useGameKeyboard({
+        input: (intent) => intents.push(intent),
+        endScreenOpen: () => cardOpen,
+      });
     });
   });
 
@@ -117,5 +122,26 @@ describe('game screen keyboard (useGameKeyboard)', () => {
     dispose();
     press('ArrowLeft');
     expect(intents).toEqual([]);
+  });
+
+  describe("the game's end card", () => {
+    it("Escape is the card's Main menu (a back intent), not a pause", () => {
+      cardOpen = true;
+      press('Escape');
+      expect(pauseState.paused()).toBe(false);
+      expect(intents).toEqual([{ type: 'back' }]);
+    });
+
+    it("Enter is the card's primary button (the action intent)", () => {
+      cardOpen = true;
+      press('Enter');
+      expect(intents).toEqual([{ type: 'action' }]);
+    });
+
+    it('without the card, Escape still pauses', () => {
+      press('Escape');
+      expect(pauseState.paused()).toBe(true);
+      expect(intents).toEqual([]);
+    });
   });
 });
