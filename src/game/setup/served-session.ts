@@ -50,8 +50,9 @@ export interface ServedSession {
   mode(): ServedModeName;
   /** Obey a Vault selection. Identical re-sends are ignored. */
   select(content: VaultGameContext['content']): void;
-  /** The active pack's last level was won. */
-  packCompleted(): void;
+  /** The active pack's last level was won. True when a completion report went out: the Vault
+   *  takes the player from here (its own end screen), so the game shows none of its own. */
+  packCompleted(): boolean;
 }
 
 export function createServedSession(deps: ServedSessionDeps): ServedSession {
@@ -84,28 +85,30 @@ export function createServedSession(deps: ServedSessionDeps): ServedSession {
     },
 
     packCompleted() {
-      if (ended) return;
+      if (ended) return false;
       switch (mode) {
         case 'default':
           // A pending deselection still has the edition in play — that run is not the default.
-          if (deps.activeContentId() === null) deps.reportGameCompleted();
-          return;
+          if (deps.activeContentId() !== null) return false;
+          deps.reportGameCompleted();
+          return true;
         case 'daily':
           // Only the edition itself completes the edition: a pack that failed to load (the
           // bundled one still in play) never reports it.
-          if (selected === null || deps.activeContentId() !== selected) return;
+          if (selected === null || deps.activeContentId() !== selected)
+            return false;
           ended = true;
           deps.reportContentCompleted(selected);
-          return;
+          return true;
         case 'unlocked': {
           const next = cursor?.advance() ?? null;
           if (next !== null) {
             deps.load(next);
-            return;
+            return false;
           }
           ended = true;
           deps.reportGameCompleted();
-          return;
+          return true;
         }
       }
     },
@@ -121,8 +124,8 @@ export function installServedSession(next: ServedSession | null): void {
 
 /**
  * The game controller's completion boundary: the active pack's last level was won. Routed through
- * the served mode; inert outside a Vault (no session installed).
+ * the served mode; inert outside a Vault (no session installed). True when the Vault takes over.
  */
-export function completeActivePack(): void {
-  session?.packCompleted();
+export function completeActivePack(): boolean {
+  return session?.packCompleted() ?? false;
 }

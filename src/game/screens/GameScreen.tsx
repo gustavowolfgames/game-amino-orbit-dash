@@ -85,10 +85,12 @@ export default function GameScreen() {
           {controller.ariaText()}
         </div>
 
-        {/* Wolf Games logo at bottom center */}
-        <div class="absolute bottom-8 left-1/2 -translate-x-1/2">
-          <Logo />
-        </div>
+        {/* Wolf Games logo at bottom center; off while the game's end card has its buttons there */}
+        <Show when={!controller.endScreenOpen?.()}>
+          <div class="absolute bottom-8 left-1/2 -translate-x-1/2">
+            <Logo />
+          </div>
+        </Show>
       </div>
 
       {/* Pause overlay, a SIBLING of the root above rather than a child, which is

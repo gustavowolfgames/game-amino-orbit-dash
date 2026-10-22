@@ -11,3 +11,11 @@
 
 /** Seed for a level that names none (deterministic sim: no Math.random). */
 export const DEFAULT_SEED = 0x9e3779b1;
+
+/**
+ * How a run ends. `'pixi'`: a win / lose card drawn over the board, in the game's own
+ * scene, with confetti on a win (`render/endScreen.ts`). `'dom'`: a hop to the separate
+ * DOM results screen (`src/game/screens/ResultsScreen.tsx`). In a Vault, a finished
+ * pack hands the player to the Vault's own end screen either way.
+ */
+export const END_SCREEN: 'pixi' | 'dom' = 'pixi';

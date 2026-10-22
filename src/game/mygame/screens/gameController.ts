@@ -20,7 +20,9 @@
  *   • The sim and input stop while the settings menu is open (`settingsOpen`,
  *     set by `GameSettingsMenu`, the one menu on every screen) or the game is
  *     paused (space bar, core pause state).
- *   • A terminal phase (`won` / `lost`) hands off to the results screen.
+ *   • A terminal phase (`won` / `lost`) ends on the end screen: a win / lose card
+ *     over the board (`../render/endScreen.ts`), or the DOM results screen when
+ *     `END_SCREEN` is `'dom'`. A pack the Vault takes over shows neither.
  *
  * Keep this file thin (`bun run check:agent` caps it): game views, rules and
  * input live in their own folders. A turn-based game drops the frame loop and
@@ -29,6 +31,7 @@
  * Lifecycle (world owned by world.ts, never disposed here):
  *   init:    getGameWorld() → build Pixi → startRun → start the fixed-step loop
  *   destroy: destroyed flag → stop loop → engine.destroy → kill tweens →
+ *            end screen →
  *            renderer teardown → setActiveInspectorActions([])
  */
 
@@ -36,7 +39,13 @@
 import { HudDisplay } from '@wolfgames/components/modules/primitives/hud-display';
 import { DesignLayer, trackHostBox } from '@wolfgames/components/pixi';
 import gsap from 'gsap';
-import { Application, type Container, Sprite, type Texture } from 'pixi.js';
+import {
+  Application,
+  Color,
+  type Container,
+  Sprite,
+  type Texture,
+} from 'pixi.js';
 import { createSignal } from 'solid-js';
 import { exposePixiApp } from '~/core/dev/pixiDevtools';
 import { setActiveInspectorActions } from '~/core/systems/ecs';
@@ -49,6 +58,7 @@ import type {
   SetupGame,
 } from '~/game/mygame-contract';
 import { settingsOpen } from '~/game/settingsOpen';
+import { whenContentSettled } from '~/game/setup/content';
 import { createRunAnalytics } from '~/game/setup/edition-analytics';
 import {
   recordLevelWon,
@@ -56,9 +66,11 @@ import {
   saveProgress,
 } from '~/game/setup/progress';
 import { completeActivePack } from '~/game/setup/served-session';
+import { END_SCREEN } from '../config';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
+import { createEndScreen, type EndScreen } from '../render/endScreen';
 import { loadGameTextures } from '../render/textures';
 import { drainEvents } from '../sim/events';
 import type { GameDatabase, GameEvent, GamePhase } from '../sim/plugin';
@@ -67,7 +79,7 @@ import { getGameWorld } from '../world';
 import { createCues } from './cues';
 import { type AudioSettings, createGameAudio } from './gameAudio';
 
-/** Delay (s) before handing off to results, so the last frame reads. */
+/** Delay (s) before the end screen, so the last frame (and the confetti) reads. */
 const END_PAUSE = 0.9;
 
 /** HUD placement in design px on DESIGN_CANVAS (390×844). hud-display spaces
@@ -89,6 +101,7 @@ export const setupGame: SetupGame = (
 ): GameController => {
   const deps = rawDeps as Deps;
   const [ariaText, setAriaText] = createSignal('Loading…');
+  const [endScreenOpen, setEndScreenOpen] = createSignal(false);
   // Settled by the loading screen before this screen exists; read once per run.
   const theme = getTheme();
   // level_* + edition_* events (src/game/setup/edition-analytics.ts); no-ops without a service.
@@ -110,6 +123,7 @@ export const setupGame: SetupGame = (
   /** Full-bleed background (screen space). */
   let fieldBg: Sprite | null = null;
   let hud: HudDisplay | null = null;
+  let endScreen: EndScreen | null = null;
 
   /** Guard so a terminal phase only triggers one transition. */
   let handledPhase: GamePhase | null = null;
@@ -147,6 +161,7 @@ export const setupGame: SetupGame = (
       score: db.resources.score,
     });
     cues(drainEvents(db), db.resources.elapsedMs);
+    endScreen?.tick(_dtSec);
     handlePhase(db.resources.phase);
   };
 
@@ -155,15 +170,36 @@ export const setupGame: SetupGame = (
       return;
     }
     handledPhase = phase;
-    if (phase === 'won') {
-      const last = !!db && isLastLevel(db.resources.level);
-      if (db) runAnalytics.levelWon(db.resources.level, db.resources.score);
-      if (last) completeActivePack(); // the Vault served mode decides what a finished pack means
-      if (db) recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
+    const won = phase === 'won';
+    const last = won && !!db && isLastLevel(db.resources.level);
+    if (won && db)
+      runAnalytics.levelWon(db.resources.level, db.resources.score);
+    // The Vault served mode decides what a finished pack means; true = the Vault takes over.
+    const handedOver = last && completeActivePack();
+    if (won && db) {
+      recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
+      if (END_SCREEN === 'pixi') endScreen?.celebrate();
     }
+    if (handedOver) return; // the Vault's end screen, not ours
+    const outcome = {
+      won,
+      packDone: last,
+      level: db?.resources.level ?? 0,
+      score: db?.resources.score ?? 0,
+    };
     gsap.delayedCall(END_PAUSE, () => {
-      if (!destroyed) deps.goto?.('results');
+      if (destroyed) return;
+      if (END_SCREEN === 'dom') deps.goto?.('results');
+      else endScreen?.show(outcome);
     });
+  };
+
+  /** End screen: Next / Try again / Play again. A finished pack in the Vault's unlocked walk
+   *  has started loading the next edition; wait for it (bounded) so the run starts there. */
+  const playOn = async () => {
+    endScreen?.hide();
+    await whenContentSettled();
+    if (!destroyed) startRun();
   };
 
   /**
@@ -174,6 +210,7 @@ export const setupGame: SetupGame = (
   const startRun = () => {
     if (!db) return;
     handledPhase = null;
+    if (endScreen?.open) endScreen.hide(); // the Inspector's restart, mid-card
     const pack = getActivePack();
     const prev = db.resources;
     // Read before the transaction: `prev` is the live resource object.
@@ -231,6 +268,16 @@ export const setupGame: SetupGame = (
     hud.position.set(HUD.x, HUD.y);
     hud.eventMode = 'none';
     root.addChild(hud);
+
+    const gpu = deps.coordinator.getGpuLoader();
+    if (gpu && END_SCREEN === 'pixi')
+      endScreen = createEndScreen(root, gpu, {
+        colors: theme.pieces,
+        flashColor: new Color(theme.accent).toNumber(),
+        onPrimary: () => void playOn(),
+        onSecondary: () => deps.goto?.('start'),
+        onOpenChange: setEndScreenOpen,
+      });
   };
 
   return {
@@ -271,7 +318,7 @@ export const setupGame: SetupGame = (
             application,
             root as DesignLayer,
             (point) => world.transactions.tap(point),
-            () => !(pauseState.paused() || settingsOpen()),
+            () => !(pauseState.paused() || settingsOpen() || endScreen?.open),
           );
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
@@ -317,6 +364,8 @@ export const setupGame: SetupGame = (
       const teardown = () => {
         releasePixiApp?.();
         releasePixiApp = null;
+        endScreen?.destroy();
+        endScreen = null;
         app?.destroy(true, { children: true });
         app = null;
         hud?.destroy();
@@ -332,5 +381,6 @@ export const setupGame: SetupGame = (
     },
 
     ariaText,
+    endScreenOpen,
   };
 };

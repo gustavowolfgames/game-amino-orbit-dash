@@ -70,6 +70,7 @@ const TEMPLATE_FILES = new Set([
   'src/game/mygame/engine/types.ts',
   'src/game/mygame/index.ts',
   'src/game/mygame/input/pointer.ts',
+  'src/game/mygame/render/endScreen.ts',
   'src/game/mygame/render/textures.ts',
   'src/game/mygame/screens/cues.ts',
   'src/game/mygame/screens/gameAudio.ts',

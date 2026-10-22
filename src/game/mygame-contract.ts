@@ -64,6 +64,8 @@ export interface GameController {
   destroy: () => void;
   /** Reactive accessibility text for screen readers */
   ariaText: () => string;
+  /** Optional: true while the game's own end screen is up (the screen hides its footer). */
+  endScreenOpen?: () => boolean;
   /**
    * Rendering mode. When 'dom', the scaffold skips GPU init and core-* bundle
    * loading. When 'pixi', the scaffold ensures GPU is initialised before mount.
