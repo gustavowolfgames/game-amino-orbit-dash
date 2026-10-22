@@ -4,7 +4,8 @@ Input never changes game state itself. It turns what the player did into a
 design-space value and hands it to the world.
 
 `pointer.ts` does this for taps: `bindTapInput(app, root, onTap, accepting)`
-converts a tap anywhere on the canvas to design space and calls `onTap(point)`
+converts a tap anywhere on the canvas to design space (`DESIGN_CANVAS`, 390×844,
+through the `root` `DesignLayer`'s `toDesign`) and calls `onTap(point)`
 while `accepting()` (off while the settings menu is open or the game is
 paused). The controller passes the template's example move:
 

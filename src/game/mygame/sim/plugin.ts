@@ -105,7 +105,7 @@ export const gamePlugin = Database.Plugin.create({
 
     /**
      * The template's one example move — replace it with the game's own. A tap
-     * at design-space (x, y) scores a point; reaching the level's goal wins.
+     * at design-space (x, y) (DESIGN_CANVAS px, 390×844) scores a point; reaching the level's goal wins.
      * Called straight from input (`../input/pointer.ts`), turn-based style.
      */
     tap(store, { x, y }: { x: number; y: number }) {
