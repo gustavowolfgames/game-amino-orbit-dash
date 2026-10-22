@@ -78,25 +78,6 @@ export const TITLE_BUTTON = {
   size: 150,
 };
 
-/** A design-px point on the title screen, in screen px from the top-left of a `box`-sized frame. */
-export function titleScreenPoint(
-  box: { width: number; height: number },
-  x: number,
-  y: number,
-): { x: number; y: number } {
-  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio : 1;
-  const frame = resolveDesignFrame({
-    hostWidth: box.width,
-    hostHeight: box.height,
-    devicePixelRatio: dpr,
-    baselineDevicePixelRatio: dpr,
-  });
-  return {
-    x: frame.offsetX + x * frame.scale,
-    y: frame.offsetY + y * frame.scale,
-  };
-}
-
 /**
  * The CSS scale an element's ancestors apply (1 outside the DOM design transform). The loader
  * sits inside the scaled design root, so a px value it sets is drawn `cssScale` times larger;
