@@ -10,8 +10,9 @@
  *     score count-up, Next / Try again and Main menu.
  *   • `hide()` — the card leaves; the next run starts underneath.
  *
- * The card's stars and character come from the `core-results` atlas
- * (src/game/asset-manifest.ts). A frame the atlas lacks is simply not drawn.
+ * The card's stars and character come from the `core-results` atlas. Until a
+ * game publishes one, `./resultsArt.ts` stands in PLACEHOLDER art (the catalog
+ * card's own proxy stars and character). A frame the atlas lacks is not drawn.
  *
  * Owned by the controller: `tick` from its per-frame render, `destroy` before
  * the Pixi app goes.
@@ -36,7 +37,7 @@ const CONFETTI = { sizeMin: 6, sizeMax: 12, lifetime: 1.6 } as const;
 const STARS_AT = 1.6;
 
 /** Frame names in `RESULTS_ATLAS`. One star art serves all three slots. */
-const FRAMES = {
+export const RESULTS_FRAMES = {
   star: 'ui-star',
   starEmpty: 'ui-star_empty',
   character: 'character-host',
@@ -124,15 +125,15 @@ export function createEndScreen(
   const buildCard = () => {
     const next = new ScreenResults(gpuLoader, {
       atlasName: RESULTS_ATLAS,
-      characterFrameName: FRAMES.character,
-      characterLoseFrameName: FRAMES.characterLose,
-      buttonIconFrameName: FRAMES.icon,
-      starLeftFrameName: FRAMES.star,
-      starMiddleFrameName: FRAMES.star,
-      starRightFrameName: FRAMES.star,
-      starLeftEmptyFrameName: FRAMES.starEmpty,
-      starMiddleEmptyFrameName: FRAMES.starEmpty,
-      starRightEmptyFrameName: FRAMES.starEmpty,
+      characterFrameName: RESULTS_FRAMES.character,
+      characterLoseFrameName: RESULTS_FRAMES.characterLose,
+      buttonIconFrameName: RESULTS_FRAMES.icon,
+      starLeftFrameName: RESULTS_FRAMES.star,
+      starMiddleFrameName: RESULTS_FRAMES.star,
+      starRightFrameName: RESULTS_FRAMES.star,
+      starLeftEmptyFrameName: RESULTS_FRAMES.starEmpty,
+      starMiddleEmptyFrameName: RESULTS_FRAMES.starEmpty,
+      starRightEmptyFrameName: RESULTS_FRAMES.starEmpty,
       onPrimary: () => open && options.onPrimary(),
       onSecondary: () => open && options.onSecondary(),
     });

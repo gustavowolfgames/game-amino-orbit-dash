@@ -71,6 +71,7 @@ import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
 import { createEndScreen, type EndScreen } from '../render/endScreen';
+import { ensureResultsArt } from '../render/resultsArt';
 import { loadGameTextures } from '../render/textures';
 import { drainEvents } from '../sim/events';
 import type { GameDatabase, GameEvent, GamePhase } from '../sim/plugin';
@@ -303,7 +304,10 @@ export const setupGame: SetupGame = (
           releasePixiApp = exposePixiApp(application);
           container.appendChild(application.canvas as HTMLCanvasElement);
 
-          const { field } = await loadGameTextures(deps.coordinator);
+          const [{ field }] = await Promise.all([
+            loadGameTextures(deps.coordinator),
+            END_SCREEN === 'pixi' ? ensureResultsArt() : null, // placeholder until published
+          ]);
           if (destroyed || !db) return;
 
           buildScene(application.stage, field);
