@@ -42,3 +42,29 @@ test.describe('loader', () => {
     await expect(page.locator('[data-screen="game"]')).toHaveCount(0);
   });
 });
+
+test.describe('loader: a failed load', () => {
+  test('a missing splash is skipped: ?screen=game still reaches a running level', async ({
+    page,
+  }) => {
+    await page.route(/bg-splash/, (route) => route.abort());
+    await page.goto('/?screen=game');
+    await expect(
+      page
+        .locator('[aria-live="polite"]')
+        .filter({ hasText: /^Level \d+ of \d+/ }),
+    ).toHaveText(/^Level \d+ of \d+/, { timeout: 25_000 });
+  });
+
+  test('missing game art keeps the loader up instead of a game that cannot start', async ({
+    page,
+  }) => {
+    await page.route(/bg-game/, (route) => route.abort());
+    await page.goto('/?screen=game');
+    await expect(sting(page)).toBeAttached({ timeout: 15_000 });
+    // Past the loader's own length and every retry: still the loader, never the game screen.
+    await page.waitForTimeout(15_000);
+    await expect(sting(page)).toBeAttached();
+    await expect(page.locator('[data-screen="game"]')).toHaveCount(0);
+  });
+});

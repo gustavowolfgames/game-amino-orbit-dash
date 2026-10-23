@@ -16,6 +16,7 @@ import { inVault } from '~/integrations/vault';
 import { IntroSting } from './components/IntroSting';
 import { gameArt, titleArt } from './components/titleFrame';
 import { resolveSkipSource } from './skipStartScreen';
+import { optional, required } from './loadSteps';
 import { unlockAudioOnFirstTap } from './unlockAudioOnFirstTap';
 
 export function LoadingScreen() {
@@ -90,14 +91,17 @@ export function LoadingScreen() {
     // The next screen's code, fetched while the loader plays: a lazy screen fetched only at the
     // handoff leaves a dark frame between the loader and the title's first frame.
     const nextScreen = gameConfig.screens[skipToGame ? 'game' : 'start'];
-    const nextScreenReady = nextScreen.preload?.();
+    nextScreen.preload?.();
+    // Optional steps log a failure and carry on; required ones retry, and the loader hands
+    // off only once they all succeed (./loadSteps.ts). Handing off without the renderer or
+    // the next screen's art leaves a screen that cannot start.
     try {
       if (skipToGame) {
         trackStartScreenSkipped({ skip_source: skipSource });
-        // Load splash + theme blocking; title boot bundles load in background (never rendered).
+        // Title boot bundles load in the background (never rendered on this path).
         for (const name of titleBootBundles) assets.backgroundLoadBundle(name);
-        await assets.loadBoot();
-        await assets.loadTheme();
+        await optional('the splash', () => assets.loadBoot());
+        await optional('the theme', () => assets.loadTheme());
         // No title screen means no Play tap to unlock audio on. Try now (works when the host
         // already has user activation) and again on the player's first tap.
         assets.unlockAudio();
@@ -105,27 +109,25 @@ export function LoadingScreen() {
           assets.unlockAudio,
           () => Howler.ctx?.state === 'running',
         );
-        await assets.initGpu();
-        await assets.loadCore();
+        await required('the renderer', () => assets.initGpu());
+        await required('the game UI', () => assets.loadCore());
         // The play screen's background, so the game draws its first frame right at the handoff.
-        await assets.coordinator.loadScene('game');
-        try {
-          await assets.loadAudio();
-        } catch (err) {
-          console.warn('Audio loading failed:', err);
-        }
+        await required('the game art', () =>
+          assets.coordinator.loadScene('game'),
+        );
+        await optional('audio', () => assets.loadAudio());
       } else {
-        await assets.loadBoot();
-        await assets.loadTheme();
+        // The title screen loads the rest itself when the player taps Play.
+        await optional('the splash', () => assets.loadBoot());
+        await optional('the theme', () => assets.loadTheme());
       }
       await content;
-      await nextScreenReady;
+      await required('the next screen', async () => nextScreen.preload?.());
       setAssetsReady(true);
     } catch (err) {
-      // Hand off anyway: a missing first-screen image (an unpublished CDN file) must not hold
-      // the loader on a full bar forever. The next screen copes with what did load.
-      console.error('Failed to load initial assets:', err);
-      setAssetsReady(true);
+      // A required step failed every try: stay on the loader rather than hand off to a
+      // screen that cannot start.
+      console.error('The game could not load; staying on the loader:', err);
     }
   });
 
