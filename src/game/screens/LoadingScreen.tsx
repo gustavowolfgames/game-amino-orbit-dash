@@ -55,9 +55,8 @@ export function LoadingScreen() {
     search: window.location.search,
   });
   const skipToGame = skipSource !== null;
-  // The loader reveals into the next screen's own art (blurred, dark → colour → sharp) and
-  // shows the game's logo either way: over the title's background, or with the title skipped
-  // over the play screen's background (the logo then fades out before the handoff).
+  // The loader reveals into the next screen's own art (blurred, dark → colour → sharp): the
+  // title's background and logo, or with the title skipped the play screen's background.
   const title = titleArt(m);
   const game = gameArt(m);
 
@@ -143,9 +142,9 @@ export function LoadingScreen() {
     <div class="design-box-span pointer-events-auto">
       <IntroSting
         progress={progress}
-        title={GAME_TITLE}
+        title={skipToGame ? undefined : GAME_TITLE}
         backgroundSrc={skipToGame ? game.background : title.background}
-        logoSrc={title.logo}
+        logoSrc={skipToGame ? undefined : title.logo}
         reveal
         target={skipToGame ? 'game' : 'title'}
         exitSignal={assetsReady}
