@@ -92,7 +92,8 @@ const WOLF_LOGO = { bottom: 32, width: 121, height: 19 };
 const FOOT_BAR = {
   height: 4,
   gap: 7,
-  fadeSec: 0.25,
+  /** The bar's fade in, and its shrink-and-fade out before the lockup moves. */
+  fadeSec: 0.3,
   minFillSec: 4.0,
   holdSec: 0.25,
   smoothSec: 0.35,
@@ -515,8 +516,9 @@ export function IntroSting(props: IntroStingProps) {
     // Reveal mode: the bar has to read full, and the WolfGames lockup land, first.
     if (reveal() && shownProgress() < 1) return;
     exited = true;
-    // Reveal mode ends on the title screen's first frame: hold the full bar a beat, fade it as
-    // the WolfGames lockup zooms down and shrinks onto the title screen's WolfGames logo (same
+    // Reveal mode ends on the title screen's first frame: hold the full bar a beat, shrink it to
+    // its centre and fade it out, then (bar gone, so the lockup never passes over it) the
+    // WolfGames lockup zooms down and shrinks onto the title screen's WolfGames logo (same
     // spot, same size), then hand off with no fade.
     if (reveal() && footBarRef) {
       const exitTl = gsap.timeline({
@@ -525,7 +527,13 @@ export function IntroSting(props: IntroStingProps) {
       exitTl.call(() => descent?.progress(1), [], FOOT_BAR.holdSec);
       exitTl.to(
         footBarRef,
-        { opacity: 0, duration: FOOT_BAR.fadeSec, ease: 'power1.in' },
+        {
+          opacity: 0,
+          scaleX: 0,
+          transformOrigin: '50% 50%',
+          duration: FOOT_BAR.fadeSec,
+          ease: 'power2.in',
+        },
         FOOT_BAR.holdSec,
       );
       if (stingRef) {
@@ -537,7 +545,7 @@ export function IntroSting(props: IntroStingProps) {
             // Quick after the slow drift: picks up speed, then settles onto the spot.
             ease: 'power3.inOut',
           },
-          FOOT_BAR.holdSec,
+          FOOT_BAR.holdSec + FOOT_BAR.fadeSec,
         );
       }
       exitTween = exitTl;
