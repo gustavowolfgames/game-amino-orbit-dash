@@ -246,7 +246,10 @@ export const setupGame: SetupGame = (
       initPromise = application
         .init({
           resizeTo: container,
-          background: theme.ground,
+          // Transparent, like the title's: the host's stand-in of the background shows
+          // through until the scene's own background draws over it. No clear colour: a
+          // coloured clear at alpha 0 still adds its colour over the stand-in.
+          backgroundAlpha: 0,
           antialias: true,
           resolution: Math.min(window.devicePixelRatio, 2),
           autoDensity: true,
@@ -254,11 +257,13 @@ export const setupGame: SetupGame = (
         .then(async () => {
           if (destroyed || !db) return;
           releasePixiApp = exposePixiApp(application);
-          container.appendChild(application.canvas as HTMLCanvasElement);
 
           const { field } = await loadGameTextures(deps.coordinator);
           if (destroyed || !db) return;
 
+          // The canvas goes in once it has a scene to draw: an empty one would cover the
+          // host's stand-in with the bare ground colour.
+          container.appendChild(application.canvas as HTMLCanvasElement);
           buildScene(application.stage, field);
           stopResize = trackHostBox(
             application,
@@ -284,6 +289,11 @@ export const setupGame: SetupGame = (
               stepWorld(db, dt);
           });
           stopRender = engine.onFrame((dtMs) => render(dtMs / 1000));
+          // The host shows a stand-in of this frame until Pixi has drawn it once.
+          // (Two ticks: listeners run before that tick's render.)
+          application.ticker.addOnce(() =>
+            application.ticker.addOnce(() => deps.onReady?.()),
+          );
 
           // Dev/bot surface (Inspector, backtick).
           setActiveInspectorActions([

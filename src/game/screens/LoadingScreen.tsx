@@ -14,7 +14,7 @@ import { useGameTracking } from '~/game/setup/tracking';
 import type { GameTuning } from '~/game/tuning';
 import { inVault } from '~/integrations/vault';
 import { IntroSting } from './components/IntroSting';
-import { titleArt } from './components/titleFrame';
+import { gameArt, titleArt } from './components/titleFrame';
 import { resolveSkipSource } from './skipStartScreen';
 import { unlockAudioOnFirstTap } from './unlockAudioOnFirstTap';
 
@@ -28,8 +28,6 @@ export function LoadingScreen() {
   const gameKit = useSignal(useConfigState().gameKit);
 
   const m = manifest();
-  // The title screen's own art: the loader reveals into it (blurred, dark → colour → logo → sharp).
-  const title = titleArt(m);
   const bundlesByPrefix = (prefix: string) =>
     m.bundles.filter((b) => b.name.startsWith(prefix)).map((b) => b.name);
 
@@ -56,6 +54,10 @@ export function LoadingScreen() {
     search: window.location.search,
   });
   const skipToGame = skipSource !== null;
+  // The loader reveals into the next screen's own art (blurred, dark → colour → sharp): the
+  // title's background and logo, or with the title skipped the play screen's background.
+  const title = titleArt(m);
+  const game = gameArt(m);
 
   // When skipping: block on splash + theme + core + audio; title boot assets load in background.
   // When not skipping: block only on splash + theme (start screen loads the rest).
@@ -105,6 +107,8 @@ export function LoadingScreen() {
         );
         await assets.initGpu();
         await assets.loadCore();
+        // The play screen's background, so the game draws its first frame right at the handoff.
+        await assets.coordinator.loadScene('game');
         try {
           await assets.loadAudio();
         } catch (err) {
@@ -118,7 +122,10 @@ export function LoadingScreen() {
       await nextScreenReady;
       setAssetsReady(true);
     } catch (err) {
+      // Hand off anyway: a missing first-screen image (an unpublished CDN file) must not hold
+      // the loader on a full bar forever. The next screen copes with what did load.
       console.error('Failed to load initial assets:', err);
+      setAssetsReady(true);
     }
   });
 
@@ -133,10 +140,11 @@ export function LoadingScreen() {
     <div class="design-box-span pointer-events-auto">
       <IntroSting
         progress={progress}
-        title={GAME_TITLE}
-        backgroundSrc={title.background}
-        logoSrc={title.logo}
-        reveal={!skipToGame}
+        title={skipToGame ? undefined : GAME_TITLE}
+        backgroundSrc={skipToGame ? game.background : title.background}
+        logoSrc={skipToGame ? undefined : title.logo}
+        reveal
+        target={skipToGame ? 'game' : 'title'}
         exitSignal={assetsReady}
         onExitComplete={() => goto(skipToGame ? 'game' : 'start')}
       />

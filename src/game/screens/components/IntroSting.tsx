@@ -13,7 +13,10 @@
  * blue-tinted greyscale that brightens, then takes its colour; the game logo is revealed, the
  * WolfGames lockup glides down to the footer, and the scene un-blurs into exactly the title
  * screen's opening frame (logo placed where the title screen draws it), so the handoff to the
- * title screen has no fade.
+ * title screen has no fade. With `target: 'game'` (the title is skipped: the Vault,
+ * `?screen=game`) there is no logo, and the reveal ends on the play screen's background
+ * instead; the lockup still zooms onto the WolfGames logo, which the game screen draws in the
+ * same spot. [ENG-4977]
  *
  * The black backdrop, the brand background image, and the game title are all DOM layers
  * owned HERE (not in the SVG and not in Pixi): the SVG is transparent and only draws the
@@ -100,7 +103,7 @@ const FOOT_BAR = {
  * The lockup while loading: drifts down `fraction` of the way toward the title screen's logo,
  * at full size. Then, once loaded, it zooms the rest of the way and shrinks to title size.
  */
-const LOCKUP_DRIFT = { fraction: 0.25, zoomSec: 0.8 };
+const LOCKUP_DRIFT = { fraction: 0.1, zoomSec: 0.6 };
 /** Starting look of the background in reveal mode. */
 const REVEAL_BLUR_PX = 4;
 const REVEAL_DARK = 0.45;
@@ -145,6 +148,11 @@ export interface IntroStingProps {
    * and dark → greyscale → colour → logo → sharp, then hand off with no exit fade.
    */
   reveal?: boolean;
+  /**
+   * The screen the reveal ends on: 'title' (default; needs `logoSrc`) or 'game', the play
+   * screen's background with no logo (`backgroundSrc` is the game's `bg-game`).
+   */
+  target?: 'title' | 'game';
   /** Host signal: assets are ready. The exit runs once this AND the sting-done are both true. */
   exitSignal?: () => boolean;
   /** Called after the exit animation completes (e.g. goto('start')). Mirrors ContentLoader. */
@@ -171,8 +179,9 @@ export function IntroSting(props: IntroStingProps) {
   let exitTween: gsap.core.Animation | undefined;
   let exited = false;
 
+  const toGame = () => props.target === 'game';
   const reveal = () =>
-    Boolean(props.reveal && props.backgroundSrc && props.logoSrc);
+    Boolean(props.reveal && props.backgroundSrc && (props.logoSrc || toGame()));
   const [introDone, setIntroDone] = createSignal(false);
 
   // Reveal mode's footer bar: real progress, held back by a minimum-time ramp.
@@ -377,13 +386,16 @@ export function IntroSting(props: IntroStingProps) {
         );
     };
     paint();
-    // Ends exactly on the title screen's framing (its background is overscanned).
+    // Ends exactly on the next screen's framing: the title's background is overscanned, the
+    // game's is a plain cover fit (gameController's fitBackground).
     const match = () =>
-      titleBgMatch(
-        rootRef?.getBoundingClientRect() ?? { width: 0, height: 0 },
-        { width: bg.naturalWidth, height: bg.naturalHeight },
-        rootRef ? cssScaleOf(rootRef) : 1,
-      );
+      toGame()
+        ? { scale: 1, y: 0 }
+        : titleBgMatch(
+            rootRef?.getBoundingClientRect() ?? { width: 0, height: 0 },
+            { width: bg.naturalWidth, height: bg.naturalHeight },
+            rootRef ? cssScaleOf(rootRef) : 1,
+          );
     gsap.set(bg, { scale: 1.24 });
     // One timeline from the moment the loader mounts; its end is the intro's end (the exit
     // then waits only for the assets).
@@ -418,7 +430,7 @@ export function IntroSting(props: IntroStingProps) {
       },
       REVEAL.colour,
     );
-    if (titleRef) {
+    if (titleRef && !toGame()) {
       placeLogo();
       // Centre on `top` whatever the image's loaded height (GSAP owns the transform from here).
       gsap.set(titleRef, { yPercent: -50 });
@@ -522,7 +534,8 @@ export function IntroSting(props: IntroStingProps) {
           {
             ...titlePose(),
             duration: LOCKUP_DRIFT.zoomSec,
-            ease: 'power2.inOut',
+            // Quick after the slow drift: picks up speed, then settles onto the spot.
+            ease: 'power3.inOut',
           },
           FOOT_BAR.holdSec,
         );
@@ -551,6 +564,9 @@ export function IntroSting(props: IntroStingProps) {
   return (
     <div
       ref={rootRef}
+      data-intro-sting={
+        reveal() ? `reveal-${props.target ?? 'title'}` : 'brand'
+      }
       style={{
         position: 'absolute',
         inset: '0',
