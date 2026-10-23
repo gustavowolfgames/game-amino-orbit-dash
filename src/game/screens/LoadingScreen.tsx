@@ -4,7 +4,7 @@ import {
   useSignal,
 } from '@wolfgames/components/solid';
 import { Howler } from 'howler';
-import { createMemo, createSignal, onMount } from 'solid-js';
+import { createEffect, createMemo, createSignal, onMount } from 'solid-js';
 import { type ScaffoldTuning, useTuning } from '~/core';
 import { useAssets, useLoadingState } from '~/core/systems/assets';
 import { useScreen } from '~/core/systems/screens';
@@ -15,7 +15,7 @@ import type { GameTuning } from '~/game/tuning';
 import { inVault } from '~/integrations/vault';
 import { IntroSting } from './components/IntroSting';
 import { gameArt, titleArt } from './components/titleFrame';
-import { resolveSkipSource } from './skipStartScreen';
+import { playsIntro, resolveSkipSource } from './skipStartScreen';
 import { optional, required } from './loadSteps';
 import { unlockAudioOnFirstTap } from './unlockAudioOnFirstTap';
 
@@ -138,6 +138,21 @@ export function LoadingScreen() {
      the frame box; `pointer-events-auto` opts this fully-DOM screen back in, since
      GameShell passes events through for the gameplay canvas. Same wrapper as
      template-amino's ContentLoader (components.md §9.5.2). */
+  // `?screen=game` and the dev toggle skip the intro too: a plain ground until the game has
+  // loaded, then straight in (its own still covers the gap until Pixi draws).
+  if (!playsIntro(skipSource)) {
+    createEffect(() => {
+      if (assetsReady()) goto('game');
+    });
+    return (
+      <div
+        class="design-box-span pointer-events-auto"
+        data-loading="no-intro"
+        style={{ background: 'var(--brand-ground)' }}
+      />
+    );
+  }
+
   return (
     <div class="design-box-span pointer-events-auto">
       <IntroSting
