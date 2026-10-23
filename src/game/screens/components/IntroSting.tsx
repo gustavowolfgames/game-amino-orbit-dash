@@ -78,7 +78,9 @@ const REVEAL = {
 };
 /**
  * Where the title screen draws the WolfGames logo (StartScreen: `bottom-8`, centred) and its
- * size (`logo-wide-small` in public/assets/atlas-branding-wolf.json). Keep in step with both.
+ * size (`logo-wide-small` in public/assets/atlas-branding-wolf.json), in design px: the logo
+ * sits inside the CSS-scaled design root, so on screen it is these × that scale. Keep in step
+ * with both.
  */
 const WOLF_LOGO = { bottom: 32, width: 121, height: 19 };
 /**
@@ -356,14 +358,18 @@ export function IntroSting(props: IntroStingProps) {
     };
   };
 
-  /** Where the title screen draws the WolfGames logo (StartScreen: centred, `bottom-8`, atlas size). */
+  /**
+   * Where the title screen draws the WolfGames logo (StartScreen: centred, `bottom-8`, atlas
+   * size), in screen px: its design px × the design root's CSS scale (`b.k`), which the loader
+   * sits inside too. Unscaled, the lockup only lands on the logo at the design size (390×844).
+   */
   const titleCentreY = (b: LockupBase) =>
-    b.host.height - WOLF_LOGO.bottom - WOLF_LOGO.height / 2;
+    b.host.height - (WOLF_LOGO.bottom + WOLF_LOGO.height / 2) * b.k;
   const titlePose = () =>
     lockupPose((b) => ({
       cx: b.host.width / 2,
       cy: titleCentreY(b),
-      width: WOLF_LOGO.width,
+      width: WOLF_LOGO.width * b.k,
     }));
   /** While loading: LOCKUP_DRIFT.fraction of the way down toward the title spot, full size. */
   const driftPose = () =>
