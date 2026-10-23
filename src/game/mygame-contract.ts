@@ -53,7 +53,7 @@ export interface GameControllerDeps {
   audio: unknown;
   gameData: unknown;
   analytics: unknown;
-  /** Navigate to another screen (e.g. 'results' when the game ends). */
+  /** Navigate to another screen (e.g. 'start' for the end card's Main menu). */
   goto?: (screen: string) => void;
 }
 

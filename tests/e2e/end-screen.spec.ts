@@ -43,17 +43,21 @@ test('a won level ends on the in-game card, and Next plays the next level', asyn
   await page.waitForTimeout(300);
   await page.screenshot({ path: 'test-results/end-screen-confetti.png' });
 
-  // The card's stars pop 1.6s into its entrance (after the 0.9s end pause), with confetti.
-  await page.waitForTimeout(2400);
+  // The card is up once its line is read (the card opens after the end pause, which the
+  // frame rate stretches); its stars pop 1.6s into its entrance, with confetti.
+  await expect(ariaLine(page)).toHaveText(/^Level complete\. Score 10\./);
+  await page.waitForTimeout(1800);
   await page.screenshot({ path: 'test-results/end-screen-stars.png' });
-  // The buttons land last.
-  await page.waitForTimeout(1200);
   await expect(page.locator('#app h1', { hasText: 'Complete' })).toHaveCount(0); // no DOM results screen
-  await page.screenshot({ path: 'test-results/end-screen-won.png' });
 
+  // The buttons take taps only once they land (~2.75s in): tap Next until the next level starts.
   const next = await toPage(page, PRIMARY);
-  await page.mouse.click(next.x, next.y);
-  await expect(ariaLine(page)).toHaveText(/^Level 2 of \d+/);
+  await expect(async () => {
+    await page.mouse.click(next.x, next.y);
+    await expect(ariaLine(page)).toHaveText(/^Level 2 of \d+/, {
+      timeout: 400,
+    });
+  }).toPass({ timeout: 10_000 });
   expect(errors).toEqual([]);
 });
 

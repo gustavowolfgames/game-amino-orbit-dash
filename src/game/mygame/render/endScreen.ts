@@ -10,17 +10,19 @@
  *     score count-up, Next / Try again and Main menu.
  *   • `hide()` — the card leaves; the next run starts underneath.
  *
- * The card's stars and character come from the `core-results` atlas. Until a
- * game publishes one, `./resultsArt.ts` stands in PLACEHOLDER art (the catalog
- * card's own proxy stars and character). A frame the atlas lacks is not drawn.
+ * The card's stars and character come from the `core-results` atlas
+ * (src/game/asset-manifest.ts), loaded with the other `core-*` bundles. The
+ * template publishes PLACEHOLDER art there under its own slug (the catalog card's
+ * proxy stars and detective dog): publish your game's own atlas with the frames in
+ * `RESULTS_FRAMES` (.agents/recipes/assets.md). A frame the atlas lacks is not drawn.
  *
- * Owned by the controller: `tick` from its per-frame render, `destroy` before
- * the Pixi app goes.
+ * Driven by `../screens/endOfPlay.ts`: `tick` from the controller's per-frame
+ * render, `destroy` before the Pixi app goes.
  */
 
 import { DESIGN_CANVAS } from '@wolfgames/components/core';
 import { ScreenResults } from '@wolfgames/components/modules/prefabs/screen-results';
-// catalog: screen-results (win/lose card), particle-burst (confetti), screen-flash — user chose these over the DOM ResultsScreen, for particles and effects
+// catalog: screen-results (win/lose card), particle-burst (confetti), screen-flash — user chose these over a DOM results screen, for particles and effects
 import { ParticleBurst } from '@wolfgames/components/modules/primitives/particle-burst';
 import { ScreenFlash } from '@wolfgames/components/modules/primitives/screen-flash';
 import gsap from 'gsap';
@@ -52,6 +54,8 @@ export interface EndOutcome {
   won: boolean;
   /** The pack's last level was won. */
   packDone: boolean;
+  /** …and play moves on to the next edition (the Vault's unlocked walk), not the same pack. */
+  nextEdition?: boolean;
   /** 0-based level index. */
   level: number;
   score: number;
@@ -99,7 +103,11 @@ export function endCopy(o: EndOutcome): {
   return {
     headlineLine1: o.packDone ? 'ALL LEVELS' : `LEVEL ${o.level + 1}`,
     headlineLine2: 'COMPLETE!',
-    primaryLabel: o.packDone ? 'PLAY AGAIN' : 'NEXT LEVEL',
+    primaryLabel: !o.packDone
+      ? 'NEXT LEVEL'
+      : o.nextEdition
+        ? 'NEXT EDITION'
+        : 'PLAY AGAIN',
     starsEarned: 3,
   };
 }

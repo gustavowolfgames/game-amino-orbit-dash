@@ -2,8 +2,8 @@
  * world — the app-scoped ECS world (Phase 2: hoist the world to app scope).
  *
  * The ECS database is the single source of truth for game state. It must
- * outlive any one screen: the game screen writes the final score, then unmounts,
- * and the results screen reads that score straight from ECS. A per-screen world
+ * outlive any one screen: the level and pack in play carry from the title to the game
+ * screen and back, and a later screen reads them straight from ECS. A per-screen world
  * (created in the controller, destroyed on unmount) can't do that — which is why
  * the old signals "clipboard" existed. Holding the world here removes the need
  * for a second copy.

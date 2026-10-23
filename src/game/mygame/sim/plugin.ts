@@ -120,7 +120,7 @@ export const gamePlugin = Database.Plugin.create({
       }
     },
 
-    /** Set the run phase (`won` / `lost` hands off to the results screen). */
+    /** Set the run phase (`won` / `lost` ends the run on the end card: screens/endOfPlay.ts). */
     setPhase(store, phase: GamePhase) {
       if (store.resources.phase === phase) return;
       store.resources.phase = phase;

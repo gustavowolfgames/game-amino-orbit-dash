@@ -24,6 +24,18 @@ describe('endCopy', () => {
     expect(copy.primaryLabel).toBe('PLAY AGAIN');
   });
 
+  it('the last level of a Vault edition, with another to come, offers the next edition', () => {
+    const copy = endCopy({
+      won: true,
+      packDone: true,
+      nextEdition: true,
+      level: 4,
+      score: 90,
+    });
+    expect(copy.headlineLine1).toBe('ALL LEVELS');
+    expect(copy.primaryLabel).toBe('NEXT EDITION');
+  });
+
   it('a loss offers a retry, with no stars (the card shows its lose state)', () => {
     expect(
       endCopy({ won: false, packDone: false, level: 0, score: 3 }),

@@ -1,0 +1,148 @@
+/**
+ * endOfPlay — what happens when a run ends, kept out of the controller so it stays thin.
+ *
+ * A terminal phase (`won` / `lost`) never leaves the game screen:
+ *
+ *   • A won level records progress and celebrates (flash + confetti over the board).
+ *   • The pack's last level goes through the Vault's served session (`completeActivePack`):
+ *     when the Vault takes over, the game shows nothing of its own.
+ *   • Otherwise, after a beat, the end card (`../render/endScreen.ts`) comes up over the board:
+ *     Next level / Try again / Play again (or Next edition in the Vault's unlocked walk), and
+ *     Main menu. Its primary action waits for any new edition to load, then starts the next run.
+ *
+ * Input reaches it as intents (`input`): Enter / Space / Escape from `useGameKeyboard`, and the
+ * screen-reader buttons `GameScreen` renders while the card is up. Pause and the settings menu
+ * lock both, the same as taps on the board.
+ *
+ * The controller drives it: `handlePhase` and `tick` from its per-frame render, `reset` from
+ * `startRun`, `destroy` before the Pixi app goes.
+ */
+
+import type { Container } from 'pixi.js';
+import gsap from 'gsap';
+import type { PixiLoader } from '~/core/systems/assets';
+import { pauseState } from '~/core/systems/pause';
+import { isLastLevel } from '~/game/content';
+import type { GameIntent } from '~/game/mygame-contract';
+import { settingsOpen } from '~/game/settingsOpen';
+import { whenContentSettled } from '~/game/setup/content';
+import type { RunAnalytics } from '~/game/setup/edition-analytics';
+import { recordLevelWon } from '~/game/setup/progress';
+import { completeActivePack } from '~/game/setup/served-session';
+import { createEndScreen, type EndScreenOptions } from '../render/endScreen';
+import type { GameDatabase, GamePhase } from '../sim/plugin';
+
+/** Delay (s) before the end card, so the last frame (and the confetti) reads. */
+const END_PAUSE = 0.9;
+
+export interface EndOfPlayDeps {
+  /** The game's design-space root: the card and its effects draw on top of the board here. */
+  root: Container;
+  gpu: PixiLoader;
+  /** The world, or null once the controller is torn down. */
+  world: () => GameDatabase | null;
+  analytics: RunAnalytics;
+  /** Confetti and flash colours from the current theme. */
+  palette: EndScreenOptions['palette'];
+  /** Start the next run (the controller's `startRun`, after it re-reads the brand). */
+  playOn: () => void;
+  /** Main menu. */
+  toMenu: () => void;
+  /** The card's screen-reader line. */
+  say: (text: string) => void;
+  /** The card went up or down. */
+  onOpenChange: (open: boolean) => void;
+}
+
+export interface EndOfPlay {
+  /** The card is up (board input is off). */
+  readonly open: boolean;
+  /** Called every frame with the run's phase; acts once per terminal phase. */
+  handlePhase(phase: GamePhase): void;
+  /** A run started: forget the last end and take the card down. */
+  reset(): void;
+  /** Enter / Space = the card's primary action, Escape = Main menu. */
+  input(intent: GameIntent): void;
+  tick(dtSec: number): void;
+  destroy(): void;
+}
+
+export function createEndOfPlay(deps: EndOfPlayDeps): EndOfPlay {
+  let handled: GamePhase | null = null;
+  let destroyed = false;
+  let pending: gsap.core.Tween | null = null;
+
+  /** Next / Try again / Play again. A finished pack in the Vault's unlocked walk has started
+   *  loading the next edition; wait for it (bounded) so the run starts there. */
+  const playOn = async () => {
+    card.hide();
+    await whenContentSettled();
+    if (!destroyed) deps.playOn();
+  };
+
+  const card = createEndScreen(deps.root, deps.gpu, {
+    palette: deps.palette,
+    onPrimary: () => void playOn(),
+    onSecondary: deps.toMenu,
+    onOpenChange: deps.onOpenChange,
+  });
+
+  return {
+    get open() {
+      return card.open;
+    },
+
+    handlePhase(phase) {
+      if (phase === 'playing' || phase === 'idle' || phase === handled) return;
+      handled = phase;
+      const db = deps.world();
+      if (!db) return;
+      const { level, score, packId } = db.resources;
+      const won = phase === 'won';
+      const last = won && isLastLevel(level);
+      if (won) deps.analytics.levelWon(level, score);
+      // The Vault's served mode decides what a finished pack means.
+      const next = last ? completeActivePack() : 'replay';
+      if (won) {
+        recordLevelWon(packId, level, last); // a reload resumes the next level
+        card.celebrate();
+      }
+      if (next === 'vault') return; // the Vault's end screen, not ours
+      const outcome = {
+        won,
+        packDone: last,
+        nextEdition: next === 'next-edition',
+        level,
+        score,
+      };
+      pending = gsap.delayedCall(END_PAUSE, () => {
+        if (!destroyed) deps.say(card.show(outcome));
+      });
+    },
+
+    reset() {
+      handled = null;
+      pending?.kill();
+      pending = null;
+      if (card.open) card.hide(); // the Inspector's restart, mid-card
+    },
+
+    input(intent) {
+      // Same lock as taps on the board: nothing acts under the pause overlay or the menu.
+      if (!card.ready || pauseState.paused() || settingsOpen()) return;
+      if (intent.type === 'action') void playOn();
+      else if (intent.type === 'back') deps.toMenu();
+    },
+
+    tick(dtSec) {
+      card.tick(dtSec);
+    },
+
+    destroy() {
+      destroyed = true;
+      pending?.kill();
+      pending = null;
+      card.destroy();
+    },
+  };
+}

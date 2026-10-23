@@ -24,7 +24,9 @@ The template's controller is thin: the renderer, the level flow, the fixed-step 
 
 Keyboard listeners do not belong here. The controller exposes an input method (`input('left')`), and a Solid screen hook in `src/game/screens/` calls it. See `.agents/recipes/guardrails.md`.
 
-Screen ids are `loading`, `start`, `game`, and `results` (`src/core/systems/screens/types.ts`). There is no `game_over`. End of play is `deps.goto?.('results')`. Home is `deps.goto?.('start')`. `deps.goto` is typed `(screen: string) => void`, so a wrong id compiles and fails at runtime. Do not construct a second `Application` for the results screen.
+End of play stays on the game screen. A terminal phase (`won` / `lost`) goes to `src/game/mygame/screens/endOfPlay.ts`: it records the win, celebrates (flash and confetti), and after a beat brings up the end card over the board (`src/game/mygame/render/endScreen.ts`, catalog `screen-results`). Its primary button starts the next run with no screen change; Main menu is `deps.goto?.('start')`. When the Vault takes over a finished pack (`completeActivePack()` returns `'vault'`), the game shows no card. The card's text is `endCopy` in `endScreen.ts`; its stars and character come from the `core-results` atlas (`src/game/asset-manifest.ts`), template placeholder art until the game publishes its own. Put more end-of-run behaviour in `endOfPlay.ts`, not the controller.
+
+Screen ids are `loading`, `start`, `game`, and `results` (`src/core/systems/screens/types.ts`). There is no `game_over`. `results` exists only because core requires it: it sends the player to the menu. `deps.goto` is typed `(screen: string) => void`, so a wrong id compiles and fails at runtime. Do not construct a second `Application` for an end screen.
 
 Load a level with `deps.coordinator.loadBundle`. Unload the old level with `deps.coordinator.unloadBundle` only after its sprites are destroyed.
 
