@@ -124,42 +124,42 @@
             values="0 0;0 0;-310 0;-310 0" keyTimes="0;0.5;0.624;1"
             keySplines="0 0 1 1;0.4 0 0.1 1;0 0 1 1"/>
 
-          <!-- LEFT  \  (draws 0.40-0.50s)  width 96 -> 18 ; splayed runs past the canvas, off any screen (y -1000..2920) -->
+          <!-- LEFT  \  (draws 0.40-0.50s)  width 96 -> 18 ; splayed runs off any screen: the V's point is lowered below the screen (y 2400), tops continue up (y -480) -->
           <polygon class="bar" fill="#E9ED12">
             <animate attributeName="points" dur="3.8s" repeatCount="indefinite"
               keyTimes="0;0.105;0.132;0.307;0.474;1"
-              values="-328.6,-1000 -232.6,-1000 -232.6,-1000 -328.6,-1000;
-                      -328.6,-1000 -232.6,-1000 -232.6,-1000 -328.6,-1000;
-                      -328.6,-1000 -232.6,-1000 839.6,2920 743.6,2920;
-                      -328.6,-1000 -232.6,-1000 839.6,2920 743.6,2920;
+              values="-164.6,-480 -68.6,-480 -68.6,-480 -164.6,-480;
+                      -164.6,-480 -68.6,-480 -68.6,-480 -164.6,-480;
+                      -164.6,-480 -68.6,-480 577,2400 481,2400;
+                      -164.6,-480 -68.6,-480 577,2400 481,2400;
                       463,900 481,900 510,1017 492,1017;
                       463,900 481,900 510,1017 492,1017"/>
             <animate attributeName="fill" dur="3.8s" repeatCount="indefinite"
               values="#E9ED12;#E9ED12;#ffffff;#ffffff" keyTimes="0;0.78;0.92;1"/>
           </polygon>
 
-          <!-- RIGHT  /  (draws 0.60-0.70s)  width 93 -> 18 ; splayed runs past the canvas, off any screen (y -1000..2920) -->
+          <!-- RIGHT  /  (draws 0.60-0.70s)  width 93 -> 18 ; splayed runs off any screen: the V's point is lowered below the screen (y 2400), tops continue up (y -480) -->
           <polygon class="bar" fill="#E9ED12">
             <animate attributeName="points" dur="3.8s" repeatCount="indefinite"
               keyTimes="0;0.158;0.184;0.307;0.474;1"
-              values="1304.4,-1000 1398.4,-1000 1398.4,-1000 1304.4,-1000;
-                      1304.4,-1000 1398.4,-1000 1398.4,-1000 1304.4,-1000;
-                      1304.4,-1000 1398.4,-1000 355.6,2920 261.6,2920;
-                      1304.4,-1000 1398.4,-1000 355.6,2920 261.6,2920;
+              values="1144.9,-480 1238.9,-480 1238.9,-480 1144.9,-480;
+                      1144.9,-480 1238.9,-480 1238.9,-480 1144.9,-480;
+                      1144.9,-480 1238.9,-480 611,2400 517,2400;
+                      1144.9,-480 1238.9,-480 611,2400 517,2400;
                       594,900 612,900 583,1017 565,1017;
                       594,900 612,900 583,1017 565,1017"/>
             <animate attributeName="fill" dur="3.8s" repeatCount="indefinite"
               values="#E9ED12;#E9ED12;#ffffff;#ffffff" keyTimes="0;0.78;0.92;1"/>
           </polygon>
 
-          <!-- MID  I  (draws 0.767-0.867s)  width 90 -> 18 ; splayed runs past the canvas, off any screen (y -1000..2920) -->
+          <!-- MID  I  (draws 0.767-0.867s)  width 90 -> 18 ; splayed runs off any screen: the V's point is lowered below the screen (y 2400), tops continue up (y -480) -->
           <polygon class="bar" fill="#E9ED12">
             <animate attributeName="points" dur="3.8s" repeatCount="indefinite"
               keyTimes="0;0.202;0.228;0.307;0.474;1"
-              values="498.4,-1000 588.4,-1000 588.4,-1000 498.4,-1000;
-                      498.4,-1000 588.4,-1000 588.4,-1000 498.4,-1000;
-                      498.4,-1000 588.4,-1000 578.6,2920 488.6,2920;
-                      498.4,-1000 588.4,-1000 578.6,2920 488.6,2920;
+              values="496.9,-480 586.9,-480 586.9,-480 496.9,-480;
+                      496.9,-480 586.9,-480 586.9,-480 496.9,-480;
+                      496.9,-480 586.9,-480 581,2400 491,2400;
+                      496.9,-480 586.9,-480 581,2400 491,2400;
                       529,900 547,900 547,1017 529,1017;
                       529,900 547,900 547,1017 529,1017"/>
             <animate attributeName="fill" dur="3.8s" repeatCount="indefinite"

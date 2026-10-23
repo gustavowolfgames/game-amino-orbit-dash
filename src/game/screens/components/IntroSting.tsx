@@ -14,9 +14,9 @@
  * WolfGames lockup glides down to the footer, and the scene un-blurs into exactly the title
  * screen's opening frame (logo placed where the title screen draws it), so the handoff to the
  * title screen has no fade. With `target: 'game'` (the title is skipped: the Vault,
- * `?screen=game`) there is no logo, and the reveal ends on the play screen's background
- * instead; the lockup still zooms onto the WolfGames logo, which the game screen draws in the
- * same spot. [ENG-4977]
+ * `?screen=game`) the reveal ends on the play screen's background instead: the game logo is
+ * revealed the same way, then fades out with the bar (the game screen draws no logo), and the
+ * lockup zooms onto the WolfGames logo, which the game screen draws in the same spot. [ENG-4977]
  *
  * The black backdrop, the brand background image, and the game title are all DOM layers
  * owned HERE (not in the SVG and not in Pixi): the SVG is transparent and only draws the
@@ -151,7 +151,8 @@ export interface IntroStingProps {
   reveal?: boolean;
   /**
    * The screen the reveal ends on: 'title' (default; needs `logoSrc`) or 'game', the play
-   * screen's background with no logo (`backgroundSrc` is the game's `bg-game`).
+   * screen's background (`backgroundSrc` is the game's `bg-game`); a `logoSrc` is shown while
+   * loading and fades out before the handoff.
    */
   target?: 'title' | 'game';
   /** Host signal: assets are ready. The exit runs once this AND the sting-done are both true. */
@@ -431,7 +432,7 @@ export function IntroSting(props: IntroStingProps) {
       },
       REVEAL.colour,
     );
-    if (titleRef && !toGame()) {
+    if (titleRef) {
       placeLogo();
       // Centre on `top` whatever the image's loaded height (GSAP owns the transform from here).
       gsap.set(titleRef, { yPercent: -50 });
@@ -525,6 +526,18 @@ export function IntroSting(props: IntroStingProps) {
         onComplete: () => props.onExitComplete?.(),
       });
       exitTl.call(() => descent?.progress(1), [], FOOT_BAR.holdSec);
+      // The game screen draws no logo: it goes with the bar, before the lockup moves.
+      if (toGame() && titleRef)
+        exitTl.to(
+          titleRef,
+          {
+            opacity: 0,
+            scale: 0.94,
+            duration: FOOT_BAR.fadeSec,
+            ease: 'power2.in',
+          },
+          FOOT_BAR.holdSec,
+        );
       exitTl.to(
         footBarRef,
         {
