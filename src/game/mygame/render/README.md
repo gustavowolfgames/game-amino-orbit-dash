@@ -58,6 +58,12 @@ export class ScorePopups {
 }
 ```
 
+Game feel (sparks, pops, flashes, the win beat) goes through one kit of verbs,
+`juice.ts`, triggered from the cue table's `run` hooks in `../screens/feedback.ts`.
+Each verb wraps a catalog module and cites the Carina pattern it follows; the
+numbers live in the `juice` section of `src/game/tuning/types.ts`
+(`.agents/recipes/feel.md`).
+
 For entities, keep a `Map<Entity, Sprite>`: each frame, create a sprite for a
 new entity, move the ones that exist, and destroy the ones whose entity is
 gone. Read entities with a plain reader next to the plugin (`readPieces(db)`,

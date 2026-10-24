@@ -12,8 +12,9 @@ Feedback has three parts, all DOM-free:
 | `../sim/events.ts` | The sim `emit`s events; `drainEvents(db)` takes them once a frame. |
 | `gameAudio.ts` | `createGameAudio(engine, { sfx, music, settings })`: typed `play(id)`, `music(id \| null)`, `stopAll()`. Applies the gear menu's volume and music toggle. Never throws; logs a failing or unloaded channel once in dev. |
 | `cues.ts` | `createCues<GameEvent, Sfx>(table, { play, say })`: per event type, a sound (`sfx`, `volume`, `gapMs` throttle on sim time), a screen-reader line (`aria`) and a `run` hook for the HUD or a view. |
+| `feedback.ts` | The template's own table: `createFeedback(deps)` returns the cue runner, and its `run` hooks play the juice kit (`../render/juice.ts`) on `scored` and on `phase: won`. Game feel is `.agents/recipes/feel.md`. |
 
-The whole wiring, as the template's controller does it:
+The whole wiring, minus the juice (`feedback.ts` adds it):
 
 ```ts
 // check: feedback.ts

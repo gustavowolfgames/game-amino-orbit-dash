@@ -21,6 +21,7 @@ Match the task, then open that file.
 - Gameplay state, a turn, a score, entities, or a frame loop. Open `.agents/recipes/ecs.md`.
 - Input (tap, swipe, keyboard), a leak, DOM in the game, or a "do not" rule. Open `.agents/recipes/guardrails.md`.
 - A sprite, canvas HUD, transition, VFX, or other Pixi drawing. Open `.agents/recipes/pixi.md`.
+- Juice, game feel, polish, impact, a hit, a score pop, or a win moment. Open `.agents/recipes/feel.md`.
 - `setupGame`, a screen change, or `gameController.ts`. Open `.agents/recipes/game-controller.md`.
 - A HUD, button, screen, popup, or other visible element. Open `.agents/recipes/components.md`.
 - Colors, type, logos, or a partner skin. Open `.agents/recipes/reskin.md`.
