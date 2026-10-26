@@ -1,30 +1,32 @@
 /**
- * Game Controller — the frame a game plugs into (Pixi).
+ * Game Controller — the frame the match-3 plugs into (Pixi).
  *
- * This is the template core, not a game. It owns the renderer lifecycle and the
- * wiring every game needs, and draws only the background and the HUD:
+ * It owns the renderer lifecycle and the wiring; the board, the HUD, the rules
+ * and the input live in their own folders:
  *
- *   • Pixi app + a fixed design box (DESIGN_W×DESIGN_H) scaled to fit
- *     ("contain"), with a cover-fit background in screen space.
- *   • Match-3 is turn-based: a drag or tap-tap (`../input/swap.ts`) calls the
- *     turn function `applySwap` (`../sim/turn.ts`), and the board view
+ *   • Pixi app + a `DesignLayer` on `DESIGN_CANVAS` (390×844, the canvas the
+ *     title screen uses), fitted by `trackHostBox`, with a cover-fit background
+ *     in screen space.
+ *   • Match-3 is turn-based: a drag, tap-tap (`../input/swap.ts`) or a key
+ *     (`input(intent)`, from `useGameKeyboard`) calls the turn function
+ *     `applySwap` (`../sim/turn.ts`), and the board view
  *     (`../render/BoardView.ts`) animates the returned ruling. Input is ignored
  *     while the board settles.
  *   • The fixed-step sim (`startFixedStepLoop` → `stepWorld`, no systems yet)
- *     plus a per-frame `render` where the game projects ECS into its views
- *     (`../render/`).
+ *     plus a per-frame `render` where the views project ECS (`../render/`).
+ *   • Feedback: `render` drains the sim's events (`drainEvents`) once a frame
+ *     and runs them through the cue table (`./cues.ts`): sound through
+ *     `./gameAudio.ts`, the screen-reader line through `ariaText`.
  *   • Content: each run plays one level of the active Content Pack (`levelAt`,
  *     src/game/content). Winning moves straight on to the pack's next level;
  *     winning its last level reports the edition complete and shows results.
  *     Losing shows results with Retry.
  *   • The sim and input stop while the settings menu is open (`settingsOpen`,
  *     set by `GameSettingsMenu`, the one menu on every screen) or the game is
- *     paused (space bar, core pause state).
- *   • A terminal phase (`won` / `lost`) hands off to the results screen.
+ *     paused (core pause state).
  *
  * Keep this file thin (`bun run check:agent` caps it): game views, rules and
- * input live in their own folders. A turn-based game drops the frame loop and
- * resolves turns on input instead.
+ * input live in their own folders.
  *
  * Lifecycle (world owned by world.ts, never disposed here):
  *   init:    getGameWorld() → build Pixi → startRun → start the fixed-step loop
@@ -32,8 +34,10 @@
  *            renderer teardown → setActiveInspectorActions([])
  */
 
+import { DESIGN_CANVAS } from '@wolfgames/components/core';
+import { DesignLayer, trackHostBox } from '@wolfgames/components/pixi';
 import gsap from 'gsap';
-import { Application, Container, Sprite, type Texture } from 'pixi.js';
+import { Application, type Container, Sprite, type Texture } from 'pixi.js';
 import { createSignal } from 'solid-js';
 import { exposePixiApp } from '~/core/dev/pixiDevtools';
 import { setActiveInspectorActions } from '~/core/systems/ecs';
@@ -53,22 +57,30 @@ import {
   saveProgress,
 } from '~/game/setup/progress';
 import { completeActivePack } from '~/game/setup/served-session';
-import { DESIGN_H, DESIGN_W } from '../config';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
-import { bindSwapInput } from '../input/swap';
+import { bindSwapInput, type SwapInput } from '../input/swap';
 import { BoardView } from '../render/BoardView';
 import { GameHud } from '../render/GameHud';
 import { loadGameTextures } from '../render/textures';
-import type { GameDatabase, GamePhase } from '../sim/plugin';
+import { drainEvents } from '../sim/events';
+import type { GameDatabase, GameEvent, GamePhase } from '../sim/plugin';
 import { COLOR_NAMES } from '../sim/rules/board';
 import { stepWorld } from '../sim/schedule';
 import { applySwap } from '../sim/turn';
 import { getGameWorld } from '../world';
-import { type AudioSettings, bindAudioSettings } from './audioSettings';
+import { createCues } from './cues';
+import { type AudioSettings, createGameAudio } from './gameAudio';
 
 /** Delay (s) before handing off to results, so the last frame reads. */
 const END_PAUSE = 0.9;
+
+/** The audio channels this game plays (aliases in src/game/asset-manifest.ts). */
+const SOUNDS = {
+  sfx: ['sfx-pop', 'sfx-clear'],
+  music: ['audio-music'],
+} as const;
+type Sfx = (typeof SOUNDS.sfx)[number];
 
 /** Deps optionally carry `goto` (GameScreen injects it) for the results hop. */
 type Deps = GameControllerDeps & { goto?: (screen: string) => void };
@@ -89,12 +101,13 @@ export const setupGame: SetupGame = (
   let engine: EngineHandle | null = null;
   let stopSim: (() => void) | null = null;
   let stopRender: (() => void) | null = null;
-  let unbindInput: (() => void) | null = null;
+  let swapInput: SwapInput | null = null;
+  let stopResize: (() => void) | null = null;
   let destroyed = false;
   let initPromise: Promise<void> | null = null;
 
-  /** Design-space root: the game's views go in here. */
-  let root: Container | null = null;
+  /** Design-space root on DESIGN_CANVAS: the game's views go in here. */
+  let root: DesignLayer | null = null;
   /** Full-bleed background (screen space). */
   let fieldBg: Sprite | null = null;
   let hud: GameHud | null = null;
@@ -103,12 +116,45 @@ export const setupGame: SetupGame = (
   /** Guard so a terminal phase only triggers one transition. */
   let handledPhase: GamePhase | null = null;
 
+  // ── Audio + feedback ───────────────────────────────────────────────────────
+  // The gear menu's volume and music toggle apply through `settings`; a missing
+  // engine or channel is a no-op (./gameAudio.ts).
+  const audio = createGameAudio(() => deps.coordinator?.audio, {
+    ...SOUNDS,
+    settings: deps.audio as AudioSettings | undefined,
+  });
+  /** What each sim event sounds like and says (./cues.ts). */
+  const cues = createCues<GameEvent, Sfx>(
+    {
+      // One pop per move: a move's cascade steps share one sim instant.
+      scored: {
+        sfx: 'sfx-pop',
+        gapMs: 60,
+        aria: (e) =>
+          e.chain > 1 ? `Chain ×${e.chain}, ${e.score} points.` : null,
+      },
+      rejected: { aria: 'No match. Swap undone.' },
+      reshuffled: { aria: 'No moves left. New board.' },
+      phase: {
+        sfx: (e) => (e.phase === 'won' ? 'sfx-clear' : null),
+        aria: (e) =>
+          e.phase === 'won'
+            ? 'Level complete.'
+            : e.phase === 'lost'
+              ? 'Out of moves.'
+              : null,
+      },
+    },
+    { play: audio.play, say: setAriaText },
+  );
+
   // ── Per-frame render (projection of ECS) ───────────────────────────────────
-  // The game reconciles its views against ECS here (read via ../sim/readStateFromEcs).
+  // The views reconcile against ECS here, then the frame's events play.
   const render = (dtSec: number) => {
     if (!db || destroyed) return;
     board?.update(db, dtSec);
     hud?.update(db, dtSec);
+    cues(drainEvents(db), db.resources.elapsedMs);
     // Let the last move finish animating before the level ends.
     if (!board?.busy) handlePhase(db.resources.phase);
   };
@@ -118,18 +164,20 @@ export const setupGame: SetupGame = (
       return;
     }
     handledPhase = phase;
-    if (phase === 'won') {
-      const last = !!db && isLastLevel(db.resources.level);
-      if (db) runAnalytics.levelWon(db.resources.level, db.resources.score);
+    const won = phase === 'won';
+    const advance = won && !!db && !isLastLevel(db.resources.level);
+    if (won && db) {
+      const last = isLastLevel(db.resources.level);
+      runAnalytics.levelWon(db.resources.level, db.resources.score);
       if (last) completeActivePack(); // the Vault served mode decides what a finished pack means
-      if (db) recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
-      tryPlay('sfx-clear');
+      recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
+      hud?.announce(
+        `LEVEL ${db.resources.level + 1} CLEAR!`,
+        DESIGN_CANVAS.height / 2,
+      );
+    } else {
+      hud?.announce('OUT OF MOVES', DESIGN_CANVAS.height / 2);
     }
-    const advance = phase === 'won' && !!db && !isLastLevel(db.resources.level);
-    if (db && phase === 'won')
-      hud?.announce(`LEVEL ${db.resources.level + 1} CLEAR!`, DESIGN_H / 2);
-    else hud?.announce('OUT OF MOVES', DESIGN_H / 2);
-    setAriaText(phase === 'won' ? 'Level complete.' : 'Out of moves.');
     gsap.delayedCall(END_PAUSE * (advance ? 1.6 : 1), () => {
       if (destroyed) return;
       // Between levels play straight on; the last win and a loss go to results.
@@ -168,37 +216,21 @@ export const setupGame: SetupGame = (
     });
     saveProgress(pack.id, index);
     runAnalytics.levelStarted(index, entry);
-    setAriaText(`Level ${index + 1} of ${pack.levels.length}.`);
+    setAriaText(
+      `Level ${index + 1} of ${pack.levels.length}. Clear ${goal} ${goalColor} in ${moves} moves.`,
+    );
   };
 
-  // ── Audio (optional: a missing channel is a no-op) ─────────────────────────
-  type Audio = {
-    play: (channel: string, mode?: string) => void;
-    stop: (channel: string) => void;
-  };
-  const audio = () => deps.coordinator.audio as Audio | undefined;
-  const tryPlay = (channel: string, mode?: string) => {
-    try {
-      audio()?.play(channel, mode);
-    } catch {
-      /* audio optional */
-    }
-  };
-  // The settings menu's volume and music toggle, applied to the engine
-  // (./audioSettings.ts). Music starts through it, never by playing directly.
-  const music = bindAudioSettings(
-    audio,
-    deps.audio as AudioSettings | undefined,
-  );
+  /** Input is live only on a settled board in a live run with nothing over the game. */
+  const accepting = () =>
+    db?.resources.phase === 'playing' &&
+    !board?.busy &&
+    !(pauseState.paused() || settingsOpen());
 
   // ── Layout ────────────────────────────────────────────────────────────────
-  const layout = () => {
-    if (!app || !root) return;
-    const w = app.screen.width;
-    const h = app.screen.height;
-    const scale = Math.min(w / DESIGN_W, h / DESIGN_H);
-    root.scale.set(scale);
-    root.position.set((w - DESIGN_W * scale) / 2, (h - DESIGN_H * scale) / 2);
+  // `trackHostBox` fits the renderer and `root`; this is its callback for the
+  // screen-space background, which takes the raw box.
+  const fitBackground = (w: number, h: number) => {
     // Cover-fit the background so it always fills the viewport, cropping overflow.
     if (fieldBg) {
       const tw = fieldBg.texture.width;
@@ -212,7 +244,7 @@ export const setupGame: SetupGame = (
 
   // ── Scene construction ─────────────────────────────────────────────────────
   const buildScene = (stage: Container, field: Texture) => {
-    root = new Container();
+    root = new DesignLayer();
     root.eventMode = 'passive';
 
     fieldBg = new Sprite(field);
@@ -223,8 +255,8 @@ export const setupGame: SetupGame = (
 
     board = new BoardView();
     board.container.position.set(
-      (DESIGN_W - board.width) / 2,
-      (DESIGN_H - board.height) / 2 + 40,
+      (DESIGN_CANVAS.width - board.width) / 2,
+      (DESIGN_CANVAS.height - board.height) / 2 + 20,
     );
     root.addChild(board.container);
 
@@ -245,7 +277,9 @@ export const setupGame: SetupGame = (
       initPromise = application
         .init({
           resizeTo: container,
-          background: theme.ground,
+          // Transparent, like the title's: the host's stand-in of the background shows
+          // through until the scene's own background draws over it.
+          backgroundAlpha: 0,
           antialias: true,
           resolution: Math.min(window.devicePixelRatio, 2),
           autoDensity: true,
@@ -253,30 +287,33 @@ export const setupGame: SetupGame = (
         .then(async () => {
           if (destroyed || !db) return;
           releasePixiApp = exposePixiApp(application);
-          container.appendChild(application.canvas as HTMLCanvasElement);
 
-          const { field } = await loadGameTextures();
+          const { field } = await loadGameTextures(deps.coordinator);
           if (destroyed || !db) return;
 
+          // The canvas goes in once it has a scene to draw: an empty one would cover the
+          // host's stand-in with the bare ground colour.
+          container.appendChild(application.canvas as HTMLCanvasElement);
           buildScene(application.stage, field);
-          layout();
-          application.renderer.on('resize', layout);
-          unbindInput = bindSwapInput(
+          stopResize = trackHostBox(
+            application,
+            container,
+            [root as DesignLayer],
+            fitBackground,
+          );
+          swapInput = bindSwapInput(
             application,
             board as BoardView,
             (a, b) => {
               if (!db || !board) return;
               board.play(applySwap(db, a, b), db);
             },
-            () =>
-              db?.resources.phase === 'playing' &&
-              !board?.busy &&
-              !(pauseState.paused() || settingsOpen()),
+            accepting,
           );
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
-          music.startMusic(); // audio unlocked on the start-screen tap; respects the toggle
+          audio.music('audio-music'); // audio unlocked on the start-screen tap; respects the toggle
 
           engine = createTickerEngine();
           stopSim = startFixedStepLoop(engine, (dt) => {
@@ -284,6 +321,11 @@ export const setupGame: SetupGame = (
               stepWorld(db, dt);
           });
           stopRender = engine.onFrame((dtMs) => render(dtMs / 1000));
+          // The host shows a stand-in of this frame until Pixi has drawn it once.
+          // (Two ticks: listeners run before that tick's render.)
+          application.ticker.addOnce(() =>
+            application.ticker.addOnce(() => deps.onReady?.()),
+          );
 
           // Dev/bot surface (Inspector, backtick).
           setActiveInspectorActions([
@@ -301,26 +343,33 @@ export const setupGame: SetupGame = (
         });
     },
 
+    /** Keyboard (useGameKeyboard): arrows move the cursor or swap a picked tile. */
+    input(intent) {
+      swapInput?.key(intent);
+    },
+
     destroy() {
       destroyed = true;
-      music.stopMusic();
+      audio.stopAll();
       stopSim?.();
       stopRender?.();
       stopSim = stopRender = null;
       engine?.destroy();
       engine = null;
-      unbindInput?.();
-      unbindInput = null;
+      swapInput?.unbind();
+      swapInput = null;
+      stopResize?.();
+      stopResize = null;
 
       const teardown = () => {
         releasePixiApp?.();
         releasePixiApp = null;
-        app?.destroy(true, { children: true });
-        app = null;
         hud?.destroy();
         hud = null;
-        board?.destroy();
+        board?.destroy(); // kills its tweens before the app tears the scene down
         board = null;
+        app?.destroy(true, { children: true });
+        app = null;
         root = null;
         // Textures live in Pixi's global Assets cache (keyed by URL) and are
         // reused across screens: just drop our reference, don't destroy them.

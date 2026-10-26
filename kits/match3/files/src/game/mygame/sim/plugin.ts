@@ -1,16 +1,16 @@
 /**
- * plugin — the ECS world the game is built on (@adobe/data).
+ * plugin — the ECS world the match-3 is built on (@adobe/data).
  *
- * The core every game starts from: the run's lifecycle, the level it plays, the
- * determinism seam (injected time, seeded rng) and the input queue. It holds no
- * game yet. A game adds its own `components`, `archetypes` and `transactions`
- * here (see `./README.md`): pieces, cells and bodies are archetype entities with
- * a `spriteKey`; resources hold only global values.
+ * The template's core (the run's lifecycle, the level it plays, the
+ * determinism seam, the event queue `./events.ts`) plus the match-3: one
+ * `Tile` entity per board cell, the level's move budget and colour goal, and
+ * the `commitMove` transaction the turn function (`./turn.ts`) calls with a
+ * resolved swap.
  *
  * ECS is the **source of truth** (guardrail: game state lives in ECS, not
  * signals). All state changes go through transactions. Determinism holds: `dt`
- * and input arrive as injected resources, and randomness comes from the seeded
- * `rng` resource (`./rng.ts`), never `Math.random()`/`Date.now()`.
+ * arrives as an injected resource, and randomness comes from the seeded `rng`
+ * resource (`./rng.ts`), never `Math.random()`/`Date.now()`.
  *
  * Plugin property order is runtime-enforced:
  *   extends → services → components → resources → archetypes → computed →
@@ -18,9 +18,11 @@
  */
 
 import { Database, I32, Observe } from '~/core/systems/ecs';
+import { type EventOf, emit, NO_EVENTS } from './events';
 import { nextRng } from './rng';
 import {
   type Board,
+  type Cell,
   COLOR_NAMES,
   cellOf,
   generateBoard,
@@ -30,11 +32,30 @@ import {
 /** Lifecycle of a run. */
 export type GamePhase = 'idle' | 'playing' | 'won' | 'lost';
 
-/** A queued tap awaiting a system (input as intent). Design-space point. */
-export interface TapIntent {
-  x: number;
-  y: number;
-}
+/**
+ * Everything the sim reports to the outside world (sound, screen reader, HUD,
+ * views). One entry per kind: `type → payload`. `emit` them from transactions.
+ */
+export type GameEvent = EventOf<{
+  /**
+   * One cascade step of a move cleared tiles. `x, y` is the centre of the
+   * cleared cells in board cells (col, row; fractional), `points` this step's,
+   * `chain` 1 for the swap's own clear, `score` the level's new total.
+   */
+  scored: {
+    x: number;
+    y: number;
+    points: number;
+    chain: number;
+    score: number;
+  };
+  /** A swap made no line: it is undone and costs no move. */
+  rejected: { a: Cell; b: Cell };
+  /** The settled board had no move left and was redrawn. */
+  reshuffled: object;
+  /** The run's phase changed. */
+  phase: { phase: GamePhase };
+}>;
 
 // ── Plugin ────────────────────────────────────────────────────────────────
 
@@ -54,12 +75,14 @@ export const gamePlugin = Database.Plugin.create({
     level: { default: 0 as number },
     /** Id of the Content Pack the current run's level came from ('' before the first run). */
     packId: { default: '' as string },
-    /** The level's target (its `goal`; 0 = the game sets none). What it counts is the game's call. */
+    /** The level's target: tiles of `goalColor` to clear. */
     goal: { default: 0 as number },
     score: { default: 0 as number },
     phase: { default: 'idle' as GamePhase },
     /** Bumped by every `startRun`, so views rebuild on a new run (entity ids are reused). */
     runId: { default: 0 as number },
+    /** Bumped by every board write, so readers (the agent's `board`) know it changed. */
+    boardVersion: { default: 0 as number },
     /** The level's seed, kept so a restart replays the same board. */
     seed: { default: 0 as number },
     /** Colour index the level's goal counts. */
@@ -80,11 +103,11 @@ export const gamePlugin = Database.Plugin.create({
     /** Seeded PRNG state (LCG). Advanced by transactions, never Math.random(). */
     rng: { default: 0 as number },
 
-    /**
-     * Queued taps awaiting a system (input as intent). A FIFO queue, not a single
-     * slot, so every tap in a frame is preserved and drained next step.
-     */
-    pendingTaps: { default: [] as TapIntent[] },
+    // ── Event queue (./events.ts) ─────────────────────────────────────────
+    /** Events emitted since the controller last drained them, oldest first. */
+    events: { default: NO_EVENTS as readonly GameEvent[] },
+    /** Events dropped because the queue was full (should stay 0). */
+    eventsDropped: { default: 0 as number },
   },
   archetypes: {
     /** One tile on the 8×8 board. */
@@ -100,11 +123,12 @@ export const gamePlugin = Database.Plugin.create({
   },
   transactions: {
     /**
-     * Start a run of one level: reset score and time, seed the rng, enter
-     * `playing`, and build the level's starting board (no ready-made matches,
-     * deterministic from the seed). The level's numbers come from the Content
-     * Pack (`levelAt`); the sim never reads the pack itself. `entry: 'next'`
-     * banks the won level's score; level 0 starts the run total from zero.
+     * Start a run of one level: reset score, time and events, seed the rng,
+     * enter `playing`, and build the level's starting board (no ready-made
+     * matches, deterministic from the seed). The level's numbers come from the
+     * Content Pack (`levelAt`); the sim never reads the pack itself.
+     * `entry: 'next'` banks the won level's score; level 0 starts the run total
+     * from zero.
      */
     startRun(
       store,
@@ -143,8 +167,8 @@ export const gamePlugin = Database.Plugin.create({
       store.resources.phase = 'playing';
       store.resources.elapsedMs = 0;
       store.resources.frameDeltaMs = 0;
-      store.resources.rng = seed >>> 0;
-      store.resources.pendingTaps = [];
+      store.resources.events = NO_EVENTS;
+      store.resources.eventsDropped = 0;
 
       // Mix the seed so neighbouring seeds (1, 2, 3) give unrelated boards.
       const { board, rng } = generateBoard(nextRng(nextRng(seed >>> 0)));
@@ -154,14 +178,31 @@ export const gamePlugin = Database.Plugin.create({
 
     /**
      * Commit a resolved swap (`resolveSwap` in rules/board.ts, via `applySwap`
-     * in ../turn.ts): the settled board, the rng, points, a move spent and the
-     * goal's progress. Reaching the goal wins; running out of moves loses.
+     * in ./turn.ts): the settled board, the rng, points, a move spent and the
+     * goal's progress. Reaching the goal wins; running out of moves loses. An
+     * invalid ruling only reports `rejected`.
      */
     commitMove(store, ruling: SwapRuling) {
-      if (!ruling.valid || store.resources.phase !== 'playing') return;
+      if (store.resources.phase !== 'playing') return;
+      if (!ruling.valid) {
+        emit(store, { type: 'rejected', a: ruling.a, b: ruling.b });
+        return;
+      }
       writeBoard(store, ruling.board);
       store.resources.rng = ruling.rng;
-      store.resources.score += ruling.points;
+      for (const step of ruling.steps) {
+        store.resources.score += step.points;
+        const n = step.cleared.length;
+        emit(store, {
+          type: 'scored',
+          x: step.cleared.reduce((s, c) => s + c.col, 0) / n,
+          y: step.cleared.reduce((s, c) => s + c.row, 0) / n,
+          points: step.points,
+          chain: step.chain,
+          score: store.resources.score,
+        });
+      }
+      if (ruling.reshuffled) emit(store, { type: 'reshuffled' });
       store.resources.movesLeft = Math.max(0, store.resources.movesLeft - 1);
       store.resources.goalProgress = Math.min(
         store.resources.goal,
@@ -170,8 +211,10 @@ export const gamePlugin = Database.Plugin.create({
       );
       if (store.resources.goalProgress >= store.resources.goal) {
         store.resources.phase = 'won';
+        emit(store, { type: 'phase', phase: 'won' });
       } else if (store.resources.movesLeft === 0) {
         store.resources.phase = 'lost';
+        emit(store, { type: 'phase', phase: 'lost' });
       }
     },
 
@@ -185,18 +228,11 @@ export const gamePlugin = Database.Plugin.create({
       store.resources.score += points;
     },
 
-    /** Enqueue a tap for a system to resolve next step (input as intent). */
-    submitTap(store, { x, y }: TapIntent) {
-      store.resources.pendingTaps = [...store.resources.pendingTaps, { x, y }];
-    },
-    /** Drop every queued tap (called by the system that resolves them). */
-    clearTaps(store) {
-      store.resources.pendingTaps = [];
-    },
-
     /** Set the run phase (`won` / `lost` hands off to the results screen). */
     setPhase(store, phase: GamePhase) {
+      if (store.resources.phase === phase) return;
       store.resources.phase = phase;
+      emit(store, { type: 'phase', phase });
     },
 
     /** Inject one fixed step's time. `dt` comes from the loop, never Date.now(). */
@@ -204,15 +240,15 @@ export const gamePlugin = Database.Plugin.create({
       store.resources.frameDeltaMs = dt;
       store.resources.elapsedMs += dt;
     },
-  },
-  systems: {
-    // Init-only, no-op: the controller calls `startRun` explicitly so the world is
-    // populated identically in game and in tests. The per-frame schedule lives
-    // in `schedule.ts` (`stepWorld`), driven by the engine's fixed-step loop.
-    game_initialize: {
-      create: () => {},
+
+    /** Empty the event queue (`drainEvents` calls this once per frame). */
+    clearEvents(store) {
+      store.resources.events = NO_EVENTS;
     },
   },
+  // No plugin `systems`: the controller calls `startRun` explicitly so the world
+  // is populated identically in game and in tests, and the per-frame schedule
+  // is `SYSTEM_ORDER`, run by `stepWorld` (`schedule.ts`) off the fixed step.
 });
 
 /** Replace every tile entity with `board` (one transaction: clear and rebuild). */
@@ -227,10 +263,12 @@ function writeBoard(store: GameStoreLike, board: Board): void {
       spriteKey: `tile-${COLOR_NAMES[color]}`,
     });
   });
+  store.resources.boardVersion += 1;
 }
 
 /** The store shape `writeBoard` needs (declared before the plugin type exists). */
 interface GameStoreLike {
+  resources: { boardVersion: number };
   select(components: ['col', 'row', 'color']): Iterable<number>;
   delete(entity: number): void;
   archetypes: {

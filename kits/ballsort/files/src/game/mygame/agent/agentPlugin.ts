@@ -1,37 +1,32 @@
 /**
- * agentPlugin — the game world plus an `AgenticService` (@adobe/data/service).
+ * agentPlugin — ball sort, as states an agent reads and actions it calls.
  *
- * Extends the base `gamePlugin` with a `services.agent` that exposes the game as
- * observable **states** and conditionally available **actions**. Any agent
- * runtime (MCP, an LLM loop, an in-app bot, a test harness) reads the states and
- * calls `db.services.agent.execute(action, input)` to drive the game headlessly.
- *
- * A game replaces the role text and adds its own states (the board, the pieces)
- * and actions (move, rotate, send); `./README.md` shows one of each. `tap`
- * follows "input as intent": it queues a tap that a per-frame system drains on
- * the next `stepWorld`.
- *
- * Nullable states MUST use `Schema.Nullable(schema)`: a bare `nullable: true`
- * on a schema is silently ignored.
+ * The per-game part is only the declaration in `createGameAgentService`: the
+ * role text, the states (what a player sees) and the actions (what a player
+ * can do). `./createAgentService.ts` turns it into an `AgenticService`, and the
+ * plugin below registers it as `db.services.agent` on top of the game world.
+ * Actions call the same transactions the player's input does, so an agent
+ * plays by the same rules. `./README.md` shows how to add one of each.
  */
 
 import type { Schema } from '@adobe/data/schema';
-import { AgenticService } from '@adobe/data/service';
+import type { AgenticService } from '@adobe/data/service';
 import { Database, Observe } from '~/core/systems/ecs';
-import { type GameDatabase, gamePlugin, readBoard } from '../sim/plugin';
-
-const roleText =
-  'You are playing ball sort. `board` lists each tube bottom ball first (colour indices). ' +
-  "Call `tapTube` ({ tube }) to lift a tube's top ball, then again on another tube to drop it " +
-  '(legal onto an empty tube or the same colour with room). Sort every colour into its own tube. ' +
-  '`undo` takes back a move (3 per level); `start` restarts the level.';
+import { type GameDatabase, gamePlugin } from '../sim/plugin';
+import { readBoard } from '../sim/readBoard';
+import { createAgentService } from './createAgentService';
 
 const phaseSchema = {
   type: 'string',
   enum: ['idle', 'playing', 'won', 'lost'],
 } as const satisfies Schema;
 
-const tubeParamSchema = {
+const boardSchema = {
+  type: 'array',
+  items: { type: 'array', items: { type: 'integer' } },
+} as const satisfies Schema;
+
+const tubeSchema = {
   type: 'object',
   required: ['tube'],
   properties: {
@@ -39,120 +34,66 @@ const tubeParamSchema = {
   },
 } as const satisfies Schema;
 
-const tapParamSchema = {
-  type: 'object',
-  required: ['x', 'y'],
-  properties: {
-    x: { type: 'number', description: 'Design-space x of the tap.' },
-    y: { type: 'number', description: 'Design-space y of the tap.' },
-  },
-} as const satisfies Schema;
-
 export function createGameAgentService(db: GameDatabase): AgenticService {
-  const phase = db.observe.resources.phase;
-  const canTap = Observe.withMap(phase, (p) => p === 'playing');
-
-  return AgenticService.create({
-    interface: {
-      role: {
-        type: 'state',
-        schema: { type: 'string' },
-        description: 'Role and objective',
-      },
+  const r = db.observe.resources;
+  const playing = Observe.withMap(r.phase, (p) => p === 'playing');
+  return createAgentService({
+    role:
+      'You are playing ball sort. `board` lists each tube bottom ball first (colour indices). ' +
+      "Call `tapTube` ({ tube }) to lift a tube's top ball, then again on another tube to drop it " +
+      '(legal onto an empty tube or the same colour with room). Sort every colour into its own tube. ' +
+      '`undo` takes back a move (3 per level); `start` restarts the level (also the retry when `stuck`).',
+    states: {
       phase: {
-        type: 'state',
         schema: phaseSchema,
         description: 'Current game phase',
-      },
-      score: {
-        type: 'state',
-        schema: { type: 'integer' },
-        description: 'Points scored this run',
-      },
-      goal: {
-        type: 'state',
-        schema: { type: 'integer' },
-        description: "The level's target (0 = none)",
-      },
-      moves: {
-        type: 'state',
-        schema: { type: 'integer' },
-        description: 'Moves this level',
-      },
-      undosLeft: {
-        type: 'state',
-        schema: { type: 'integer' },
-        description: 'Undos left this level',
-      },
-      heldTube: {
-        type: 'state',
-        schema: { type: 'integer' },
-        description: 'Tube whose top ball is lifted, or -1',
-      },
-      stuck: {
-        type: 'state',
-        schema: { type: 'boolean' },
-        description: 'No legal move left: call start to retry',
+        value: r.phase,
       },
       board: {
-        type: 'state',
-        schema: {
-          type: 'array',
-          items: { type: 'array', items: { type: 'integer' } },
-        },
+        schema: boardSchema,
         description: 'Tubes, bottom ball first',
+        // `history` changes on every move, undo and rebuild: re-read the board then.
+        value: Observe.withMap(r.history, () => readBoard(db)),
       },
+      heldTube: {
+        schema: { type: 'integer' },
+        description: 'Tube whose top ball is lifted, or -1',
+        value: r.heldTube,
+      },
+      moves: {
+        schema: { type: 'integer' },
+        description: 'Moves this level',
+        value: r.moves,
+      },
+      undosLeft: {
+        schema: { type: 'integer' },
+        description: 'Undos left this level',
+        value: r.undosLeft,
+      },
+      stuck: {
+        schema: { type: 'boolean' },
+        description: 'No legal move left: call start to retry',
+        value: r.stuck,
+      },
+    },
+    actions: {
       tapTube: {
-        type: 'action',
         description:
           'Tap a tube: lift its top ball, or drop the lifted ball there',
-        parameters: [tubeParamSchema],
+        input: tubeSchema,
+        when: playing,
+        run: (p) => db.transactions.tapTube(p),
       },
       undo: {
-        type: 'action',
         description: 'Take back the last move',
-        parameters: [{ type: 'object', properties: {} }],
-      },
-      tap: {
-        type: 'action',
-        description: 'Queue a tap at design-space (x, y)',
-        parameters: [tapParamSchema],
+        when: playing,
+        run: () => db.transactions.undo(),
       },
       start: {
-        type: 'action',
         description: 'Restart the current level',
-        parameters: [{ type: 'object', properties: {} }],
+        when: playing,
+        run: () => db.transactions.restartLevel(),
       },
-    },
-    implementation: {
-      role: Observe.fromConstant(roleText),
-      phase,
-      score: db.observe.resources.score,
-      goal: db.observe.resources.goal,
-      moves: db.observe.resources.moves,
-      undosLeft: db.observe.resources.undosLeft,
-      heldTube: db.observe.resources.heldTube,
-      stuck: db.observe.resources.stuck,
-      board: Observe.withMap(db.observe.resources.history, () => readBoard(db)),
-      tapTube: async (input: { tube: number }) => {
-        db.transactions.tapTube({ tube: input.tube });
-      },
-      undo: async () => {
-        db.transactions.undo();
-      },
-      tap: async (input: { x: number; y: number }) => {
-        db.transactions.submitTap({ x: input.x, y: input.y });
-      },
-      start: async () => {
-        db.transactions.restartLevel();
-      },
-    },
-    conditional: {
-      // `tap` is only offered while a run is live: execute() returns an
-      // ActionError outside of that.
-      tap: canTap,
-      tapTube: canTap,
-      undo: canTap,
     },
   });
 }

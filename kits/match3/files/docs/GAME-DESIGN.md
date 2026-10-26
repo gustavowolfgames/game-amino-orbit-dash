@@ -12,7 +12,7 @@ and clear enough tiles of the level's goal colour before your 20 moves run out.
 
 ## Core Loop
 
-1. Drag a tile onto a neighbour (or tap one, then a neighbour).
+1. Drag a tile onto a neighbour (or tap one, then a neighbour; or use the keys).
 2. If the swap makes no line of 3+ in a row or column, it swaps back (no move spent).
 3. Otherwise the lines clear, tiles above fall, new tiles drop in from the top,
    and any new lines clear too, as a chain. One move is spent.
@@ -46,7 +46,12 @@ while the board animates.
 - `Tile` — `col`, `row`, `color` (0 red, 1 blue, 2 green, 3 yellow, 4 purple), `spriteKey` (`tile-<colour>`). 64 per board.
 
 Resources: `level`, `seed`, `goal`, `goalColor`, `goalProgress`, `maxMoves`,
-`movesLeft`, `score`, `bankedScore`, `phase`, `rng`, `runId`.
+`movesLeft`, `score`, `bankedScore`, `phase`, `rng`, `runId`, `boardVersion`,
+and the event queue (`events`, `eventsDropped`).
+
+Events (`GameEvent`): `scored` (one per cascade step: chain, points, new
+score), `rejected` (a swap with no line), `reshuffled` (no move left, new
+board), `phase`. They drive the sounds and the screen-reader line.
 
 ## Input
 
@@ -54,6 +59,10 @@ Press and drag about a third of a tile toward a neighbour to swap with it; or
 tap a tile (it gets a white ring) and tap a neighbour. Tapping a non-neighbour
 moves the selection. Pointer events are read on the Pixi stage
 (`src/game/mygame/input/swap.ts`).
+
+Keys: the arrows (or WASD) move a cursor; Space or Enter picks the tile under
+it; an arrow then swaps the picked tile that way. Space or Enter again drops
+the pick. Escape or P pauses.
 
 ## Levels and Tuning
 

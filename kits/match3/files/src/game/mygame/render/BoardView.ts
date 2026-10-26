@@ -16,21 +16,23 @@ import { TileGrid } from '@wolfgames/components/modules/primitives/tile-grid';
 import gsap from 'gsap';
 import { Container, Graphics, GraphicsContext } from 'pixi.js';
 import { getTheme } from '~/game/brand';
-import { readTiles, type TileSource } from '../sim/readStateFromEcs';
 import {
   BOARD_SIZE,
   type Cell,
   indexOf,
   type SwapRuling,
 } from '../sim/rules/board';
+import { readTiles, type TileSource } from '../sim/tiles';
 
 /** Tile fill per colour index (`COLOR_NAMES`: red, blue, green, yellow, purple). */
 export const TILE_COLORS = [0xe5484d, 0x3e8ef7, 0x30b65a, 0xf5c518, 0x9b5de5];
 
-export const CELL_SIZE = 88;
-const CELL_GAP = 6;
+/** Board geometry in design px (DESIGN_CANVAS, 390×844): 8 cells (plus
+ *  tile-grid's 8 px padding) are 373 px wide. */
+export const CELL_SIZE = 42;
+const CELL_GAP = 3;
 /** Tile size inside its cell. */
-const TILE_SIZE = 78;
+const TILE_SIZE = 37;
 
 const SWAP_S = 0.16;
 const CLEAR_S = 0.18;
@@ -47,6 +49,8 @@ export class BoardView {
   private readonly tiles = new Container();
   private readonly fx = new Container();
   private readonly selection = new Graphics();
+  /** Keyboard cursor (shown once a key is used). */
+  private readonly cursor = new Graphics();
   private readonly contexts: GraphicsContext[];
   /** Tile view per cell index (row-major), mirroring the settled board. */
   private views: (Graphics | null)[] = [];
@@ -60,7 +64,7 @@ export class BoardView {
       rows: BOARD_SIZE,
       cellSize: CELL_SIZE,
       cellGap: CELL_GAP,
-      cellRadius: 14,
+      cellRadius: 7,
       defaultColor: 0x2a2f45,
     });
     this.grid.eventMode = 'none';
@@ -76,20 +80,25 @@ export class BoardView {
     this.container.addChild(this.tiles);
 
     this.selection
-      .roundRect(-CELL_SIZE / 2, -CELL_SIZE / 2, CELL_SIZE, CELL_SIZE, 16)
-      .stroke({ width: 6, color: 0xffffff });
-    this.selection.visible = false;
-    this.selection.eventMode = 'none';
-    this.container.addChild(this.selection);
+      .roundRect(-CELL_SIZE / 2, -CELL_SIZE / 2, CELL_SIZE, CELL_SIZE, 8)
+      .stroke({ width: 3, color: 0xffffff });
+    this.cursor
+      .roundRect(-CELL_SIZE / 2, -CELL_SIZE / 2, CELL_SIZE, CELL_SIZE, 8)
+      .stroke({ width: 2, color: 0xffffff, alpha: 0.6 });
+    for (const g of [this.selection, this.cursor]) {
+      g.visible = false;
+      g.eventMode = 'none';
+      this.container.addChild(g);
+    }
     this.fx.eventMode = 'none';
     this.container.addChild(this.fx);
 
     this.contexts = TILE_COLORS.map((color) => {
       const h = TILE_SIZE / 2;
       return new GraphicsContext()
-        .roundRect(-h, -h, TILE_SIZE, TILE_SIZE, 16)
+        .roundRect(-h, -h, TILE_SIZE, TILE_SIZE, 8)
         .fill(color)
-        .roundRect(-h + 8, -h + 6, TILE_SIZE - 16, TILE_SIZE * 0.32, 10)
+        .roundRect(-h + 4, -h + 3, TILE_SIZE - 8, TILE_SIZE * 0.32, 5)
         .fill({ color: 0xffffff, alpha: 0.22 });
     });
   }
@@ -123,6 +132,13 @@ export class BoardView {
     if (!cell) return;
     const p = this.grid.getCellCenter(cell.col, cell.row);
     this.selection.position.set(p.x, p.y);
+  }
+
+  /** Show the keyboard cursor on `cell`. */
+  setCursor(cell: Cell): void {
+    this.cursor.visible = true;
+    const p = this.grid.getCellCenter(cell.col, cell.row);
+    this.cursor.position.set(p.x, p.y);
   }
 
   /** Per frame: rebuild on a new run, advance popups. */
@@ -289,11 +305,11 @@ export class BoardView {
       text,
       x: at.x,
       y: at.y,
-      fontSize: 44,
+      fontSize: 22,
       fontFamily: theme.fonts.numeric,
       fill: '#ffffff',
       stroke: '#1b1e2e',
-      strokeWidth: 6,
+      strokeWidth: 3,
     });
     this.fx.addChild(p);
     this.popups.push(p);

@@ -2,10 +2,12 @@
  * Controls — the HUD, the Undo / Restart buttons and the "No moves left" overlay.
  *
  * Reads the world each frame and holds no game state. Buttons do not change the
- * world themselves: they call `onCommand`, which the controller turns into a
- * queued intent (`submitCommand`) for the input system.
+ * world themselves: they call `onCommand`, which the controller turns into the
+ * matching transaction (`undo`, `restartLevel`) while input is accepted.
+ * Layout is design px on DESIGN_CANVAS (390×844).
  */
 
+import { DESIGN_CANVAS } from '@wolfgames/components/core';
 // catalog: hud-display for level / moves / undos; sprite-button for Undo, Restart and
 // Retry (fed a rounded-rect texture: no UI atlas, placeholder geometry); announcement-
 // overlay for "No moves left". Considered screen-hud (needs a mascot atlas) — skipped.
@@ -15,19 +17,23 @@ import { SpriteButton } from '@wolfgames/components/modules/primitives/sprite-bu
 import { type Application, Container, Graphics, type Texture } from 'pixi.js';
 import type { PixiLoader } from '~/core/systems/assets';
 import { getTheme } from '~/game/brand';
-import { DESIGN_H, DESIGN_W } from '../config';
-import type { Command, GameDatabase } from '../sim/plugin';
+import type { GameDatabase } from '../sim/plugin';
 
-const BUTTON_W = 220;
-const BUTTON_H = 84;
-const BUTTON_Y = DESIGN_H - 230;
+/** A button press the controller turns into a transaction. */
+export type Command = 'undo' | 'restart';
+
+const BUTTON_W = 120;
+const BUTTON_H = 46;
+const BUTTON_Y = DESIGN_CANVAS.height - 110;
+/** HUD placement: hud-display spaces its entries for 20px text, so the group is scaled. */
+const HUD = { x: 13, y: 16, scale: 0.76 };
 
 /** A rounded-rect button face, drawn once and reused by every button. */
 function buttonTexture(app: Application, color: number): Texture {
   const g = new Graphics()
-    .roundRect(0, 0, BUTTON_W, BUTTON_H, 24)
+    .roundRect(0, 0, BUTTON_W, BUTTON_H, 14)
     .fill(color)
-    .stroke({ width: 4, color: 0x000000, alpha: 0.2 });
+    .stroke({ width: 2, color: 0x000000, alpha: 0.2 });
   const texture = app.renderer.generateTexture(g);
   g.destroy();
   return texture;
@@ -61,13 +67,12 @@ export class Controls {
       fontFamily: theme.fonts.numeric,
       stroke: '', // no outline: the theme colour reads on the theme ground
     });
-    // hud-display spaces its entries for 20px text; scale the group to read on a phone.
-    this.hud.scale.set(1.6);
-    this.hud.position.set(28, 28);
+    this.hud.scale.set(HUD.scale);
+    this.hud.position.set(HUD.x, HUD.y);
     this.hud.eventMode = 'none';
 
     this.face = buttonTexture(app, 0xfed800);
-    const labelStyle = { fontFamily: theme.fonts.numeric, fontSize: 34 };
+    const labelStyle = { fontFamily: theme.fonts.numeric, fontSize: 18 };
     const button = (label: string, x: number, command: Command) => {
       const btn = new SpriteButton(loader, {
         texture: this.face,
@@ -78,12 +83,16 @@ export class Controls {
       btn.position.set(x, BUTTON_Y);
       return btn;
     };
-    this.undoBtn = button('Undo', DESIGN_W / 2 - 140, 'undo');
-    this.restartBtn = button('Restart', DESIGN_W / 2 + 140, 'restart');
+    this.undoBtn = button('Undo', DESIGN_CANVAS.width / 2 - 70, 'undo');
+    this.restartBtn = button(
+      'Restart',
+      DESIGN_CANVAS.width / 2 + 70,
+      'restart',
+    );
 
     this.overlay = new AnnouncementOverlay(loader, {
-      screenWidth: DESIGN_W,
-      screenHeight: DESIGN_H,
+      screenWidth: DESIGN_CANVAS.width,
+      screenHeight: DESIGN_CANVAS.height,
       fontFamily: theme.fonts.numeric,
       button: {
         gpuLoader: loader,

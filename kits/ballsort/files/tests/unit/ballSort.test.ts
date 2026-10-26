@@ -5,8 +5,9 @@
 
 import { describe, expect, it } from 'vitest';
 import { BUNDLED_PACK, packLevels, parseLevel } from '~/game/content';
-import { createGameWorld, readBoard } from '~/game/mygame/sim/plugin';
-import { readBalls } from '~/game/mygame/sim/readStateFromEcs';
+import { drainEvents } from '~/game/mygame/sim/events';
+import { createGameWorld } from '~/game/mygame/sim/plugin';
+import { readBalls, readBoard } from '~/game/mygame/sim/readBoard';
 import {
   applyMove,
   canDrop,
@@ -21,10 +22,11 @@ import {
   TUBE_CAPACITY,
   UNDOS_PER_LEVEL,
 } from '~/game/mygame/sim/rules/ballSort';
-import { ballPosition, tubeRects } from '~/game/mygame/sim/rules/layout';
-import { stepWorld } from '~/game/mygame/sim/schedule';
-
-const DT = 1000 / 60;
+import {
+  ballPosition,
+  neighborTube,
+  tubeRects,
+} from '~/game/mygame/sim/rules/layout';
 
 /** Replay a solution with the legality check on every move; true if it ends won. */
 function replays(board: number[][], moves: Move[]): boolean {
@@ -241,32 +243,148 @@ describe('ECS transactions', () => {
   });
 });
 
-describe('input system', () => {
-  it('resolves a queued tap on a tube into a lift, and a command into an undo', () => {
+describe('events', () => {
+  it('reports a lift, a legal move and an illegal drop', () => {
+    const db = createGameWorld();
+    db.transactions.startRun({ seed: 2, colors: 5, level: 0 });
+    drainEvents(db);
+    const board = readBoard(db);
+    const move = firstLegal(board);
+    db.transactions.tapTube({ tube: move.from });
+    db.transactions.tapTube({ tube: move.to });
+    expect(drainEvents(db)).toEqual([
+      { type: 'lifted', tube: move.from },
+      { type: 'moved', from: move.from, to: move.to, moves: 1 },
+    ]);
+    const bad = firstIllegal(readBoard(db));
+    db.transactions.tapTube({ tube: bad.from });
+    db.transactions.tapTube({ tube: bad.to });
+    expect(drainEvents(db)).toEqual([
+      { type: 'lifted', tube: bad.from },
+      { type: 'putBack', tube: bad.from, illegal: true },
+    ]);
+  });
+
+  it('reports each sorted tube and the win once', () => {
+    const db = createGameWorld();
+    db.transactions.startRun({ seed: 1, colors: 4, level: 0 });
+    for (const { from, to } of solve(readBoard(db)) ?? []) {
+      db.transactions.tapTube({ tube: from });
+      db.transactions.tapTube({ tube: to });
+    }
+    const events = drainEvents(db);
+    expect(events.filter((e) => e.type === 'tubeDone')).toHaveLength(4);
+    expect(events.filter((e) => e.type === 'phase')).toEqual([
+      { type: 'phase', phase: 'won' },
+    ]);
+    expect(events[events.length - 1]).toEqual({ type: 'phase', phase: 'won' });
+  });
+});
+
+describe('stuck', () => {
+  it('reports a board with no legal move once, blocks taps, and a restart clears it', () => {
+    const db = createGameWorld();
+    // Seed 3, 4 colours: three moves out of tube 2 leave no legal move.
+    db.transactions.startRun({ seed: 3, colors: 4, level: 0 });
+    for (const { from, to } of [
+      { from: 2, to: 4 },
+      { from: 2, to: 5 },
+      { from: 2, to: 4 },
+    ]) {
+      db.transactions.tapTube({ tube: from });
+      db.transactions.tapTube({ tube: to });
+    }
+    expect(hasLegalMove(readBoard(db))).toBe(false);
+    expect(db.resources.stuck).toBe(true);
+    expect(db.resources.phase).toBe('playing');
+    const events = drainEvents(db);
+    expect(events.filter((e) => e.type === 'stuck')).toEqual([
+      { type: 'stuck', moves: 3 },
+    ]);
+    db.transactions.tapTube({ tube: 0 }); // ignored while stuck
+    expect(db.resources.heldTube).toBe(-1);
+    db.transactions.restartLevel(); // the Retry button
+    expect(db.resources.stuck).toBe(false);
+    expect(readBoard(db)).toEqual(generateBoard(3, 4));
+  });
+
+  it('an undo out of a stuck board clears it', () => {
+    const db = createGameWorld();
+    db.transactions.startRun({ seed: 3, colors: 4, level: 0 });
+    for (const { from, to } of [
+      { from: 2, to: 4 },
+      { from: 2, to: 5 },
+      { from: 2, to: 4 },
+    ]) {
+      db.transactions.tapTube({ tube: from });
+      db.transactions.tapTube({ tube: to });
+    }
+    expect(db.resources.stuck).toBe(true);
+    db.transactions.undo();
+    expect(db.resources.stuck).toBe(false);
+  });
+});
+
+describe('input', () => {
+  it('turns a tap on a tube into a lift and a drop, and ignores a miss', () => {
     const db = createGameWorld();
     db.transactions.startRun({ seed: 1, colors: 4, level: 0 });
     const board = readBoard(db);
     const rects = tubeRects(db.resources.tubeCount);
     const move = firstLegal(board);
     const at = (tube: number) => ballPosition(rects[tube], 0);
-    db.transactions.submitTap(at(move.from));
-    stepWorld(db, DT);
+    db.transactions.tap({ x: 5, y: 5 });
+    expect(db.resources.heldTube).toBe(-1);
+    db.transactions.tap(at(move.from));
     expect(db.resources.heldTube).toBe(move.from);
-    db.transactions.submitTap(at(move.to));
-    stepWorld(db, DT);
+    db.transactions.tap(at(move.to));
     expect(db.resources.moves).toBe(1);
-    db.transactions.submitCommand('undo');
-    stepWorld(db, DT);
-    expect(readBoard(db)).toEqual(board);
-    expect(db.resources.pendingTaps).toEqual([]);
-    expect(db.resources.pendingCommands).toEqual([]);
+    expect(readBoard(db)).toEqual(applyMove(board, move));
   });
 
-  it('ignores a tap that misses every tube', () => {
+  it('every tube is hit by a tap on its balls, on the design canvas', () => {
+    for (const count of [6, 7, 9]) {
+      const rects = tubeRects(count);
+      const db = createGameWorld();
+      db.transactions.startRun({ seed: 1, colors: count - EMPTY_TUBES });
+      const board = readBoard(db);
+      rects.forEach((r, tube) => {
+        expect(r.x).toBeGreaterThanOrEqual(0);
+        expect(r.x + r.w).toBeLessThanOrEqual(390);
+        expect(r.y + r.h).toBeLessThanOrEqual(844 - 140); // clear of the buttons
+        for (let slot = 0; slot < TUBE_CAPACITY; slot++) {
+          db.transactions.tap(ballPosition(r, slot));
+          const full = board[tube].length > 0;
+          expect(db.resources.heldTube).toBe(full ? tube : -1);
+          if (full) db.transactions.tapTube({ tube }); // put it back
+        }
+      });
+    }
+  });
+
+  it('keyboard: arrows move the cursor, action taps the tube under it', () => {
     const db = createGameWorld();
     db.transactions.startRun({ seed: 1, colors: 4, level: 0 });
-    db.transactions.submitTap({ x: 5, y: 5 });
-    stepWorld(db, DT);
+    expect(db.resources.cursor).toBe(-1);
+    db.transactions.pressCursor(); // first press shows the cursor on tube 0
+    expect(db.resources.cursor).toBe(0);
     expect(db.resources.heldTube).toBe(-1);
+    db.transactions.pressCursor(); // lift from tube 0
+    expect(db.resources.heldTube).toBe(0);
+    db.transactions.moveCursor({ dir: 'right' });
+    expect(db.resources.cursor).toBe(1);
+    db.transactions.moveCursor({ dir: 'left' });
+    db.transactions.moveCursor({ dir: 'left' }); // clamps at 0
+    expect(db.resources.cursor).toBe(0);
+    db.transactions.pressCursor(); // same tube: put back
+    expect(db.resources.heldTube).toBe(-1);
+    expect(db.resources.moves).toBe(0);
+  });
+
+  it('cursor steps wrap rows: up / down move a whole row', () => {
+    expect(neighborTube(9, 1, 'down')).toBe(6); // 5 per row
+    expect(neighborTube(9, 6, 'up')).toBe(1);
+    expect(neighborTube(9, 8, 'right')).toBe(8);
+    expect(neighborTube(6, 2, 'down')).toBe(5); // one row: clamps
   });
 });

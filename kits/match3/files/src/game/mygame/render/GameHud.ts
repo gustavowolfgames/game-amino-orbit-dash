@@ -1,17 +1,19 @@
 /**
  * GameHud — moves left, score and the goal's progress, read from ECS each frame.
  *
+ * Laid out in design px on DESIGN_CANVAS (390×844), top left.
+ *
  * Two `hud-display` rows (level · moves · score, then the goal) and a
  * `fly-text` banner for "Level complete" between levels. Holds no state of
  * its own beyond the live banners.
  */
 
+import { DESIGN_CANVAS } from '@wolfgames/components/core';
 // catalog: hud-display for the stat rows; fly-text for the level banner.
 import { FlyText } from '@wolfgames/components/modules/primitives/fly-text';
 import { HudDisplay } from '@wolfgames/components/modules/primitives/hud-display';
 import { Container } from 'pixi.js';
 import type { GameTheme } from '~/game/brand';
-import { DESIGN_W } from '../config';
 import { COLOR_NAMES } from '../sim/rules/board';
 import { TILE_COLORS } from './BoardView';
 
@@ -54,8 +56,8 @@ export class GameHud {
     });
     // hud-display spaces its entries for its default 20px text; scale the whole
     // group (text and spacing together) to read at design size on a phone.
-    this.stats.scale.set(1.6);
-    this.stats.position.set(28, 92);
+    this.stats.scale.set(0.76);
+    this.stats.position.set(13, 16);
     this.container.addChild(this.stats);
   }
 
@@ -78,15 +80,15 @@ export class GameHud {
   announce(text: string, y: number): void {
     const b = new FlyText({
       text,
-      x: DESIGN_W / 2,
+      x: DESIGN_CANVAS.width / 2,
       y,
-      velocityY: -20,
+      velocityY: -10,
       lifetime: 1.4,
-      fontSize: 72,
+      fontSize: 34,
       fontFamily: this.theme.fonts.display,
       fill: '#ffffff',
       stroke: '#1b1e2e',
-      strokeWidth: 10,
+      strokeWidth: 5,
       startScale: 1,
       endScale: 1.15,
     });
@@ -118,8 +120,8 @@ export class GameHud {
       stroke: '#1b1e2e',
       strokeWidth: 4,
     });
-    this.goalRow.scale.set(2);
-    this.goalRow.position.set(28, 156);
+    this.goalRow.scale.set(0.95);
+    this.goalRow.position.set(13, 46);
     this.container.addChild(this.goalRow);
   }
 }

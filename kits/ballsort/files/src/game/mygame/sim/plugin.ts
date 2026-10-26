@@ -1,16 +1,21 @@
 /**
  * plugin — the ECS world the game is built on (@adobe/data).
  *
- * The core every game starts from: the run's lifecycle, the level it plays, the
- * determinism seam (injected time, seeded rng) and the input queue. It holds no
- * game yet. A game adds its own `components`, `archetypes` and `transactions`
- * here (see `./README.md`): pieces, cells and bodies are archetype entities with
- * a `spriteKey`; resources hold only global values.
+ * The run's lifecycle, the level it plays, the determinism seam (injected time,
+ * seeded rng) and the event queue (`./events.ts`), plus ball sort: Ball and
+ * Tube entities and the moves on them (`tap`, `tapTube`, `undo`,
+ * `restartLevel`, `moveCursor`, `pressCursor`).
+ *
+ * Ball sort is turn-based: input calls these transactions directly (no system,
+ * `SYSTEM_ORDER` stays empty). Each move applies the pure rules
+ * (`./rules/ballSort.ts`) to the board read from the entities (`./readBoard.ts`)
+ * and `emit`s what happened, so sound and the screen-reader line come from the
+ * controller's cue table.
  *
  * ECS is the **source of truth** (guardrail: game state lives in ECS, not
  * signals). All state changes go through transactions. Determinism holds: `dt`
- * and input arrive as injected resources, and randomness comes from the seeded
- * `rng` resource (`./rng.ts`), never `Math.random()`/`Date.now()`.
+ * arrives as an injected resource, and the level comes from its seed, never
+ * `Math.random()`/`Date.now()`.
  *
  * Plugin property order is runtime-enforced:
  *   extends → services → components → resources → archetypes → computed →
@@ -18,6 +23,8 @@
  */
 
 import { Database, type Entity, I32, Observe } from '~/core/systems/ecs';
+import { type EventOf, emit, NO_EVENTS } from './events';
+import { readBoard } from './readBoard';
 import {
   type Board,
   canDrop,
@@ -28,42 +35,41 @@ import {
   type Move,
   UNDOS_PER_LEVEL,
 } from './rules/ballSort';
+import { neighborTube, tubeAt } from './rules/layout';
 
 /** Lifecycle of a run. */
 export type GamePhase = 'idle' | 'playing' | 'won' | 'lost';
 
-/** A queued tap awaiting a system (input as intent). Design-space point. */
-export interface TapIntent {
-  x: number;
-  y: number;
-}
+/** A keyboard step for the tube cursor. */
+export type CursorDir = 'left' | 'right' | 'up' | 'down';
 
-/** A queued button press awaiting a system (input as intent). */
-export type Command = 'undo' | 'restart';
+/**
+ * Everything the sim reports to the outside world (sound, screen reader, HUD,
+ * views). One entry per kind: `type → payload`.
+ */
+export type GameEvent = EventOf<{
+  /** The top ball of `tube` was lifted. */
+  lifted: { tube: number };
+  /** The lifted ball was put back on `tube`: tapped again, or an illegal drop (`illegal`). */
+  putBack: { tube: number; illegal: boolean };
+  /** A legal move: a ball went from `from` to `to`. `moves` is the new count. */
+  moved: { from: number; to: number; moves: number };
+  /** `tube` now holds four balls of one colour. */
+  tubeDone: { tube: number };
+  /** The last move was taken back; `undosLeft` remain. */
+  undone: { undosLeft: number };
+  /** Level `level` was rebuilt from its seed. */
+  restarted: { level: number };
+  /** No legal move left after `moves` moves, and not won: the level needs a retry. */
+  stuck: { moves: number };
+  /** The keyboard cursor moved to `tube`. */
+  cursor: { tube: number };
+  /** The run's phase changed. */
+  phase: { phase: GamePhase };
+}>;
 
-/** A store or database: enough to read the balls. */
-interface BallSource {
-  select: GameStore['select'];
-  read: GameStore['read'];
-  readonly resources: { readonly tubeCount: number };
-}
-
-/** The board as plain arrays (bottom ball first), read from the Ball entities. */
-export function readBoard(source: BallSource): number[][] {
-  const board: number[][] = Array.from(
-    { length: source.resources.tubeCount },
-    () => [],
-  );
-  for (const e of source.select(['ball', 'tube', 'slot', 'color'])) {
-    const b = source.read(e, ['tube', 'slot', 'color']);
-    if (b?.tube !== undefined && b.slot !== undefined && b.color !== undefined)
-      board[b.tube][b.slot] = b.color;
-  }
-  return board;
-}
-
-/** The Ball entity on top of `tube`, or -1. */
-function topBall(store: GameStore, tube: number, slot: number): Entity {
+/** The Ball entity at `slot` of `tube`, or -1. */
+function ballAt(store: GameStore, tube: number, slot: number): Entity {
   for (const e of store.select(['ball', 'tube', 'slot'])) {
     const b = store.read(e, ['tube', 'slot']);
     if (b && b.tube === tube && b.slot === slot) return e;
@@ -97,6 +103,7 @@ function buildBoard(store: GameStore): void {
   store.resources.undosLeft = UNDOS_PER_LEVEL;
   store.resources.history = [];
   store.resources.heldTube = -1;
+  store.resources.cursor = -1;
   store.resources.stuck = false;
   store.resources.phase = 'playing';
   store.resources.runId += 1;
@@ -104,27 +111,58 @@ function buildBoard(store: GameStore): void {
 
 /** Move the top ball of `from` onto `to` in ECS (no legality check). */
 function moveBall(store: GameStore, board: Board, { from, to }: Move): void {
-  const e = topBall(store, from, board[from].length - 1);
+  const e = ballAt(store, from, board[from].length - 1);
   if (e === -1) return;
   store.update(e, { tube: to, slot: board[to].length });
 }
 
-/** After the board changed: mark done tubes, then won / stuck. */
+/** After the board changed: mark done tubes, then won / stuck. Emits each change. */
 function settle(store: GameStore): void {
   const board = readBoard(store);
   for (const e of store.select(['tubeIndex', 'done'])) {
-    const index = store.read(e, ['tubeIndex'])?.tubeIndex;
-    if (index === undefined) continue;
-    const done = isTubeComplete(board[index]);
+    const t = store.read(e, ['tubeIndex', 'done']);
+    if (t?.tubeIndex === undefined) continue;
+    const done = isTubeComplete(board[t.tubeIndex]);
+    if (done === t.done) continue;
     store.update(e, { done, spriteKey: done ? 'tube-done' : 'tube' });
+    if (done) emit(store, { type: 'tubeDone', tube: t.tubeIndex });
   }
   if (isWon(board)) {
     store.resources.phase = 'won';
     store.resources.runMoves += store.resources.moves;
     store.resources.runPar += store.resources.par;
-  } else {
-    store.resources.stuck = !hasLegalMove(board);
+    emit(store, { type: 'phase', phase: 'won' });
+    return;
   }
+  const stuck = !hasLegalMove(board);
+  if (stuck && !store.resources.stuck)
+    emit(store, { type: 'stuck', moves: store.resources.moves });
+  store.resources.stuck = stuck;
+}
+
+/** Tap a tube: lift its top ball, or drop the lifted one here. */
+function tapTubeIn(store: GameStore, tube: number): void {
+  const r = store.resources;
+  if (r.phase !== 'playing' || r.stuck) return;
+  if (tube < 0 || tube >= r.tubeCount) return;
+  const board = readBoard(store);
+  if (r.heldTube === -1) {
+    if (board[tube].length === 0) return;
+    r.heldTube = tube;
+    emit(store, { type: 'lifted', tube });
+    return;
+  }
+  const from = r.heldTube;
+  r.heldTube = -1;
+  if (!canDrop(board, from, tube)) {
+    emit(store, { type: 'putBack', tube: from, illegal: from !== tube });
+    return;
+  }
+  moveBall(store, board, { from, to: tube });
+  r.moves += 1;
+  r.history = [...r.history, { from, to: tube }];
+  emit(store, { type: 'moved', from, to: tube, moves: r.moves });
+  settle(store);
 }
 
 // ── Plugin ────────────────────────────────────────────────────────────────
@@ -151,9 +189,8 @@ export const gamePlugin = Database.Plugin.create({
     level: { default: 0 as number },
     /** Id of the Content Pack the current run's level came from ('' before the first run). */
     packId: { default: '' as string },
-    /** The level's target (its `goal`; 0 = the game sets none). What it counts is the game's call. */
+    /** The level's `goal` from the pack (ball sort sets none: a level ends when sorted). */
     goal: { default: 0 as number },
-    score: { default: 0 as number },
     phase: { default: 'idle' as GamePhase },
 
     // ── Determinism seam ──────────────────────────────────────────────────
@@ -164,13 +201,11 @@ export const gamePlugin = Database.Plugin.create({
     /** Seeded PRNG state (LCG). Advanced by transactions, never Math.random(). */
     rng: { default: 0 as number },
 
-    /**
-     * Queued taps awaiting a system (input as intent). A FIFO queue, not a single
-     * slot, so every tap in a frame is preserved and drained next step.
-     */
-    pendingTaps: { default: [] as TapIntent[] },
-    /** Queued button presses (undo, restart), drained like taps. */
-    pendingCommands: { default: [] as Command[] },
+    // ── Event queue (./events.ts) ─────────────────────────────────────────
+    /** Events emitted since the controller last drained them, oldest first. */
+    events: { default: NO_EVENTS as readonly GameEvent[] },
+    /** Events dropped because the queue was full (should stay 0). */
+    eventsDropped: { default: 0 as number },
 
     // ── Ball sort ─────────────────────────────────────────────────────────
     /** The level's seed and colour count: restart rebuilds from them. */
@@ -183,9 +218,11 @@ export const gamePlugin = Database.Plugin.create({
     moves: { default: 0 as number },
     undosLeft: { default: 0 as number },
     /** Moves played this level, newest last: what undo takes back. */
-    history: { default: [] as Move[] },
+    history: { default: [] as readonly Move[] },
     /** The tube whose top ball is lifted, or -1. */
     heldTube: { default: -1 as number },
+    /** The tube the keyboard points at, or -1 before the first key. */
+    cursor: { default: -1 as number },
     /** No legal move left and not won: the level needs a retry. */
     stuck: { default: false as boolean },
     /** Moves and par summed over the levels won this run (results screen). */
@@ -208,10 +245,9 @@ export const gamePlugin = Database.Plugin.create({
   },
   transactions: {
     /**
-     * Start a run of one level: reset score and time, seed the rng, enter
-     * `playing`. The level's numbers come from the Content Pack (`levelAt`); the
-     * sim never reads the pack itself. A game that builds a board or spawns
-     * pieces at the start does it here, after the reset.
+     * Start a run of one level: reset time and events, seed the rng, and lay
+     * out the board from the level's seed and colours. The level's numbers come
+     * from the Content Pack (`levelAt`); the sim never reads the pack itself.
      */
     startRun(
       store,
@@ -234,13 +270,11 @@ export const gamePlugin = Database.Plugin.create({
       store.resources.level = level;
       store.resources.packId = packId;
       store.resources.goal = goal;
-      store.resources.score = 0;
-      store.resources.phase = 'playing';
       store.resources.elapsedMs = 0;
       store.resources.frameDeltaMs = 0;
       store.resources.rng = seed >>> 0;
-      store.resources.pendingTaps = [];
-      store.resources.pendingCommands = [];
+      store.resources.events = NO_EVENTS;
+      store.resources.eventsDropped = 0;
       store.resources.seed = seed >>> 0;
       store.resources.colors = colors;
       store.resources.par = par;
@@ -254,8 +288,19 @@ export const gamePlugin = Database.Plugin.create({
 
     /** Restart the current level from its seed. */
     restartLevel(store) {
-      store.resources.pendingTaps = [];
+      if (store.resources.phase !== 'playing') return;
       buildBoard(store);
+      emit(store, { type: 'restarted', level: store.resources.level });
+    },
+
+    /**
+     * A tap at design-space (x, y) (DESIGN_CANVAS px, 390×844), straight from
+     * input (`../input/pointer.ts`): a tap on a tube is `tapTube`, anywhere
+     * else does nothing.
+     */
+    tap(store, { x, y }: { x: number; y: number }) {
+      const tube = tubeAt(x, y, store.resources.tubeCount);
+      if (tube >= 0) tapTubeIn(store, tube);
     },
 
     /**
@@ -263,21 +308,7 @@ export const gamePlugin = Database.Plugin.create({
      * same tube, or an illegal drop, puts the ball back.
      */
     tapTube(store, { tube }: { tube: number }) {
-      const r = store.resources;
-      if (r.phase !== 'playing' || r.stuck) return;
-      if (tube < 0 || tube >= r.tubeCount) return;
-      const board = readBoard(store);
-      if (r.heldTube === -1) {
-        if (board[tube].length > 0) r.heldTube = tube;
-        return;
-      }
-      const from = r.heldTube;
-      r.heldTube = -1;
-      if (!canDrop(board, from, tube)) return;
-      moveBall(store, board, { from, to: tube });
-      r.moves += 1;
-      r.history = [...r.history, { from, to: tube }];
-      settle(store);
+      tapTubeIn(store, tube);
     },
 
     /** Take back the last move (up to UNDOS_PER_LEVEL per level). */
@@ -291,36 +322,40 @@ export const gamePlugin = Database.Plugin.create({
       r.history = r.history.slice(0, -1);
       r.moves -= 1;
       r.undosLeft -= 1;
+      emit(store, { type: 'undone', undosLeft: r.undosLeft });
       settle(store);
     },
 
-    /** Add (or, with a negative value, take away) points. */
-    addScore(store, { points }: { points: number }) {
-      store.resources.score += points;
+    /** Keyboard: move the tube cursor (the first key shows it on the held tube, or tube 0). */
+    moveCursor(store, { dir }: { dir: CursorDir }) {
+      const r = store.resources;
+      if (r.phase !== 'playing' || r.tubeCount === 0) return;
+      const tube =
+        r.cursor === -1
+          ? Math.max(r.heldTube, 0)
+          : neighborTube(r.tubeCount, r.cursor, dir);
+      if (tube === r.cursor) return;
+      r.cursor = tube;
+      emit(store, { type: 'cursor', tube });
     },
 
-    /** Enqueue a tap for a system to resolve next step (input as intent). */
-    submitTap(store, { x, y }: TapIntent) {
-      store.resources.pendingTaps = [...store.resources.pendingTaps, { x, y }];
-    },
-    /** Drop every queued tap (called by the system that resolves them). */
-    clearTaps(store) {
-      store.resources.pendingTaps = [];
-    },
-    /** Enqueue a button press for a system to resolve next step. */
-    submitCommand(store, command: Command) {
-      store.resources.pendingCommands = [
-        ...store.resources.pendingCommands,
-        command,
-      ];
-    },
-    clearCommands(store) {
-      store.resources.pendingCommands = [];
+    /** Keyboard: tap the tube under the cursor (the first press shows the cursor). */
+    pressCursor(store) {
+      const r = store.resources;
+      if (r.phase !== 'playing' || r.tubeCount === 0) return;
+      if (r.cursor === -1) {
+        r.cursor = Math.max(r.heldTube, 0);
+        emit(store, { type: 'cursor', tube: r.cursor });
+        return;
+      }
+      tapTubeIn(store, r.cursor);
     },
 
     /** Set the run phase (`won` / `lost` hands off to the results screen). */
     setPhase(store, phase: GamePhase) {
+      if (store.resources.phase === phase) return;
       store.resources.phase = phase;
+      emit(store, { type: 'phase', phase });
     },
 
     /** Inject one fixed step's time. `dt` comes from the loop, never Date.now(). */
@@ -328,15 +363,15 @@ export const gamePlugin = Database.Plugin.create({
       store.resources.frameDeltaMs = dt;
       store.resources.elapsedMs += dt;
     },
-  },
-  systems: {
-    // Init-only, no-op: the controller calls `startRun` explicitly so the world is
-    // populated identically in game and in tests. The per-frame schedule lives
-    // in `schedule.ts` (`stepWorld`), driven by the engine's fixed-step loop.
-    game_initialize: {
-      create: () => {},
+
+    /** Empty the event queue (`drainEvents` calls this once per frame). */
+    clearEvents(store) {
+      store.resources.events = NO_EVENTS;
     },
   },
+  // No plugin `systems`: the controller calls `startRun` explicitly so the world
+  // is populated identically in game and in tests. Ball sort resolves every move
+  // in a transaction, so `SYSTEM_ORDER` (`./systems/index.ts`) stays empty.
 });
 
 export type GamePlugin = typeof gamePlugin;

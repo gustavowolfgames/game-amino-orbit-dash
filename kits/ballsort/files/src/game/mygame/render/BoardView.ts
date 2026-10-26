@@ -5,6 +5,7 @@
  * changed since the last frame tweens there (lift → across → down); `busy` is
  * true while any tween runs, and the controller ignores input until it clears.
  * A new `runId` (start, restart) rebuilds every view and places balls at rest.
+ * The keyboard cursor (`cursor`) is a marker under its tube.
  */
 
 // catalog: considered tile-grid — none fit: tubes are stacks of balls that tween one
@@ -13,11 +14,12 @@ import gsap from 'gsap';
 import { Container, Graphics } from 'pixi.js';
 import type { Entity } from '~/core/systems/ecs';
 import type { GameDatabase } from '../sim/plugin';
-import { readBalls, readDoneTubes } from '../sim/readStateFromEcs';
+import { readBalls, readDoneTubes } from '../sim/readBoard';
 import {
   BALL_RADIUS,
   ballPosition,
   liftPosition,
+  TUBE_W,
   type TubeRect,
   tubeRects,
 } from '../sim/rules/layout';
@@ -29,6 +31,7 @@ const BALL_COLORS = [
 const TUBE_FILL = 0xffffff;
 const TUBE_STROKE = 0x34495e;
 const DONE_STROKE = 0x27ae60;
+const CURSOR_COLOR = 0xfed800;
 /** Seconds per leg of a move (lift, across, drop). */
 const LEG = 0.12;
 
@@ -50,11 +53,16 @@ export class BoardView {
   private rects: TubeRect[] = [];
   private doneShown: boolean[] = [];
   private readonly balls = new Map<Entity, BallSprite>();
+  private readonly cursor = new Graphics();
+  private cursorShown = -1;
   private runId = -1;
 
   constructor() {
     this.container.eventMode = 'none';
-    this.container.addChild(this.tubeLayer, this.ballLayer);
+    // A rounded bar under the tube the keyboard points at.
+    this.cursor.roundRect(-TUBE_W / 2, 0, TUBE_W, 6, 3).fill(CURSOR_COLOR);
+    this.cursor.visible = false;
+    this.container.addChild(this.tubeLayer, this.ballLayer, this.cursor);
   }
 
   /** True while a ball is moving. */
@@ -64,8 +72,9 @@ export class BoardView {
   }
 
   update(db: GameDatabase): void {
-    const { runId, tubeCount, heldTube } = db.resources;
+    const { runId, tubeCount, heldTube, cursor } = db.resources;
     if (runId !== this.runId) this.rebuild(runId, tubeCount);
+    if (cursor !== this.cursorShown) this.placeCursor(cursor);
 
     const done = readDoneTubes(db);
     done.forEach((d, i) => {
@@ -83,7 +92,7 @@ export class BoardView {
         const g = new Graphics()
           .circle(0, 0, BALL_RADIUS)
           .fill(BALL_COLORS[b.color % BALL_COLORS.length])
-          .stroke({ width: 3, color: 0x000000, alpha: 0.25 });
+          .stroke({ width: 2, color: 0x000000, alpha: 0.25 });
         this.ballLayer.addChild(g);
         const sprite = { g, tube: b.tube, slot: b.slot, lifted };
         this.balls.set(b.entity, sprite);
@@ -100,7 +109,10 @@ export class BoardView {
   }
 
   destroy(): void {
-    for (const b of this.balls.values()) b.tl?.kill();
+    for (const b of this.balls.values()) {
+      b.tl?.kill();
+      gsap.killTweensOf(b.g.position);
+    }
     this.balls.clear();
     this.container.destroy({ children: true });
   }
@@ -161,6 +173,14 @@ export class BoardView {
     });
     this.doneShown = [];
     for (let i = 0; i < this.rects.length; i++) this.drawTube(i, false);
+    this.cursorShown = -2; // re-place the cursor against the new rects
+  }
+
+  private placeCursor(tube: number): void {
+    this.cursorShown = tube;
+    const r = this.rects[tube];
+    this.cursor.visible = !!r;
+    if (r) this.cursor.position.set(r.x + r.w / 2, r.y + r.h + 8);
   }
 
   private drawTube(i: number, done: boolean): void {
@@ -170,6 +190,6 @@ export class BoardView {
       .clear()
       .roundRect(r.x, r.y, r.w, r.h, r.w / 2)
       .fill({ color: done ? DONE_STROKE : TUBE_FILL, alpha: done ? 0.3 : 0.35 })
-      .stroke({ width: 6, color: done ? DONE_STROKE : TUBE_STROKE });
+      .stroke({ width: 3, color: done ? DONE_STROKE : TUBE_STROKE });
   }
 }

@@ -34,9 +34,10 @@ The level's `goal` is unused.
 
 ## Cadence
 
-Turn-based on the template's fixed step: taps and button presses queue as
-intents, and `systemInput` resolves at most one per step through transactions.
-Input is ignored while a ball is animating (`BoardView.busy`).
+Turn-based: nothing moves until the player acts. Every tap, button press and
+key calls a transaction directly (`SYSTEM_ORDER` is empty; the fixed step only
+keeps time). Input is ignored while a ball is animating (`BoardView.busy`),
+while paused, and while the settings menu is open.
 
 ## Entities
 
@@ -44,13 +45,24 @@ Input is ignored while a ball is animating (`BoardView.busy`).
 - `Tube`: `tubeIndex`, `done`, `spriteKey` (`tube` / `tube-done`).
 
 Resources hold the level (`seed`, `colors`, `par`, `tubeCount`), the turn state
-(`moves`, `undosLeft`, `history`, `heldTube`, `stuck`), the run total
+(`moves`, `undosLeft`, `history`, `heldTube`, `stuck`), the keyboard `cursor`,
+the event queue (`events`), the run total
 (`runMoves`, `runPar`) and `runId` (bumped on every board rebuild).
 
 ## Input
 
-- Tap a tube (`pendingTaps` → `systemInput` → `tapTube`): lift / drop / put back.
-- Undo, Restart, Retry buttons (`pendingCommands` → `systemInput` → `undo` / `restartLevel`).
+- Tap a tube (`tap` → `tubeAt` hit test → `tapTube`): lift / drop / put back.
+- Undo, Restart, Retry buttons → `undo` / `restartLevel`.
+- Keyboard: arrows move a tube cursor (`moveCursor`; up / down jump a row),
+  Space / Enter taps the tube under it (`pressCursor`; the first press shows the
+  cursor). Escape / P pause.
+
+## Feedback
+
+Transactions emit events (`lifted`, `putBack`, `moved`, `tubeDone`, `undone`,
+`restarted`, `stuck`, `cursor`, `phase`); the controller's cue table turns them
+into sounds (`sfx-pop` on a lift or move, `sfx-clear` on a sorted tube and a
+win) and the screen-reader line.
 
 ## Levels and Tuning
 
@@ -67,7 +79,8 @@ level is solvable.
 | 3     | 3    | 7       | 9     | 40  |
 
 Constants (`rules/ballSort.ts`): tube capacity 4, empty tubes 2, undos 3.
-Layout (`rules/layout.ts`): up to 6 tubes per row, more split into two rows.
+Layout (`rules/layout.ts`, design px on the 390×844 canvas): up to 6 tubes per
+row, more split into two rows.
 
 ## Screens and Feel
 

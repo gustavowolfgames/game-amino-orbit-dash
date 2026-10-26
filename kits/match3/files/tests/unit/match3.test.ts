@@ -6,7 +6,6 @@
 
 import { describe, expect, it } from 'vitest';
 import { createGameWorld } from '~/game/mygame/sim/plugin';
-import { readBoard, readTiles } from '~/game/mygame/sim/readStateFromEcs';
 import {
   BOARD_SIZE,
   type Board,
@@ -17,6 +16,7 @@ import {
   indexOf,
 } from '~/game/mygame/sim/rules/board';
 import { pointsFor, starsFor } from '~/game/mygame/sim/rules/scoring';
+import { readBoard, readTiles } from '~/game/mygame/sim/tiles';
 import { applySwap } from '~/game/mygame/sim/turn';
 
 const N = BOARD_SIZE;
