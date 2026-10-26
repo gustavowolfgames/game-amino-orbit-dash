@@ -1,11 +1,12 @@
 /**
  * The controller's end-of-run guard (src/game/mygame/screens/runEnd.ts): a terminal phase hands
- * off once, after the pause; a run restarted during the pause (an agent calling `start` on the
- * live world) cancels the hand-off and re-arms the guard for the new run's own end.
+ * off once, after the pause; a run restarted during the pause (an agent calling `start`) cancels
+ * the hand-off and re-arms the guard for the new run's own end.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { createGameAgentWorld } from '~/game/mygame/agent/agentPlugin';
 import { createRunEnd } from '~/game/mygame/screens/runEnd';
-import { disposeGameWorld, getGameWorld } from '~/game/mygame/world';
+import type { GamePhase } from '~/game/mygame/sim/plugin';
 
 /** A hand-run clock in place of gsap.delayedCall. */
 function fakeClock() {
@@ -22,8 +23,6 @@ function fakeClock() {
     },
   };
 }
-
-afterEach(() => disposeGameWorld());
 
 describe('createRunEnd', () => {
   it('a terminal phase runs onEnd once and hands off after the pause', () => {
@@ -53,7 +52,7 @@ describe('createRunEnd', () => {
       afterPause: (p) => handoffs.push(p),
       schedule: clock.schedule,
     });
-    const db = getGameWorld();
+    const db = createGameAgentWorld();
     await db.services.agent.execute('start', {});
     db.transactions.setPhase('lost');
     runEnd.update(db.resources.phase); // frame: the run ended, hand-off queued
@@ -65,6 +64,49 @@ describe('createRunEnd', () => {
 
     db.transactions.setPhase('lost'); // the new run ends the same way
     runEnd.update(db.resources.phase);
+    clock.flush();
+    expect(handoffs).toEqual(['lost']);
+  });
+
+  it('a second end inside the pause replaces the first hand-off, so a restart cancels both', () => {
+    const clock = fakeClock();
+    const handoffs: string[] = [];
+    const runEnd = createRunEnd({
+      pause: 0.9,
+      afterPause: (p) => handoffs.push(p),
+      schedule: clock.schedule,
+    });
+    runEnd.update('lost');
+    runEnd.update('won'); // lost → won inside the pause
+    runEnd.update('playing'); // restart: reset kills the pending hand-off
+    clock.flush();
+    expect(handoffs).toEqual([]); // the first call was not orphaned
+
+    runEnd.update('lost');
+    runEnd.update('won');
+    clock.flush();
+    expect(handoffs).toEqual(['won']); // one hand-off, the latest end
+  });
+
+  it('a restart after the last render, before the delayed call fires, is not sent to results', () => {
+    const clock = fakeClock();
+    const handoffs: string[] = [];
+    let phase: GamePhase = 'playing';
+    const runEnd = createRunEnd({
+      pause: 0.9,
+      afterPause: (p) => handoffs.push(p),
+      phase: () => phase,
+      schedule: clock.schedule,
+    });
+    phase = 'lost';
+    runEnd.update(phase); // frame: hand-off queued
+    phase = 'playing'; // a restart lands after that render
+    clock.flush(); // the pause runs out before the next render
+    expect(handoffs).toEqual([]);
+
+    runEnd.update(phase); // next frame re-arms the guard
+    phase = 'lost';
+    runEnd.update(phase);
     clock.flush();
     expect(handoffs).toEqual(['lost']);
   });

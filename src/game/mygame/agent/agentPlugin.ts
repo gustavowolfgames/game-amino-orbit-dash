@@ -7,6 +7,11 @@
  * plugin below registers it as `db.services.agent` on top of the game world.
  * Actions call the same transactions the player's input does, so an agent
  * plays by the same rules. `./README.md` shows how to add one of each.
+ *
+ * `start` restarts by transaction in a headless world (tests, a CLI). The running
+ * game's world (`../world.ts`) offers it only while the game screen has installed
+ * its own restart (`setLiveStart`), so an agent's restart takes the same level
+ * flow as the player's: seed, saved progress, analytics.
  */
 
 import type { Schema } from '@adobe/data/schema';
@@ -30,12 +35,35 @@ const pointSchema = {
   },
 } as const satisfies Schema;
 
+type Start = () => void;
+
+/** Each world's `start` setter, filled in when its agent service is built. */
+const liveStarts = new WeakMap<GameDatabase, (start: Start | null) => void>();
+
+/**
+ * Replace what the agent's `start` does on this world; `null` withdraws `start`.
+ * The game controller installs its `startRun` while the game screen is up.
+ */
+export function setLiveStart(db: GameDatabase, start: Start | null): void {
+  liveStarts.get(db)?.(start);
+}
+
 export function createGameAgentService(db: GameDatabase): AgenticService {
   const r = db.observe.resources;
+  // Headless default: replay the current level.
+  let start: Start | null = () => {
+    const { level, packId, goal } = db.resources;
+    db.transactions.startRun({ seed: DEFAULT_SEED, level, packId, goal });
+  };
+  const [canStart, setCanStart] = Observe.createState(true);
+  liveStarts.set(db, (next) => {
+    start = next;
+    setCanStart(next !== null);
+  });
   return createAgentService({
     role:
       'You are playing a game built on this template. Read `phase`, `score` and `goal`. ' +
-      'Call `tap` ({ x, y }) with a design-space point to score, and `start` to restart the level.',
+      'Call `tap` ({ x, y }) with a design-space point to score, and `start` to start the next run.',
     states: {
       phase: {
         schema: phaseSchema,
@@ -61,11 +89,10 @@ export function createGameAgentService(db: GameDatabase): AgenticService {
         run: (p) => db.transactions.tap(p),
       },
       start: {
-        description: 'Restart the current level',
-        run: () => {
-          const { level, packId, goal } = db.resources;
-          db.transactions.startRun({ seed: DEFAULT_SEED, level, packId, goal });
-        },
+        description:
+          'Start the next run: the next level after a win, else this level again',
+        when: canStart,
+        run: () => start?.(),
       },
     },
   });

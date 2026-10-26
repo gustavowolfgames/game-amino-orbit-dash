@@ -57,6 +57,7 @@ import {
   saveProgress,
 } from '~/game/setup/progress';
 import { completeActivePack } from '~/game/setup/served-session';
+import { setLiveStart } from '../agent/agentPlugin';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
@@ -127,6 +128,9 @@ export const setupGame: SetupGame = (
     afterPause: () => {
       if (!destroyed) deps.goto?.('results');
     },
+    // GSAP fires the delayed call before the frame's render: a run restarted since the
+    // last render must not be sent to results.
+    phase: () => db?.resources.phase ?? 'idle',
   });
 
   // ── Audio + feedback ───────────────────────────────────────────────────────
@@ -280,6 +284,7 @@ export const setupGame: SetupGame = (
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
+          setLiveStart(world, startRun); // an agent's `start` takes the same level flow
           audio.music('audio-music'); // audio unlocked on the start-screen tap; respects the toggle
 
           engine = createTickerEngine();
@@ -312,6 +317,7 @@ export const setupGame: SetupGame = (
 
     destroy() {
       destroyed = true;
+      if (db) setLiveStart(db, null); // no agent restarts under another screen
       runEnd.reset();
       audio.stopAll();
       stopSim?.();

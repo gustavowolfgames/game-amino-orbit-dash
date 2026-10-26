@@ -15,11 +15,17 @@
  *
  * The running world carries the agent service (`./agent/agentPlugin.ts`), so a
  * bot or MCP client can read states and call actions on the live game with
- * `getGameWorld().services.agent.execute(action, input)`.
+ * `getGameWorld().services.agent.execute(action, input)`. Its `start` is
+ * withdrawn until the game controller installs its own (`setLiveStart`), so an
+ * agent cannot restart a run under the start or results screen.
  */
 
 import { setActiveDb } from '~/core/systems/ecs';
-import { createGameAgentWorld, type GameAgentDatabase } from './agent/agentPlugin';
+import {
+  createGameAgentWorld,
+  type GameAgentDatabase,
+  setLiveStart,
+} from './agent/agentPlugin';
 
 let world: GameAgentDatabase | null = null;
 
@@ -27,6 +33,7 @@ let world: GameAgentDatabase | null = null;
 export function getGameWorld(): GameAgentDatabase {
   if (!world) {
     world = createGameAgentWorld();
+    setLiveStart(world, null); // the game screen installs its startRun
     setActiveDb(world); // dev Inspector (backtick) shows this world
   }
   return world;
