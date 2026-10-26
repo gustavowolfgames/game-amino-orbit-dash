@@ -20,7 +20,8 @@
  *   • The sim and input stop while the settings menu is open (`settingsOpen`,
  *     set by `GameSettingsMenu`, the one menu on every screen) or the game is
  *     paused (space bar, core pause state).
- *   • A terminal phase (`won` / `lost`) hands off to the results screen.
+ *   • A terminal phase (`won` / `lost`) hands off to the results screen, unless a
+ *     new run starts first (`./runEnd.ts`).
  *
  * Keep this file thin (`bun run check:agent` caps it): game views, rules and
  * input live in their own folders. A turn-based game drops the frame loop and
@@ -61,11 +62,12 @@ import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
 import { loadGameTextures } from '../render/textures';
 import { drainEvents } from '../sim/events';
-import type { GameDatabase, GameEvent, GamePhase } from '../sim/plugin';
+import type { GameDatabase, GameEvent } from '../sim/plugin';
 import { stepWorld } from '../sim/schedule';
 import { getGameWorld } from '../world';
 import { createCues } from './cues';
 import { type AudioSettings, createGameAudio } from './gameAudio';
+import { createRunEnd } from './runEnd';
 
 /** Delay (s) before handing off to results, so the last frame reads. */
 const END_PAUSE = 0.9;
@@ -111,8 +113,21 @@ export const setupGame: SetupGame = (
   let fieldBg: Sprite | null = null;
   let hud: HudDisplay | null = null;
 
-  /** Guard so a terminal phase only triggers one transition. */
-  let handledPhase: GamePhase | null = null;
+  /** A terminal phase triggers one transition; a run restarted during the pause (by an agent,
+   *  say) cancels it (./runEnd.ts). */
+  const runEnd = createRunEnd({
+    pause: END_PAUSE,
+    onEnd: (phase) => {
+      if (phase !== 'won' || !db) return;
+      const last = isLastLevel(db.resources.level);
+      runAnalytics.levelWon(db.resources.level, db.resources.score);
+      if (last) completeActivePack(); // the Vault served mode decides what a finished pack means
+      recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
+    },
+    afterPause: () => {
+      if (!destroyed) deps.goto?.('results');
+    },
+  });
 
   // ── Audio + feedback ───────────────────────────────────────────────────────
   // The gear menu's volume and music toggle apply through `settings`; a missing
@@ -147,23 +162,7 @@ export const setupGame: SetupGame = (
       score: db.resources.score,
     });
     cues(drainEvents(db), db.resources.elapsedMs);
-    handlePhase(db.resources.phase);
-  };
-
-  const handlePhase = (phase: GamePhase) => {
-    if (phase === 'playing' || phase === 'idle' || phase === handledPhase) {
-      return;
-    }
-    handledPhase = phase;
-    if (phase === 'won') {
-      const last = !!db && isLastLevel(db.resources.level);
-      if (db) runAnalytics.levelWon(db.resources.level, db.resources.score);
-      if (last) completeActivePack(); // the Vault served mode decides what a finished pack means
-      if (db) recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
-    }
-    gsap.delayedCall(END_PAUSE, () => {
-      if (!destroyed) deps.goto?.('results');
-    });
+    runEnd.update(db.resources.phase);
   };
 
   /**
@@ -173,7 +172,7 @@ export const setupGame: SetupGame = (
    */
   const startRun = () => {
     if (!db) return;
-    handledPhase = null;
+    runEnd.reset();
     const pack = getActivePack();
     const prev = db.resources;
     // Read before the transaction: `prev` is the live resource object.
@@ -303,6 +302,7 @@ export const setupGame: SetupGame = (
 
     destroy() {
       destroyed = true;
+      runEnd.reset();
       audio.stopAll();
       stopSim?.();
       stopRender?.();

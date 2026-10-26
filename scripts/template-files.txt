@@ -35,6 +35,7 @@ src/game/mygame/render/textures.ts
 src/game/mygame/screens/cues.ts
 src/game/mygame/screens/gameAudio.ts
 src/game/mygame/screens/gameController.ts
+src/game/mygame/screens/runEnd.ts
 src/game/mygame/screens/startView.tsx
 src/game/mygame/sim/events.ts
 src/game/mygame/sim/plugin.ts
