@@ -198,5 +198,13 @@ describe('game screen keyboard (useGameKeyboard)', () => {
       expect(pressOn(button, 'Space').defaultPrevented).toBe(false);
       expect(pauseState.paused()).toBe(false);
     });
+
+    it('paused with the settings menu open, Space reaches its focused control and stays paused', () => {
+      pauseState.pause();
+      setSettingsOpen(true);
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(false);
+      expect(pauseState.paused()).toBe(true); // neither resumed nor toggled by the core listener
+      expect(intents).toEqual([]);
+    });
   });
 });

@@ -16,6 +16,7 @@
 import { onCleanup, onMount } from 'solid-js';
 
 import { pauseState } from '~/core/systems/pause';
+import { settingsOpen } from '~/game/settingsOpen';
 
 /** Typing targets: every key is theirs. */
 const TEXT_ENTRY =
@@ -55,11 +56,13 @@ export function controlOwnsKey(
 }
 
 /** A control keeps its Space, except a pressable while paused: there Space resumes the game
- *  (the core overlay's "Press SPACE to resume"), not a click on whatever button kept focus. */
+ *  (the core overlay's "Press SPACE to resume"), not a click on whatever button kept focus.
+ *  With the settings menu open over the pause, its controls keep Space and the game stays paused. */
 const yieldsSpace = (target: EventTarget | null) =>
   controlOwnsKey(target, 'Space') &&
   !(
     pauseState.paused() &&
+    !settingsOpen() &&
     !(target instanceof Element && target.closest(TEXT_ENTRY))
   );
 
