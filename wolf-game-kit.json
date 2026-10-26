@@ -3,7 +3,7 @@
   "projectId": "aminoecspure",
   "gameSlug": "aminoecspure",
   "gameName": "Your Game",
-  "environment": "QA",
+  "environment": "Production",
   "assetsDir": "assets",
   "schemasDir": "schemas"
 }
