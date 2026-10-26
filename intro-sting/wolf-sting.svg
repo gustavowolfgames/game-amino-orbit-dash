@@ -50,7 +50,7 @@
     Background + game title are DOM (IntroSting.tsx), not in this SVG.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"
-     preserveAspectRatio="xMidYMid meet" width="100%" height="100%"><title>Wolf Games</title>
+     preserveAspectRatio="xMidYMid meet" width="100%" height="100%" overflow="visible"><title>Wolf Games</title>
   <defs>
     <!-- The loading background is a DOM <img> layer in IntroSting.tsx
          (public/assets/bg-loader.webp), behind this transparent SVG. -->
@@ -124,42 +124,42 @@
             values="0 0;0 0;-310 0;-310 0" keyTimes="0;0.5;0.624;1"
             keySplines="0 0 1 1;0.4 0 0.1 1;0 0 1 1"/>
 
-          <!-- LEFT  \  (draws 0.40-0.50s)  width 96 -> 18 ; splayed runs off-screen (clipped) -->
+          <!-- LEFT  \  (draws 0.40-0.50s)  width 96 -> 18 ; splayed runs off any screen: a V symmetric about the mark's centre (x 538), its point below the screen (y 2400), tops above it (y -480) -->
           <polygon class="bar" fill="#E9ED12">
             <animate attributeName="points" dur="3.8s" repeatCount="indefinite"
               keyTimes="0;0.105;0.132;0.307;0.474;1"
-              values="-66,-40 30,-40 30,-40 -66,-40;
-                      -66,-40 30,-40 30,-40 -66,-40;
-                      -66,-40 30,-40 577,1960 481,1960;
-                      -66,-40 30,-40 577,1960 481,1960;
+              values="-164,-480 -68,-480 -68,-480 -164,-480;
+                      -164,-480 -68,-480 -68,-480 -164,-480;
+                      -164,-480 -68,-480 586,2400 490,2400;
+                      -164,-480 -68,-480 586,2400 490,2400;
                       463,900 481,900 510,1017 492,1017;
                       463,900 481,900 510,1017 492,1017"/>
             <animate attributeName="fill" dur="3.8s" repeatCount="indefinite"
               values="#E9ED12;#E9ED12;#ffffff;#ffffff" keyTimes="0;0.78;0.92;1"/>
           </polygon>
 
-          <!-- RIGHT  /  (draws 0.60-0.70s)  width 93 -> 18 ; splayed runs off-screen (clipped) -->
+          <!-- RIGHT  /  (draws 0.60-0.70s)  width 93 -> 18 ; splayed runs off any screen: a V symmetric about the mark's centre (x 538), its point below the screen (y 2400), tops above it (y -480) -->
           <polygon class="bar" fill="#E9ED12">
             <animate attributeName="points" dur="3.8s" repeatCount="indefinite"
               keyTimes="0;0.158;0.184;0.307;0.474;1"
-              values="1049,-40 1143,-40 1143,-40 1049,-40;
-                      1049,-40 1143,-40 1143,-40 1049,-40;
-                      1049,-40 1143,-40 611,1960 517,1960;
-                      1049,-40 1143,-40 611,1960 517,1960;
+              values="1145,-480 1239,-480 1239,-480 1145,-480;
+                      1145,-480 1239,-480 1239,-480 1145,-480;
+                      1145,-480 1239,-480 585,2400 491,2400;
+                      1145,-480 1239,-480 585,2400 491,2400;
                       594,900 612,900 583,1017 565,1017;
                       594,900 612,900 583,1017 565,1017"/>
             <animate attributeName="fill" dur="3.8s" repeatCount="indefinite"
               values="#E9ED12;#E9ED12;#ffffff;#ffffff" keyTimes="0;0.78;0.92;1"/>
           </polygon>
 
-          <!-- MID  I  (draws 0.767-0.867s)  width 90 -> 18 ; splayed runs off-screen (clipped) -->
+          <!-- MID  I  (draws 0.767-0.867s)  width 90 -> 18 ; splayed runs off any screen: a V symmetric about the mark's centre (x 538), its point below the screen (y 2400), tops above it (y -480) -->
           <polygon class="bar" fill="#E9ED12">
             <animate attributeName="points" dur="3.8s" repeatCount="indefinite"
               keyTimes="0;0.202;0.228;0.307;0.474;1"
-              values="496,-40 586,-40 586,-40 496,-40;
-                      496,-40 586,-40 586,-40 496,-40;
-                      496,-40 586,-40 581,1960 491,1960;
-                      496,-40 586,-40 581,1960 491,1960;
+              values="493,-480 583,-480 583,-480 493,-480;
+                      493,-480 583,-480 583,-480 493,-480;
+                      493,-480 583,-480 583,2400 493,2400;
+                      493,-480 583,-480 583,2400 493,2400;
                       529,900 547,900 547,1017 529,1017;
                       529,900 547,900 547,1017 529,1017"/>
             <animate attributeName="fill" dur="3.8s" repeatCount="indefinite"
