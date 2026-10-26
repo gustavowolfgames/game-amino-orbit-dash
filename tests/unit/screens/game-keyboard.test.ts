@@ -199,6 +199,44 @@ describe('game screen keyboard (useGameKeyboard)', () => {
       expect(pauseState.paused()).toBe(false);
     });
 
+    /** Focus `el` the way a mouse click does: pointerdown, then focus. */
+    const clickFocus = (el: HTMLElement) => {
+      el.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      el.focus();
+    };
+
+    it('a button focused by a click gives Space and Enter to the game (the gear does not reopen settings)', () => {
+      clickFocus(button);
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(true); // no native click
+      expect(pressOn(button, 'Enter').defaultPrevented).toBe(true);
+      expect(intents).toEqual([{ type: 'action' }, { type: 'action' }]);
+      expect(pauseState.paused()).toBe(false);
+    });
+
+    it('a click on a button that already had keyboard focus still counts as a click', () => {
+      press('Tab');
+      button.focus();
+      button.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(true);
+      expect(intents).toEqual([{ type: 'action' }]);
+    });
+
+    it('a button reached with Tab keeps Space and Enter', () => {
+      clickFocus(button);
+      button.blur();
+      press('Tab');
+      button.focus();
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(false);
+      expect(pressOn(button, 'Enter').defaultPrevented).toBe(false);
+      expect(intents).toEqual([]);
+    });
+
+    it('with the settings menu open, a clicked control keeps its Space', () => {
+      clickFocus(button);
+      setSettingsOpen(true);
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(false);
+    });
+
     it('paused with the settings menu open, Space reaches its focused control and stays paused', () => {
       pauseState.pause();
       setSettingsOpen(true);

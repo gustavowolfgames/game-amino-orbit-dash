@@ -10,7 +10,8 @@
  * A focused control (a text field, a button, a menu toggle) keeps its Space: it types the space
  * or presses the button, `onSpace` does not run, and the event is stopped at `document` (after
  * the control and Solid's delegated handlers saw it) so the core listener still never pauses.
- * While paused, only a text field keeps it: elsewhere Space resumes.
+ * While paused, only a text field keeps it: elsewhere Space resumes. A button focused by a click
+ * keeps neither Space nor Enter outside the settings menu, so the gear does not reopen it.
  */
 
 import { onCleanup, onMount } from 'solid-js';
@@ -40,6 +41,41 @@ const ARROWS: ReadonlySet<string> = new Set([
   'ArrowDown',
 ]);
 
+/** Controls that took focus from a pointer press. Chrome leaves a clicked button focused (the
+ *  settings gear, after it opens and closes the menu); such a button does not take Space or
+ *  Enter from the game. A button reached with Tab does. */
+const pointerFocused = new WeakSet<Element>();
+let pointerPressed = false;
+let trackingFocus = false;
+
+function trackFocusOrigin(): void {
+  if (trackingFocus) return;
+  trackingFocus = true;
+  window.addEventListener(
+    'pointerdown',
+    (e) => {
+      pointerPressed = true;
+      // A press on a control that already has focus (no focusin follows).
+      const active = document.activeElement;
+      if (active && e.target instanceof Node && active.contains(e.target))
+        pointerFocused.add(active);
+    },
+    { capture: true },
+  );
+  window.addEventListener('keydown', () => (pointerPressed = false), {
+    capture: true,
+  });
+  window.addEventListener(
+    'focusin',
+    (e) => {
+      if (!(e.target instanceof Element)) return;
+      if (pointerPressed) pointerFocused.add(e.target);
+      else pointerFocused.delete(e.target);
+    },
+    { capture: true },
+  );
+}
+
 /** True when the focused element a key event is aimed at has its own use for that key. */
 export function controlOwnsKey(
   target: EventTarget | null,
@@ -52,7 +88,9 @@ export function controlOwnsKey(
   )
     return true;
   if (ARROWS.has(code)) return target.closest(SLIDER) !== null;
-  return PRESS_KEYS.has(code) && target.closest(PRESSABLE) !== null;
+  if (!PRESS_KEYS.has(code) || target.closest(PRESSABLE) === null) return false;
+  // Inside the open menu its controls keep their keys however they were focused.
+  return settingsOpen() || !pointerFocused.has(target);
 }
 
 /** A control keeps its Space, except a pressable while paused: there Space resumes the game
@@ -79,6 +117,7 @@ export function useSpaceKey(onSpace?: () => void): void {
   };
 
   onMount(() => {
+    trackFocusOrigin();
     pauseState.resume();
     window.addEventListener('keydown', onKey, { capture: true });
     document.addEventListener('keydown', onControlSpace);
