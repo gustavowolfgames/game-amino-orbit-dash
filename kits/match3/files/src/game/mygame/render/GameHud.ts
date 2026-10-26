@@ -40,7 +40,8 @@ export class GameHud {
 
   constructor(
     private readonly theme: GameTheme,
-    private readonly levelCount: number,
+    /** Levels in the active pack, read each frame: a pack can arrive mid-session. */
+    private readonly levelCount: () => number,
   ) {
     this.container.eventMode = 'none';
     this.stats = new HudDisplay({
@@ -64,7 +65,7 @@ export class GameHud {
   update(db: HudSource, dtSec: number): void {
     const r = db.resources;
     this.stats.setValues({
-      level: `${r.level + 1}/${this.levelCount}`,
+      level: `${r.level + 1}/${this.levelCount()}`,
       moves: r.movesLeft,
       score: r.bankedScore + r.score,
     });

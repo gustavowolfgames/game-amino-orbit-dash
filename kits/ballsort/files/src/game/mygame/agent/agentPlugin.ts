@@ -42,7 +42,7 @@ export function createGameAgentService(db: GameDatabase): AgenticService {
       'You are playing ball sort. `board` lists each tube bottom ball first (colour indices). ' +
       "Call `tapTube` ({ tube }) to lift a tube's top ball, then again on another tube to drop it " +
       '(legal onto an empty tube or the same colour with room). Sort every colour into its own tube. ' +
-      '`undo` takes back a move (3 per level); `start` restarts the level (also the retry when `stuck`).',
+      '`undo` takes back a move (3 per level); `start` (re)starts the level: call it first when `phase` is `idle`, and to replay after `won` or when `stuck`.',
     states: {
       phase: {
         schema: phaseSchema,
@@ -89,10 +89,11 @@ export function createGameAgentService(db: GameDatabase): AgenticService {
         when: playing,
         run: () => db.transactions.undo(),
       },
+      // Offered in every phase: a fresh world is `idle` and a solved one `won`.
       start: {
-        description: 'Restart the current level',
-        when: playing,
-        run: () => db.transactions.restartLevel(),
+        description:
+          'Start the current level from its first board (from any phase: also the retry after a win or when stuck)',
+        run: () => db.transactions.replayLevel(),
       },
     },
   });

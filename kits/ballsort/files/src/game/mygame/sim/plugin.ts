@@ -4,7 +4,7 @@
  * The run's lifecycle, the level it plays, the determinism seam (injected time,
  * seeded rng) and the event queue (`./events.ts`), plus ball sort: Ball and
  * Tube entities and the moves on them (`tap`, `tapTube`, `undo`,
- * `restartLevel`, `moveCursor`, `pressCursor`).
+ * `restartLevel`, `replayLevel`, `moveCursor`, `pressCursor`).
  *
  * Ball sort is turn-based: input calls these transactions directly (no system,
  * `SYSTEM_ORDER` stays empty). Each move applies the pure rules
@@ -291,6 +291,24 @@ export const gamePlugin = Database.Plugin.create({
       if (store.resources.phase !== 'playing') return;
       buildBoard(store);
       emit(store, { type: 'restarted', level: store.resources.level });
+    },
+
+    /**
+     * Play the current level from its seed whatever the phase: the headless
+     * agent's `start`. From `idle` it lays out the first board (the world's
+     * defaults, or the last `startRun`'s level); from `won` it takes the level's
+     * banked moves and par back out of the run total, since it is played again.
+     * The live game uses `restartLevel` (playing only) and the controller's
+     * `startRun` (which reads the pack) instead.
+     */
+    replayLevel(store) {
+      const r = store.resources;
+      if (r.phase === 'won') {
+        r.runMoves = Math.max(0, r.runMoves - r.moves);
+        r.runPar = Math.max(0, r.runPar - r.par);
+      }
+      buildBoard(store);
+      emit(store, { type: 'restarted', level: r.level });
     },
 
     /**

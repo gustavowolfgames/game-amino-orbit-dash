@@ -137,6 +137,6 @@ export function generateBoard(seed: number, colors: number): number[][] {
 /** Stars for a run: 3 at or under par, 2 within half again, else 1. */
 export function starsFor(moves: number, par: number): 1 | 2 | 3 {
   if (moves <= par) return 3;
-  if (moves <= Math.ceil(par * 1.5)) return 2;
+  if (moves <= par * 1.5) return 2;
   return 1;
 }

@@ -101,6 +101,11 @@ describe('rules', () => {
     expect(starsFor(100, 74)).toBe(2);
     expect(starsFor(200, 74)).toBe(1);
   });
+
+  it('holds the two-star line at exactly 1.5× par when par is odd', () => {
+    expect(starsFor(31, 21)).toBe(2); // 31 ≤ 31.5
+    expect(starsFor(32, 21)).toBe(1); // not rounded up to 32
+  });
 });
 
 describe('level generation', () => {

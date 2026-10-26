@@ -207,8 +207,15 @@ export const setupGame: SetupGame = (
   /** A button press becomes its transaction. */
   const command = (c: Command) => {
     if (!db || !accepting()) return;
-    if (c === 'undo') db.transactions.undo();
-    else db.transactions.restartLevel();
+    if (c === 'undo') {
+      db.transactions.undo();
+      return;
+    }
+    // Restart / Retry: the transaction refuses outside play; a rebuild bumps runId.
+    const before = db.resources.runId;
+    db.transactions.restartLevel();
+    if (db.resources.runId !== before)
+      runAnalytics.levelStarted(db.resources.level, 'restart');
   };
 
   // ── Layout ────────────────────────────────────────────────────────────────

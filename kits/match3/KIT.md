@@ -62,10 +62,11 @@ last win and a loss go to results.
 - `tests/unit/schedule.test.ts` and `tests/unit/events.test.ts` are the kit's
   own versions of the template's tests: same lifecycle, determinism, event
   queue and agent checks, driven by swaps instead of `tap`.
-- `wolf-game-kit.json` is on the local-only slug `mygame` and the asset lockfile
+- `wolf-game-kit.json` and `.env.example` (`VITE_GAME_KIT_PROJECT_ID`) are on
+  the local-only slug `mygame`, and the asset lockfile
   (`assets/asset-manifest.cdn.json`, `assets/registry.ts`) is emptied, so local
-  dev serves `public/assets/`. Set the real slug (and `VITE_GAME_KIT_PROJECT_ID`
-  in `.env.example`) per `.agents/recipes/new-game.md` step 1.
+  dev serves `public/assets/`. Set the real slug in both per
+  `.agents/recipes/new-game.md` step 1.
 
 ## Tests
 

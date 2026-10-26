@@ -5,7 +5,10 @@
  * animates a `SwapRuling` from the turn function (`../sim/turn.ts`): the swap
  * (or the swap back), then for each cascade step the clear, the fall and the
  * refill from the top. While a move plays, `busy` is true and input is ignored.
- * When it ends the view re-syncs from ECS, so the world always wins.
+ * When it ends the view re-syncs from ECS, so the world always wins. While idle,
+ * any board write it did not animate (a new run, `setBoard` from a dev tool or
+ * agent, a swap applied outside the pointer) bumps `boardVersion` and the view
+ * redraws from ECS on the next frame.
  */
 
 // catalog: tile-grid for the board backdrop (its cells are fixed in place, so the
@@ -40,7 +43,10 @@ const FALL_BASE_S = 0.16;
 const FALL_PER_ROW_S = 0.04;
 
 interface BoardSource extends TileSource {
-  readonly resources: { readonly runId: number };
+  readonly resources: {
+    readonly runId: number;
+    readonly boardVersion: number;
+  };
 }
 
 export class BoardView {
@@ -57,6 +63,8 @@ export class BoardView {
   private readonly popups: FlyText[] = [];
   private timeline: gsap.core.Timeline | null = null;
   private runId = -1;
+  /** `boardVersion` the views last mirrored (-1: never drawn). */
+  private boardVersion = -1;
 
   constructor() {
     this.grid = new TileGrid({
@@ -141,12 +149,16 @@ export class BoardView {
     this.cursor.position.set(p.x, p.y);
   }
 
-  /** Per frame: rebuild on a new run, advance popups. */
+  /** Per frame: redraw on a new run or an unanimated board write, advance popups. */
   update(db: BoardSource, dtSec: number): void {
-    if (db.resources.runId !== this.runId && !this.busy) {
-      this.runId = db.resources.runId;
-      this.setSelected(null);
-      this.rebuild(db);
+    if (!this.busy) {
+      if (db.resources.runId !== this.runId) {
+        this.runId = db.resources.runId;
+        this.setSelected(null);
+        this.rebuild(db);
+      } else if (db.resources.boardVersion !== this.boardVersion) {
+        this.rebuild(db);
+      }
     }
     for (let i = this.popups.length - 1; i >= 0; i--) {
       this.popups[i].update(dtSec);
@@ -317,6 +329,7 @@ export class BoardView {
 
   /** Throw away every tile view and redraw the board from the Tile entities. */
   private rebuild(db: BoardSource): void {
+    this.boardVersion = db.resources.boardVersion;
     for (const v of this.views)
       if (v) gsap.killTweensOf([v, v.position, v.scale]);
     for (const c of this.tiles.removeChildren()) c.destroy();

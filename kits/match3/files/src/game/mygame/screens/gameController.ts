@@ -176,6 +176,7 @@ export const setupGame: SetupGame = (
         DESIGN_CANVAS.height / 2,
       );
     } else {
+      if (db) runAnalytics.levelFailed(db.resources.level, 'out_of_moves');
       hud?.announce('OUT OF MOVES', DESIGN_CANVAS.height / 2);
     }
     gsap.delayedCall(END_PAUSE * (advance ? 1.6 : 1), () => {
@@ -260,7 +261,7 @@ export const setupGame: SetupGame = (
     );
     root.addChild(board.container);
 
-    hud = new GameHud(theme, getActivePack().levels.length);
+    hud = new GameHud(theme, () => getActivePack().levels.length);
     root.addChild(hud.container);
   };
 

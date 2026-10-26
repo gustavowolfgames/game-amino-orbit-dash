@@ -10,7 +10,7 @@ import { createGameAgentWorld } from '~/game/mygame/agent/agentPlugin';
 import { drainEvents } from '~/game/mygame/sim/events';
 import { createGameWorld } from '~/game/mygame/sim/plugin';
 import { readBoard } from '~/game/mygame/sim/readBoard';
-import { generateBoard } from '~/game/mygame/sim/rules/ballSort';
+import { generateBoard, solve } from '~/game/mygame/sim/rules/ballSort';
 import { stepWorld } from '~/game/mygame/sim/schedule';
 import { SYSTEM_ORDER } from '~/game/mygame/sim/systems';
 
@@ -120,5 +120,46 @@ describe('agent surface', () => {
     const refused = await db.services.agent.execute('tapTube', { tube: 0 });
     expect(refused).toBeTruthy(); // an ActionError: not offered outside a run
     expect(db.resources.heldTube).toBe(-1);
+    // `start` is still offered once the run is over.
+    await db.services.agent.execute('start', {});
+    expect(db.resources.phase).toBe('playing');
+  });
+
+  it('starts a fresh (idle) world headlessly', async () => {
+    const db = createGameAgentWorld();
+    expect(db.resources.phase).toBe('idle');
+    const result = await db.services.agent.execute('start', {});
+    expect(result).toBeFalsy(); // no ActionError
+    expect(db.resources.phase).toBe('playing');
+    expect(readBoard(db)).toEqual(
+      generateBoard(db.resources.seed, db.resources.colors),
+    );
+  });
+
+  it('replays a won level without double-counting the run total', async () => {
+    const db = createGameAgentWorld();
+    const solveLevel = async () => {
+      for (const { from, to } of solve(readBoard(db)) ?? []) {
+        await db.services.agent.execute('tapTube', { tube: from });
+        await db.services.agent.execute('tapTube', { tube: to });
+      }
+      expect(db.resources.phase).toBe('won');
+    };
+    db.transactions.startRun({ seed: 1, colors: 4, level: 0, par: 10 });
+    await solveLevel(); // level 1 banks its moves and par
+    const banked = { runMoves: db.resources.runMoves, runPar: 10 };
+    db.transactions.startRun({ seed: 2, colors: 4, level: 1, par: 12 });
+    await solveLevel();
+    expect(db.resources.runPar).toBe(22);
+    await db.services.agent.execute('start', {});
+    expect(db.resources).toMatchObject({
+      phase: 'playing',
+      level: 1,
+      moves: 0,
+      ...banked,
+    });
+    expect(readBoard(db)).toEqual(generateBoard(2, 4));
+    await solveLevel(); // solving the replay banks it once
+    expect(db.resources.runPar).toBe(22);
   });
 });
