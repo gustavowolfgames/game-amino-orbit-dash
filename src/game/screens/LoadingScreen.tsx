@@ -3,7 +3,8 @@ import {
   useManifest,
   useSignal,
 } from '@wolfgames/components/solid';
-import { createMemo, createSignal, onMount } from 'solid-js';
+import { Howler } from 'howler';
+import { createEffect, createMemo, createSignal, onMount } from 'solid-js';
 import { type ScaffoldTuning, useTuning } from '~/core';
 import { useAssets, useLoadingState } from '~/core/systems/assets';
 import { useScreen } from '~/core/systems/screens';
@@ -13,8 +14,10 @@ import { useGameTracking } from '~/game/setup/tracking';
 import type { GameTuning } from '~/game/tuning';
 import { inVault } from '~/integrations/vault';
 import { IntroSting } from './components/IntroSting';
-import { titleArt } from './components/titleFrame';
-import { resolveSkipSource } from './skipStartScreen';
+import { gameArt, titleArt } from './components/titleFrame';
+import { playsIntro, resolveSkipSource } from './skipStartScreen';
+import { optional, required } from './loadSteps';
+import { unlockAudioOnFirstTap } from './unlockAudioOnFirstTap';
 
 export function LoadingScreen() {
   const { goto } = useScreen();
@@ -26,8 +29,6 @@ export function LoadingScreen() {
   const gameKit = useSignal(useConfigState().gameKit);
 
   const m = manifest();
-  // The title screen's own art: the loader reveals into it (blurred, dark → colour → logo → sharp).
-  const title = titleArt(m);
   const bundlesByPrefix = (prefix: string) =>
     m.bundles.filter((b) => b.name.startsWith(prefix)).map((b) => b.name);
 
@@ -54,6 +55,10 @@ export function LoadingScreen() {
     search: window.location.search,
   });
   const skipToGame = skipSource !== null;
+  // The loader reveals into the next screen's own art (blurred, dark → colour → sharp): the
+  // title's background and logo, or with the title skipped the play screen's background.
+  const title = titleArt(m);
+  const game = gameArt(m);
 
   // When skipping: block on splash + theme + core + audio; title boot assets load in background.
   // When not skipping: block only on splash + theme (start screen loads the rest).
@@ -86,31 +91,43 @@ export function LoadingScreen() {
     // The next screen's code, fetched while the loader plays: a lazy screen fetched only at the
     // handoff leaves a dark frame between the loader and the title's first frame.
     const nextScreen = gameConfig.screens[skipToGame ? 'game' : 'start'];
-    const nextScreenReady = nextScreen.preload?.();
+    nextScreen.preload?.();
+    // Optional steps log a failure and carry on; required ones retry, and the loader hands
+    // off only once they all succeed (./loadSteps.ts). Handing off without the renderer or
+    // the next screen's art leaves a screen that cannot start.
     try {
       if (skipToGame) {
         trackStartScreenSkipped({ skip_source: skipSource });
-        // Load splash + theme blocking; title boot bundles load in background (never rendered).
+        // Title boot bundles load in the background (never rendered on this path).
         for (const name of titleBootBundles) assets.backgroundLoadBundle(name);
-        await assets.loadBoot();
-        await assets.loadTheme();
+        await optional('the splash', () => assets.loadBoot());
+        await optional('the theme', () => assets.loadTheme());
+        // No title screen means no Play tap to unlock audio on. Try now (works when the host
+        // already has user activation) and again on the player's first tap.
         assets.unlockAudio();
-        await assets.initGpu();
-        await assets.loadCore();
-        try {
-          await assets.loadAudio();
-        } catch (err) {
-          console.warn('Audio loading failed:', err);
-        }
+        unlockAudioOnFirstTap(
+          assets.unlockAudio,
+          () => Howler.ctx?.state === 'running',
+        );
+        await required('the renderer', () => assets.initGpu());
+        await required('the game UI', () => assets.loadCore());
+        // The play screen's background, so the game draws its first frame right at the handoff.
+        await required('the game art', () =>
+          assets.coordinator.loadScene('game'),
+        );
+        await optional('audio', () => assets.loadAudio());
       } else {
-        await assets.loadBoot();
-        await assets.loadTheme();
+        // The title screen loads the rest itself when the player taps Play.
+        await optional('the splash', () => assets.loadBoot());
+        await optional('the theme', () => assets.loadTheme());
       }
       await content;
-      await nextScreenReady;
+      await required('the next screen', async () => nextScreen.preload?.());
       setAssetsReady(true);
     } catch (err) {
-      console.error('Failed to load initial assets:', err);
+      // A required step failed every try: stay on the loader rather than hand off to a
+      // screen that cannot start.
+      console.error('The game could not load; staying on the loader:', err);
     }
   });
 
@@ -121,14 +138,30 @@ export function LoadingScreen() {
      the frame box; `pointer-events-auto` opts this fully-DOM screen back in, since
      GameShell passes events through for the gameplay canvas. Same wrapper as
      template-amino's ContentLoader (components.md §9.5.2). */
+  // `?screen=game` and the dev toggle skip the intro too: a plain ground until the game has
+  // loaded, then straight in (its own still covers the gap until Pixi draws).
+  if (!playsIntro(skipSource)) {
+    createEffect(() => {
+      if (assetsReady()) goto('game');
+    });
+    return (
+      <div
+        class="design-box-span pointer-events-auto"
+        data-loading="no-intro"
+        style={{ background: 'var(--brand-ground)' }}
+      />
+    );
+  }
+
   return (
     <div class="design-box-span pointer-events-auto">
       <IntroSting
         progress={progress}
-        title={GAME_TITLE}
-        backgroundSrc={title.background}
-        logoSrc={title.logo}
-        reveal={!skipToGame}
+        title={skipToGame ? undefined : GAME_TITLE}
+        backgroundSrc={skipToGame ? game.background : title.background}
+        logoSrc={skipToGame ? undefined : title.logo}
+        reveal
+        target={skipToGame ? 'game' : 'title'}
         exitSignal={assetsReady}
         onExitComplete={() => goto(skipToGame ? 'game' : 'start')}
       />

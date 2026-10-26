@@ -13,7 +13,10 @@
  * blue-tinted greyscale that brightens, then takes its colour; the game logo is revealed, the
  * WolfGames lockup glides down to the footer, and the scene un-blurs into exactly the title
  * screen's opening frame (logo placed where the title screen draws it), so the handoff to the
- * title screen has no fade.
+ * title screen has no fade. With `target: 'game'` (the title is skipped: the Vault,
+ * `?screen=game`) there is no logo, and the reveal ends on the play screen's background
+ * instead; the lockup still zooms onto the WolfGames logo, which the game screen draws in the
+ * same spot. [ENG-4977]
  *
  * The black backdrop, the brand background image, and the game title are all DOM layers
  * owned HERE (not in the SVG and not in Pixi): the SVG is transparent and only draws the
@@ -75,7 +78,9 @@ const REVEAL = {
 };
 /**
  * Where the title screen draws the WolfGames logo (StartScreen: `bottom-8`, centred) and its
- * size (`logo-wide-small` in public/assets/atlas-branding-wolf.json). Keep in step with both.
+ * size (`logo-wide-small` in public/assets/atlas-branding-wolf.json), in design px: the logo
+ * sits inside the CSS-scaled design root, so on screen it is these × that scale. Keep in step
+ * with both.
  */
 const WOLF_LOGO = { bottom: 32, width: 121, height: 19 };
 /**
@@ -89,7 +94,8 @@ const WOLF_LOGO = { bottom: 32, width: 121, height: 19 };
 const FOOT_BAR = {
   height: 4,
   gap: 7,
-  fadeSec: 0.25,
+  /** The bar's fade in, and its shrink-and-fade out before the lockup moves. */
+  fadeSec: 0.3,
   minFillSec: 4.0,
   holdSec: 0.25,
   smoothSec: 0.35,
@@ -100,7 +106,7 @@ const FOOT_BAR = {
  * The lockup while loading: drifts down `fraction` of the way toward the title screen's logo,
  * at full size. Then, once loaded, it zooms the rest of the way and shrinks to title size.
  */
-const LOCKUP_DRIFT = { fraction: 0.25, zoomSec: 0.8 };
+const LOCKUP_DRIFT = { fraction: 0.1, zoomSec: 0.6 };
 /** Starting look of the background in reveal mode. */
 const REVEAL_BLUR_PX = 4;
 const REVEAL_DARK = 0.45;
@@ -145,6 +151,11 @@ export interface IntroStingProps {
    * and dark → greyscale → colour → logo → sharp, then hand off with no exit fade.
    */
   reveal?: boolean;
+  /**
+   * The screen the reveal ends on: 'title' (default; needs `logoSrc`) or 'game', the play
+   * screen's background with no logo (`backgroundSrc` is the game's `bg-game`).
+   */
+  target?: 'title' | 'game';
   /** Host signal: assets are ready. The exit runs once this AND the sting-done are both true. */
   exitSignal?: () => boolean;
   /** Called after the exit animation completes (e.g. goto('start')). Mirrors ContentLoader. */
@@ -171,8 +182,9 @@ export function IntroSting(props: IntroStingProps) {
   let exitTween: gsap.core.Animation | undefined;
   let exited = false;
 
+  const toGame = () => props.target === 'game';
   const reveal = () =>
-    Boolean(props.reveal && props.backgroundSrc && props.logoSrc);
+    Boolean(props.reveal && props.backgroundSrc && (props.logoSrc || toGame()));
   const [introDone, setIntroDone] = createSignal(false);
 
   // Reveal mode's footer bar: real progress, held back by a minimum-time ramp.
@@ -346,14 +358,18 @@ export function IntroSting(props: IntroStingProps) {
     };
   };
 
-  /** Where the title screen draws the WolfGames logo (StartScreen: centred, `bottom-8`, atlas size). */
+  /**
+   * Where the title screen draws the WolfGames logo (StartScreen: centred, `bottom-8`, atlas
+   * size), in screen px: its design px × the design root's CSS scale (`b.k`), which the loader
+   * sits inside too. Unscaled, the lockup only lands on the logo at the design size (390×844).
+   */
   const titleCentreY = (b: LockupBase) =>
-    b.host.height - WOLF_LOGO.bottom - WOLF_LOGO.height / 2;
+    b.host.height - (WOLF_LOGO.bottom + WOLF_LOGO.height / 2) * b.k;
   const titlePose = () =>
     lockupPose((b) => ({
       cx: b.host.width / 2,
       cy: titleCentreY(b),
-      width: WOLF_LOGO.width,
+      width: WOLF_LOGO.width * b.k,
     }));
   /** While loading: LOCKUP_DRIFT.fraction of the way down toward the title spot, full size. */
   const driftPose = () =>
@@ -377,13 +393,16 @@ export function IntroSting(props: IntroStingProps) {
         );
     };
     paint();
-    // Ends exactly on the title screen's framing (its background is overscanned).
+    // Ends exactly on the next screen's framing: the title's background is overscanned, the
+    // game's is a plain cover fit (gameController's fitBackground).
     const match = () =>
-      titleBgMatch(
-        rootRef?.getBoundingClientRect() ?? { width: 0, height: 0 },
-        { width: bg.naturalWidth, height: bg.naturalHeight },
-        rootRef ? cssScaleOf(rootRef) : 1,
-      );
+      toGame()
+        ? { scale: 1, y: 0 }
+        : titleBgMatch(
+            rootRef?.getBoundingClientRect() ?? { width: 0, height: 0 },
+            { width: bg.naturalWidth, height: bg.naturalHeight },
+            rootRef ? cssScaleOf(rootRef) : 1,
+          );
     gsap.set(bg, { scale: 1.24 });
     // One timeline from the moment the loader mounts; its end is the intro's end (the exit
     // then waits only for the assets).
@@ -418,7 +437,7 @@ export function IntroSting(props: IntroStingProps) {
       },
       REVEAL.colour,
     );
-    if (titleRef) {
+    if (titleRef && !toGame()) {
       placeLogo();
       // Centre on `top` whatever the image's loaded height (GSAP owns the transform from here).
       gsap.set(titleRef, { yPercent: -50 });
@@ -503,8 +522,9 @@ export function IntroSting(props: IntroStingProps) {
     // Reveal mode: the bar has to read full, and the WolfGames lockup land, first.
     if (reveal() && shownProgress() < 1) return;
     exited = true;
-    // Reveal mode ends on the title screen's first frame: hold the full bar a beat, fade it as
-    // the WolfGames lockup zooms down and shrinks onto the title screen's WolfGames logo (same
+    // Reveal mode ends on the title screen's first frame: hold the full bar a beat, shrink it to
+    // its centre and fade it out, then (bar gone, so the lockup never passes over it) the
+    // WolfGames lockup zooms down and shrinks onto the title screen's WolfGames logo (same
     // spot, same size), then hand off with no fade.
     if (reveal() && footBarRef) {
       const exitTl = gsap.timeline({
@@ -513,7 +533,13 @@ export function IntroSting(props: IntroStingProps) {
       exitTl.call(() => descent?.progress(1), [], FOOT_BAR.holdSec);
       exitTl.to(
         footBarRef,
-        { opacity: 0, duration: FOOT_BAR.fadeSec, ease: 'power1.in' },
+        {
+          opacity: 0,
+          scaleX: 0,
+          transformOrigin: '50% 50%',
+          duration: FOOT_BAR.fadeSec,
+          ease: 'power2.in',
+        },
         FOOT_BAR.holdSec,
       );
       if (stingRef) {
@@ -522,9 +548,10 @@ export function IntroSting(props: IntroStingProps) {
           {
             ...titlePose(),
             duration: LOCKUP_DRIFT.zoomSec,
-            ease: 'power2.inOut',
+            // Quick after the slow drift: picks up speed, then settles onto the spot.
+            ease: 'power3.inOut',
           },
-          FOOT_BAR.holdSec,
+          FOOT_BAR.holdSec + FOOT_BAR.fadeSec,
         );
       }
       exitTween = exitTl;
@@ -551,6 +578,9 @@ export function IntroSting(props: IntroStingProps) {
   return (
     <div
       ref={rootRef}
+      data-intro-sting={
+        reveal() ? `reveal-${props.target ?? 'title'}` : 'brand'
+      }
       style={{
         position: 'absolute',
         inset: '0',

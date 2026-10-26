@@ -51,7 +51,9 @@ src/game/screens/StartScreen.tsx
 src/game/screens/components/GameSettingsMenu.tsx
 src/game/screens/components/IntroSting.tsx
 src/game/screens/components/titleFrame.ts
+src/game/screens/loadSteps.ts
 src/game/screens/skipStartScreen.ts
+src/game/screens/unlockAudioOnFirstTap.ts
 src/game/screens/useGameData.ts
 src/game/screens/useGameKeyboard.ts
 src/game/screens/useSpaceKey.ts
