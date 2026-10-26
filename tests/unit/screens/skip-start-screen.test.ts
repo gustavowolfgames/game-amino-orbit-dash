@@ -5,6 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  playsIntro,
   resolveSkipSource,
   type SkipSignals,
   type SkipSource,
@@ -49,5 +50,17 @@ describe('resolveSkipSource', () => {
 
   it.each(table)('%s', (_name, signals, expected) => {
     expect(resolveSkipSource({ ...none, ...signals })).toBe(expected);
+  });
+});
+
+describe('playsIntro', () => {
+  it('players get the intro: the title, the Vault, a game config skip', () => {
+    for (const source of [null, 'vault', 'config'] as const)
+      expect(playsIntro(source)).toBe(true);
+  });
+
+  it('the developer shortcuts go straight to the game: ?screen=game, the dev toggle', () => {
+    expect(playsIntro('url_param')).toBe(false);
+    expect(playsIntro('dev_mode')).toBe(false);
   });
 });

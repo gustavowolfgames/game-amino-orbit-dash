@@ -36,3 +36,12 @@ export function resolveSkipSource(signals: SkipSignals): SkipSource | null {
     return 'url_param';
   return null;
 }
+
+/**
+ * Whether the loader plays the WolfGames intro. The developer shortcuts (`?screen=game`, the
+ * Tweakpane toggle) go straight to the game as soon as it has loaded; players get the intro,
+ * revealing into the title or, with the title skipped (the Vault, a game's config), the game.
+ */
+export function playsIntro(source: SkipSource | null): boolean {
+  return source !== 'url_param' && source !== 'dev_mode';
+}

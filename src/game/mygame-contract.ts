@@ -55,6 +55,8 @@ export interface GameControllerDeps {
   analytics: unknown;
   /** Navigate to another screen (e.g. 'start' for the end card's Main menu). */
   goto?: (screen: string) => void;
+  /** Called once the game has drawn its first frame (the host can drop a stand-in). */
+  onReady?: () => void;
 }
 
 /**

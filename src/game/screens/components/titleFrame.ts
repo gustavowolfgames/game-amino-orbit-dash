@@ -1,7 +1,8 @@
 /**
  * titleFrame — where the title screen draws its logo, for DOM layers that must line up
  * with it exactly: the loader's reveal (IntroSting) ends on that frame, and the start
- * screen shows it as a still until Pixi draws (StartScreen).
+ * screen shows it as a still until Pixi draws (StartScreen). With the title skipped, the
+ * reveal ends on the play screen's background instead (`gameArt`).
  *
  * The title screen lays the logo out in design px on a `contain`-fit, centred DesignLayer
  * (src/game/mygame/screens/startView.tsx reads TITLE_LOGO, TITLE_BUTTON and TITLE_BG from here).
@@ -16,6 +17,14 @@ interface ManifestLike {
   bundles: { assets: { alias: string; src: string; base?: string }[] }[];
 }
 
+/** A manifest alias's URL (CDN or bundled, as the manifest resolves it), or null if absent. */
+function aliasUrl(manifest: ManifestLike, alias: string): string | null {
+  const asset = manifest.bundles
+    .flatMap((b) => b.assets)
+    .find((a) => a.alias === alias);
+  return asset ? `${asset.base ?? manifest.cdnBase}/${asset.src}` : null;
+}
+
 /**
  * The title screen's background and logo as URLs for DOM layers (the loader's reveal and the
  * start screen's still): the manifest's `bg-title` / `ui-title`, the same files the title
@@ -25,15 +34,22 @@ export function titleArt(manifest: ManifestLike): {
   background: string;
   logo: string;
 } {
-  const url = (alias: string) => {
-    const asset = manifest.bundles
-      .flatMap((b) => b.assets)
-      .find((a) => a.alias === alias);
-    return asset ? `${asset.base ?? manifest.cdnBase}/${asset.src}` : null;
-  };
   return {
-    background: url('bg-title') ?? `${LOCAL_ASSET_PATH}/bg-title.webp`,
-    logo: url('ui-title') ?? `${LOCAL_ASSET_PATH}/ui-title.webp`,
+    background:
+      aliasUrl(manifest, 'bg-title') ?? `${LOCAL_ASSET_PATH}/bg-title.webp`,
+    logo: aliasUrl(manifest, 'ui-title') ?? `${LOCAL_ASSET_PATH}/ui-title.webp`,
+  };
+}
+
+/**
+ * The play screen's background as a URL, for when the loader hands straight to the game (the
+ * Vault, `?screen=game`): the manifest's `bg-game`, the file the game controller draws
+ * cover-fitted with no overscan, so a plain `object-fit: cover` matches its first frame.
+ */
+export function gameArt(manifest: ManifestLike): { background: string } {
+  return {
+    background:
+      aliasUrl(manifest, 'bg-game') ?? `${LOCAL_ASSET_PATH}/bg-game.webp`,
   };
 }
 
