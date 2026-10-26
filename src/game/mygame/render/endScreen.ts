@@ -10,11 +10,11 @@
  *     score count-up, Next / Try again and Main menu.
  *   • `hide()` — the card leaves; the next run starts underneath.
  *
- * The card's stars and character come from the `core-results` atlas
- * (src/game/asset-manifest.ts), loaded with the other `core-*` bundles. The
- * template publishes PLACEHOLDER art there under its own slug (the catalog card's
- * proxy stars and detective dog): publish your game's own atlas with the frames in
- * `RESULTS_FRAMES` (.agents/recipes/assets.md). A frame the atlas lacks is not drawn.
+ * The card's stars and character come from the `core-results` atlas. The
+ * template ships none, so `ensureResultsArt` draws them as grey boxes. Give the
+ * game art: publish a `core-results` atlas with the frames in `RESULTS_FRAMES`
+ * and add its bundle to src/game/asset-manifest.ts (.agents/recipes/assets.md).
+ * A frame the atlas lacks is not drawn.
  *
  * Driven by `../screens/endOfPlay.ts`: `tick` from the controller's per-frame
  * render, `destroy` before the Pixi app goes.
@@ -26,7 +26,7 @@ import { ScreenResults } from '@wolfgames/components/modules/prefabs/screen-resu
 import { ParticleBurst } from '@wolfgames/components/modules/primitives/particle-burst';
 import { ScreenFlash } from '@wolfgames/components/modules/primitives/screen-flash';
 import gsap from 'gsap';
-import type { Container } from 'pixi.js';
+import { Assets, BufferImageSource, type Container, Texture } from 'pixi.js';
 import type { PixiLoader } from '~/core/systems/assets';
 
 /** The atlas the card's art comes from (a `core-*` bundle: Pixi, in-game UI). */
@@ -49,6 +49,35 @@ export const RESULTS_FRAMES = {
   characterLose: 'character-host_lose',
   icon: 'ui-icon_home',
 } as const;
+
+/** A 1×1 grey texture: the card scales it to each slot's size. */
+const greyTexture = (v: number) =>
+  new Texture({
+    source: new BufferImageSource({
+      resource: new Uint8Array([v, v, v, 255]),
+      width: 1,
+      height: 1,
+    }),
+  });
+
+/**
+ * Grey boxes for the card's stars and character, registered under `RESULTS_ATLAS`
+ * unless the game has loaded its own atlas there. No art ships with the template;
+ * the boxes keep the card's layout readable until a game publishes its atlas.
+ */
+export function ensureResultsArt(): void {
+  if (Assets.cache.has(RESULTS_ATLAS)) return;
+  const character = greyTexture(0x99);
+  Assets.cache.set(RESULTS_ATLAS, {
+    textures: {
+      [RESULTS_FRAMES.star]: greyTexture(0xdd),
+      [RESULTS_FRAMES.starEmpty]: greyTexture(0x55),
+      [RESULTS_FRAMES.character]: character,
+      [RESULTS_FRAMES.characterLose]: character,
+      // icon: none; the button draws without one.
+    },
+  });
+}
 
 export interface EndOutcome {
   won: boolean;
@@ -141,6 +170,7 @@ export function createEndScreen(
   root.addChild(flash, confetti);
 
   const buildCard = () => {
+    ensureResultsArt();
     const next = new ScreenResults(gpuLoader, {
       atlasName: RESULTS_ATLAS,
       characterFrameName: RESULTS_FRAMES.character,

@@ -61,8 +61,9 @@ export class ScorePopups {
 The end of a run is already a view: `endScreen.ts` draws the win / lose card
 (catalog `screen-results`) with a flash and confetti over the board, and
 `../screens/endOfPlay.ts` decides when it shows. Change its text in `endCopy`,
-its colours through the theme, and its stars and character by publishing a
-`core-results` atlas with the frames in `RESULTS_FRAMES`.
+its colours through the theme. Its stars and character are grey boxes until
+you publish a `core-results` atlas with the frames in `RESULTS_FRAMES` and add
+its bundle to `src/game/asset-manifest.ts`.
 
 For entities, keep a `Map<Entity, Sprite>`: each frame, create a sprite for a
 new entity, move the ones that exist, and destroy the ones whose entity is

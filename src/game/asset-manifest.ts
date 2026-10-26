@@ -78,12 +78,6 @@ export const manifest: Manifest = {
       name: 'scene-game',
       assets: [{ alias: 'bg-game', src: 'bg-game.webp' }],
     },
-    // The end card's stars and character (render/endScreen.ts, RESULTS_FRAMES).
-    // Template placeholder art: publish your game's own atlas under this name.
-    {
-      name: 'core-results',
-      assets: [{ alias: 'core-results', src: 'json-data/atlas-results.json' }],
-    },
 
     // ── Audio (Howler) ──────────────────────────────────────────────────────
     // One Howl per JSON sidecar, keyed by alias = the channel the game plays
