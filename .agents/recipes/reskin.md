@@ -6,7 +6,7 @@ Open this recipe when a partner, a brand, or a level needs different colors, typ
 
 ## Do
 
-A brand is data, not code. The template ships the brand seam in `src/game/brand/`. Full guide: `docs/recipes/game-packs.md`.
+A brand is data, not code. The template ships the brand seam in `src/game/brand/`. How brand sheets are published and loaded: `.agents/recipes/dynamic-data.md`.
 
 - **The game's own look** is `BUILD_SHEET` in `src/game/brand/defaults.ts`. Every build boots in it with no network. A fork retheming its default look edits this file.
 - **A partner skin** is a published `brand` entry (schema: `schemas/brand/schema.ts`). Publish it under the key `theme` to reskin the whole deployment, or bind it into a Content Pack to ship it with one edition. It needs no code change. `schemas/brand/examples/us-weekly.json` and `law-and-crime.json` are filled sheets.
@@ -15,7 +15,7 @@ A brand is data, not code. The template ships the brand seam in `src/game/brand/
 
 Draw with the theme, never with literals. Pixi code calls `getTheme()` from `src/game/brand`. DOM screens use the `--brand-*` and `--font-*` CSS variables. Systems and renderers do not embed hex values, font names, or asset paths.
 
-Settings chrome is themed through `src/game/settingsTheme.ts`, which configures the catalog `options-menu`. Leaving it empty keeps the catalog default.
+Settings chrome is themed through `src/game/settingsTheme.ts`, which configures the catalog `settings-menu-dom` (tokens: its `README.md` in `@wolfgames/components`). Leaving it empty keeps the catalog default.
 
 Do not create a second game class per partner.
 

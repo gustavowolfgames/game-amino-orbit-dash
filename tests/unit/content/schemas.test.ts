@@ -1,7 +1,7 @@
 /**
  * The schemas a fork registers on its Game Manager release (schemas/registry.ts) and the
  * examples a content person publishes. If an example stops validating, the recipe in
- * docs/recipes/game-packs.md stops working — so every example is checked here.
+ * .agents/recipes/dynamic-data.md stops working — so every example is checked here.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';

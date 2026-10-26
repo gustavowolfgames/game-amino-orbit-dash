@@ -1,5 +1,5 @@
-import { useRendererHost } from '@wolfgames/components/solid';
-import { onCleanup, onMount, Show } from 'solid-js';
+import { useManifest, useRendererHost } from '@wolfgames/components/solid';
+import { createSignal, onCleanup, onMount, Show } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { PauseOverlay, type ScaffoldTuning, useTuning } from '~/core';
 import { useAssets } from '~/core/systems/assets';
@@ -8,7 +8,9 @@ import { useScreen } from '~/core/systems/screens';
 import { Logo } from '~/core/ui/Logo';
 // Game-specific controller — swap this import for a different game
 import { setupGame } from '~/game/mygame/screens/gameController';
+import { gameArt } from '~/game/screens/components/titleFrame';
 import { useGameData } from '~/game/screens/useGameData';
+import { useGameKeyboard } from '~/game/screens/useGameKeyboard';
 import { useGameTracking } from '~/game/setup/tracking';
 import type { GameTuning } from '~/game/tuning';
 
@@ -22,6 +24,10 @@ export default function GameScreen() {
   let containerRef: HTMLDivElement | undefined;
   // Frame-sized mount outside the DOM design transform — see components.md §9.2b.
   const rendererHost = useRendererHost();
+  // A still of the game's first frame until Pixi has drawn: with the title skipped (the
+  // Vault, `?screen=game`), the loader's reveal ends on this background.
+  const [pixiReady, setPixiReady] = createSignal(false);
+  const background = gameArt(useManifest().manifest()).background;
 
   // Setup game-specific controller (creates signals & effects in reactive context)
   const controller = setupGame({
@@ -31,7 +37,13 @@ export default function GameScreen() {
     gameData,
     analytics,
     goto: (screen: string) => void goto(screen as never),
+    onReady: () => setPixiReady(true),
   });
+
+  // Keyboard → controller intents (DOM input stays in the screen). It also calls
+  // useSpaceKey, so Space never toggles the scaffold pause during play (ENG-4797);
+  // Escape / P pause instead.
+  useGameKeyboard(controller);
 
   onMount(() => {
     if (containerRef) controller.init(containerRef);
@@ -59,6 +71,7 @@ export default function GameScreen() {
     <>
       <div
         class="design-box-span"
+        data-screen="game"
         classList={{ 'pointer-events-auto': !isPixi }}
         style={isPixi ? undefined : { background: 'var(--brand-ground)' }}
       >
@@ -71,6 +84,14 @@ export default function GameScreen() {
         >
           {(host) => (
             <Portal mount={host()}>
+              <Show when={!pixiReady()}>
+                <img
+                  src={background}
+                  alt=""
+                  aria-hidden="true"
+                  class="absolute inset-0 h-full w-full object-cover pointer-events-none"
+                />
+              </Show>
               <div
                 ref={containerRef}
                 class="absolute inset-0"

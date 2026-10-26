@@ -4,13 +4,16 @@
  * This is the template core, not a game. It owns the renderer lifecycle and the
  * wiring every game needs, and draws only the background and the HUD:
  *
- *   • Pixi app + a fixed design box (DESIGN_W×DESIGN_H) scaled to fit
- *     ("contain"), with a cover-fit background in screen space.
- *   • Input as intent (`../input/pointer.ts`): a tap queues `submitTap`; a system
- *     in `../sim/systems/` drains it next step.
+ *   • Pixi app + a `DesignLayer` on `DESIGN_CANVAS` (390×844, the canvas the
+ *     title screen uses), fitted by `trackHostBox`, with a cover-fit background
+ *     in screen space.
+ *   • Input (`../input/pointer.ts`): a tap calls the example `tap` transaction.
  *   • The fixed-step sim (`startFixedStepLoop` → `stepWorld` → `SYSTEM_ORDER`)
  *     plus a per-frame `render` where the game projects ECS into its views
  *     (`../render/`).
+ *   • Feedback: `render` drains the sim's events (`drainEvents`) once a frame
+ *     and runs them through the cue table (`./cues.ts`): sound through
+ *     `./gameAudio.ts`, the screen-reader line through `ariaText`.
  *   • Content: each run plays one level of the active Content Pack (`levelAt`,
  *     src/game/content). Winning moves to the pack's next level; winning its last
  *     level reports the edition complete to the Vault.
@@ -31,8 +34,9 @@
 
 // catalog: hud-display for the level/score HUD
 import { HudDisplay } from '@wolfgames/components/modules/primitives/hud-display';
+import { DesignLayer, trackHostBox } from '@wolfgames/components/pixi';
 import gsap from 'gsap';
-import { Application, Container, Sprite, type Texture } from 'pixi.js';
+import { Application, type Container, Sprite, type Texture } from 'pixi.js';
 import { createSignal } from 'solid-js';
 import { exposePixiApp } from '~/core/dev/pixiDevtools';
 import { setActiveInspectorActions } from '~/core/systems/ecs';
@@ -52,18 +56,30 @@ import {
   saveProgress,
 } from '~/game/setup/progress';
 import { completeActivePack } from '~/game/setup/served-session';
-import { DESIGN_H, DESIGN_W } from '../config';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
 import { loadGameTextures } from '../render/textures';
-import type { GameDatabase, GamePhase } from '../sim/plugin';
+import { drainEvents } from '../sim/events';
+import type { GameDatabase, GameEvent, GamePhase } from '../sim/plugin';
 import { stepWorld } from '../sim/schedule';
 import { getGameWorld } from '../world';
-import { type AudioSettings, bindAudioSettings } from './audioSettings';
+import { createCues } from './cues';
+import { type AudioSettings, createGameAudio } from './gameAudio';
 
 /** Delay (s) before handing off to results, so the last frame reads. */
 const END_PAUSE = 0.9;
+
+/** HUD placement in design px on DESIGN_CANVAS (390×844). hud-display spaces
+ *  its entries for its default 20px text, so the whole group is scaled. */
+const HUD = { x: 13, y: 16, scale: 0.76 };
+
+/** The audio channels this game plays (aliases in src/game/asset-manifest.ts). */
+const SOUNDS = {
+  sfx: ['sfx-pop', 'sfx-clear'],
+  music: ['audio-music'],
+} as const;
+type Sfx = (typeof SOUNDS.sfx)[number];
 
 /** Deps optionally carry `goto` (GameScreen injects it) for the results hop. */
 type Deps = GameControllerDeps & { goto?: (screen: string) => void };
@@ -85,11 +101,12 @@ export const setupGame: SetupGame = (
   let stopSim: (() => void) | null = null;
   let stopRender: (() => void) | null = null;
   let unbindInput: (() => void) | null = null;
+  let stopResize: (() => void) | null = null;
   let destroyed = false;
   let initPromise: Promise<void> | null = null;
 
-  /** Design-space root: the game's views go in here. */
-  let root: Container | null = null;
+  /** Design-space root on DESIGN_CANVAS: the game's views go in here. */
+  let root: DesignLayer | null = null;
   /** Full-bleed background (screen space). */
   let fieldBg: Sprite | null = null;
   let hud: HudDisplay | null = null;
@@ -97,14 +114,39 @@ export const setupGame: SetupGame = (
   /** Guard so a terminal phase only triggers one transition. */
   let handledPhase: GamePhase | null = null;
 
+  // ── Audio + feedback ───────────────────────────────────────────────────────
+  // The gear menu's volume and music toggle apply through `settings`; a missing
+  // engine or channel is a no-op (./gameAudio.ts).
+  const audio = createGameAudio(() => deps.coordinator?.audio, {
+    ...SOUNDS,
+    settings: deps.audio as AudioSettings | undefined,
+  });
+  /** What each sim event sounds like and says (./cues.ts). */
+  const cues = createCues<GameEvent, Sfx>(
+    {
+      scored: { sfx: 'sfx-pop', gapMs: 60 },
+      phase: {
+        sfx: (e) => (e.phase === 'won' ? 'sfx-clear' : null),
+        aria: (e) =>
+          e.phase === 'won'
+            ? 'Level complete.'
+            : e.phase === 'lost'
+              ? 'Run over.'
+              : null,
+      },
+    },
+    { play: audio.play, say: setAriaText },
+  );
+
   // ── Per-frame render (projection of ECS) ───────────────────────────────────
-  // The game reconciles its views against ECS here (read via ../sim/readStateFromEcs).
+  // The game reconciles its views against ECS here, then plays the frame's events.
   const render = (_dtSec: number) => {
     if (!db || destroyed) return;
     hud?.setValues({
       level: `${db.resources.level + 1}/${getActivePack().levels.length}`,
       score: db.resources.score,
     });
+    cues(drainEvents(db), db.resources.elapsedMs);
     handlePhase(db.resources.phase);
   };
 
@@ -118,9 +160,7 @@ export const setupGame: SetupGame = (
       if (db) runAnalytics.levelWon(db.resources.level, db.resources.score);
       if (last) completeActivePack(); // the Vault served mode decides what a finished pack means
       if (db) recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
-      tryPlay('sfx-clear');
     }
-    setAriaText(phase === 'won' ? 'Level complete.' : 'Run over.');
     gsap.delayedCall(END_PAUSE, () => {
       if (!destroyed) deps.goto?.('results');
     });
@@ -151,34 +191,10 @@ export const setupGame: SetupGame = (
     setAriaText(`Level ${index + 1} of ${pack.levels.length}.`);
   };
 
-  // ── Audio (optional: a missing channel is a no-op) ─────────────────────────
-  type Audio = {
-    play: (channel: string, mode?: string) => void;
-    stop: (channel: string) => void;
-  };
-  const audio = () => deps.coordinator.audio as Audio | undefined;
-  const tryPlay = (channel: string, mode?: string) => {
-    try {
-      audio()?.play(channel, mode);
-    } catch {
-      /* audio optional */
-    }
-  };
-  // The settings menu's volume and music toggle, applied to the engine
-  // (./audioSettings.ts). Music starts through it, never by playing directly.
-  const music = bindAudioSettings(
-    audio,
-    deps.audio as AudioSettings | undefined,
-  );
-
   // ── Layout ────────────────────────────────────────────────────────────────
-  const layout = () => {
-    if (!app || !root) return;
-    const w = app.screen.width;
-    const h = app.screen.height;
-    const scale = Math.min(w / DESIGN_W, h / DESIGN_H);
-    root.scale.set(scale);
-    root.position.set((w - DESIGN_W * scale) / 2, (h - DESIGN_H * scale) / 2);
+  // `trackHostBox` fits the renderer and `root`; this is its callback for the
+  // screen-space background, which takes the raw box.
+  const fitBackground = (w: number, h: number) => {
     // Cover-fit the background so it always fills the viewport, cropping overflow.
     if (fieldBg) {
       const tw = fieldBg.texture.width;
@@ -192,7 +208,7 @@ export const setupGame: SetupGame = (
 
   // ── Scene construction ─────────────────────────────────────────────────────
   const buildScene = (stage: Container, field: Texture) => {
-    root = new Container();
+    root = new DesignLayer();
     root.eventMode = 'passive';
 
     fieldBg = new Sprite(field);
@@ -211,10 +227,8 @@ export const setupGame: SetupGame = (
       fontFamily: theme.fonts.numeric,
       stroke: '', // no outline: the theme colour reads on the theme ground
     });
-    // hud-display spaces its entries for its default 20px text; scale the whole
-    // group (text and spacing together) to read at design size on a phone.
-    hud.scale.set(1.6);
-    hud.position.set(28, 28);
+    hud.scale.set(HUD.scale);
+    hud.position.set(HUD.x, HUD.y);
     hud.eventMode = 'none';
     root.addChild(hud);
   };
@@ -232,7 +246,10 @@ export const setupGame: SetupGame = (
       initPromise = application
         .init({
           resizeTo: container,
-          background: theme.ground,
+          // Transparent, like the title's: the host's stand-in of the background shows
+          // through until the scene's own background draws over it. No clear colour: a
+          // coloured clear at alpha 0 still adds its colour over the stand-in.
+          backgroundAlpha: 0,
           antialias: true,
           resolution: Math.min(window.devicePixelRatio, 2),
           autoDensity: true,
@@ -240,24 +257,31 @@ export const setupGame: SetupGame = (
         .then(async () => {
           if (destroyed || !db) return;
           releasePixiApp = exposePixiApp(application);
-          container.appendChild(application.canvas as HTMLCanvasElement);
 
-          const { field } = await loadGameTextures();
+          const { field } = await loadGameTextures(deps.coordinator);
           if (destroyed || !db) return;
 
+          // The canvas goes in once it has a scene to draw: an empty one would cover the
+          // host's stand-in with the bare ground colour.
+          container.appendChild(application.canvas as HTMLCanvasElement);
           buildScene(application.stage, field);
-          layout();
-          application.renderer.on('resize', layout);
+          stopResize = trackHostBox(
+            application,
+            container,
+            [root as DesignLayer],
+            fitBackground,
+          );
+          const world = db;
           unbindInput = bindTapInput(
             application,
-            root as Container,
-            db,
+            root as DesignLayer,
+            (point) => world.transactions.tap(point),
             () => !(pauseState.paused() || settingsOpen()),
           );
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
-          music.startMusic(); // audio unlocked on the start-screen tap; respects the toggle
+          audio.music('audio-music'); // audio unlocked on the start-screen tap; respects the toggle
 
           engine = createTickerEngine();
           stopSim = startFixedStepLoop(engine, (dt) => {
@@ -265,6 +289,11 @@ export const setupGame: SetupGame = (
               stepWorld(db, dt);
           });
           stopRender = engine.onFrame((dtMs) => render(dtMs / 1000));
+          // The host shows a stand-in of this frame until Pixi has drawn it once.
+          // (Two ticks: listeners run before that tick's render.)
+          application.ticker.addOnce(() =>
+            application.ticker.addOnce(() => deps.onReady?.()),
+          );
 
           // Dev/bot surface (Inspector, backtick).
           setActiveInspectorActions([
@@ -284,7 +313,7 @@ export const setupGame: SetupGame = (
 
     destroy() {
       destroyed = true;
-      music.stopMusic();
+      audio.stopAll();
       stopSim?.();
       stopRender?.();
       stopSim = stopRender = null;
@@ -292,6 +321,8 @@ export const setupGame: SetupGame = (
       engine = null;
       unbindInput?.();
       unbindInput = null;
+      stopResize?.();
+      stopResize = null;
 
       const teardown = () => {
         releasePixiApp?.();

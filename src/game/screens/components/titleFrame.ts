@@ -1,15 +1,15 @@
 /**
  * titleFrame — where the title screen draws its logo, for DOM layers that must line up
  * with it exactly: the loader's reveal (IntroSting) ends on that frame, and the start
- * screen shows it as a still until Pixi draws (StartScreen).
+ * screen shows it as a still until Pixi draws (StartScreen). With the title skipped, the
+ * reveal ends on the play screen's background instead (`gameArt`).
  *
  * The title screen lays the logo out in design px on a `contain`-fit, centred DesignLayer
  * (src/game/mygame/screens/startView.tsx reads TITLE_LOGO, TITLE_BUTTON and TITLE_BG from here).
  */
 
 import { DESIGN_CANVAS, resolveDesignFrame } from '@wolfgames/components/core';
-import bundledBgUrl from '~/game/mygame/assets/generated/bg-title.webp?url';
-import bundledLogoUrl from '~/game/mygame/assets/generated/ui-title.webp?url';
+import { LOCAL_ASSET_PATH } from '~/game/asset-manifest';
 
 /** What `titleArt` reads from the resolved asset manifest (`useManifest().manifest()`). */
 interface ManifestLike {
@@ -17,24 +17,39 @@ interface ManifestLike {
   bundles: { assets: { alias: string; src: string; base?: string }[] }[];
 }
 
+/** A manifest alias's URL (CDN or bundled, as the manifest resolves it), or null if absent. */
+function aliasUrl(manifest: ManifestLike, alias: string): string | null {
+  const asset = manifest.bundles
+    .flatMap((b) => b.assets)
+    .find((a) => a.alias === alias);
+  return asset ? `${asset.base ?? manifest.cdnBase}/${asset.src}` : null;
+}
+
 /**
  * The title screen's background and logo as URLs for DOM layers (the loader's reveal and the
- * start screen's still): the manifest's `bg-title` / `ui-title` (the CDN in a build) when the
- * game publishes them, else the bundled art the title screen also falls back to.
+ * start screen's still): the manifest's `bg-title` / `ui-title`, the same files the title
+ * screen draws. A game that drops those aliases gets the `public/assets/` copies.
  */
 export function titleArt(manifest: ManifestLike): {
   background: string;
   logo: string;
 } {
-  const url = (alias: string) => {
-    const asset = manifest.bundles
-      .flatMap((b) => b.assets)
-      .find((a) => a.alias === alias);
-    return asset ? `${asset.base ?? manifest.cdnBase}/${asset.src}` : null;
-  };
   return {
-    background: url('bg-title') ?? bundledBgUrl,
-    logo: url('ui-title') ?? bundledLogoUrl,
+    background:
+      aliasUrl(manifest, 'bg-title') ?? `${LOCAL_ASSET_PATH}/bg-title.webp`,
+    logo: aliasUrl(manifest, 'ui-title') ?? `${LOCAL_ASSET_PATH}/ui-title.webp`,
+  };
+}
+
+/**
+ * The play screen's background as a URL, for when the loader hands straight to the game (the
+ * Vault, `?screen=game`): the manifest's `bg-game`, the file the game controller draws
+ * cover-fitted with no overscan, so a plain `object-fit: cover` matches its first frame.
+ */
+export function gameArt(manifest: ManifestLike): { background: string } {
+  return {
+    background:
+      aliasUrl(manifest, 'bg-game') ?? `${LOCAL_ASSET_PATH}/bg-game.webp`,
   };
 }
 
@@ -78,25 +93,6 @@ export const TITLE_BUTTON = {
   y: DESIGN_CANVAS.height - 152,
   size: 150,
 };
-
-/** A design-px point on the title screen, in screen px from the top-left of a `box`-sized frame. */
-export function titleScreenPoint(
-  box: { width: number; height: number },
-  x: number,
-  y: number,
-): { x: number; y: number } {
-  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio : 1;
-  const frame = resolveDesignFrame({
-    hostWidth: box.width,
-    hostHeight: box.height,
-    devicePixelRatio: dpr,
-    baselineDevicePixelRatio: dpr,
-  });
-  return {
-    x: frame.offsetX + x * frame.scale,
-    y: frame.offsetY + y * frame.scale,
-  };
-}
 
 /**
  * The CSS scale an element's ancestors apply (1 outside the DOM design transform). The loader

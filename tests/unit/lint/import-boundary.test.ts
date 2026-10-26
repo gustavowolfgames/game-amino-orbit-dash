@@ -1,9 +1,14 @@
 import { execSync } from 'node:child_process';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const ROOT = path.resolve(import.meta.dirname, '../../..');
+const ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../..',
+);
+const BIOME = path.join(ROOT, 'node_modules/.bin/biome');
 
 /** `execSync` throws on a non-zero exit; biome exits non-zero when it reports. */
 interface ExecError {
@@ -13,14 +18,11 @@ interface ExecError {
 
 function biomeLint(filePath: string): string {
   try {
-    return execSync(
-      `npx @biomejs/biome lint ${filePath} --diagnostic-level=error`,
-      {
-        cwd: ROOT,
-        encoding: 'utf-8',
-        stdio: ['pipe', 'pipe', 'pipe'],
-      },
-    );
+    return execSync(`"${BIOME}" lint ${filePath} --diagnostic-level=error`, {
+      cwd: ROOT,
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
   } catch (e: unknown) {
     const { stdout, stderr } = e as ExecError;
     return (stdout || '') + (stderr || '');

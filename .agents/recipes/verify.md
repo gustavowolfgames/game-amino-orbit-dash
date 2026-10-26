@@ -14,13 +14,13 @@ Run the checks that match the change.
 - A gameplay rule change includes a unit test that calls the transaction and asserts the new value. The ecs recipe has the rule.
 - A pack change includes a test that rejects an invalid pack and loads the bundled default when the remote payload is bad. The dynamic-data recipe has the three cases.
 
-`bun run typecheck` still reports errors inherited from template-amino. `bun run typecheck:baseline` compares them to `scripts/typecheck-baseline.txt` and fails on any new one. If it reports fewer, run `bun run typecheck:baseline -- --update` and commit the file. Do not add an error to the baseline to make a change pass.
+`bun run typecheck` reports 0 errors on the template. `bun run typecheck:baseline` compares the errors to `scripts/typecheck-baseline.txt` (empty) and fails on any new one. If it reports fewer, run `bun run typecheck:baseline -- --update` and commit the file. Do not add an error to the baseline to make a change pass.
 
 Paste the command and the exit status. Do not say the tests passed unless you ran them in this checkout.
 
 In dev, the backtick key toggles the ECS Inspector. What it shows is not proof of ECS state. Proof is the unit test or a value read from `getGameWorld()`.
 
-`bun run amino:drift` reports local changes to scaffold paths. `bun run amino:verify` runs the typecheck baseline, lint, and build after `amino:sync`. Its lint step fails on Biome errors inherited from template-amino. Run them when you touched scaffold sync, not for an ordinary feature.
+`bun run amino:drift` reports local changes to the template-owned paths (`src/core/`, `.agents/recipes/`, `.agents/skills/`, build configs) against template-amino-ecs-pure. `bun run amino:verify` runs the typecheck baseline, lint, and build after `amino:sync`. `bunx biome check .` reports 0 errors on the template (warnings remain). Run them when you touched scaffold sync, not for an ordinary feature.
 
 ## Verify
 
@@ -28,4 +28,4 @@ In dev, the backtick key toggles the ECS Inspector. What it shows is not proof o
 
 ## Example
 
-The agent check is `scripts/check-agent-surface.mjs` (DOM in game code, controller size, the game's own slug). The baseline check is `scripts/typecheck-baseline.mjs`.
+The agent check is `scripts/check-agent-surface.mjs` (DOM in game code, controller size, the agent surface, cited paths, the game's slug, Space kept off the pause toggle in `GameScreen.tsx`, no tap-sample leftovers, paths in the `src/game/mygame/` READMEs). The baseline check is `scripts/typecheck-baseline.mjs`.

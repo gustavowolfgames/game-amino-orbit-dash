@@ -20,8 +20,8 @@
  *                 embedded 3D widget (e.g. a dice roller). Every layer/widget is
  *                 an independent read-only projection of the SAME ECS world; call
  *                 `initGpu()` before mount for any GPU-based layer. This is the
- *                 sanctioned exception to guardrail #16 (see
- *                 `docs/standards/guardrails.md` Section 16) — the extra context
+ *                 sanctioned exception to the one-renderer rule (see
+ *                 `.agents/recipes/guardrails.md`, "One renderer") — the extra context
  *                 must share ECS as the single source of truth, never a second
  *                 game-state store. The `composeLayers` helper that implements
  *                 the full-layer case is provided per-game (promoted to
@@ -55,11 +55,25 @@ export interface GameControllerDeps {
   analytics: unknown;
   /** Navigate to another screen (e.g. 'results' when the game ends). */
   goto?: (screen: string) => void;
+  /** Called once the game has drawn its first frame (the host can drop a stand-in). */
+  onReady?: () => void;
 }
+
+/**
+ * A player intent from DOM input (keyboard) wired in the Solid screen by
+ * `useGameKeyboard` (src/game/screens/useGameKeyboard.ts). The controller turns it into
+ * a transaction (or a view change); input never writes state directly. Replace the
+ * union with your game's own intents, and the key map in `useGameKeyboard` with it.
+ */
+export type GameIntent =
+  | { type: 'move'; dir: 'left' | 'right' | 'up' | 'down' }
+  | { type: 'action' };
 
 export interface GameController {
   /** Mount the game into a container div (Pixi canvas, DOM, etc.) */
   init: (container: HTMLDivElement) => void;
+  /** Optional: receive keyboard input as intents (see `useGameKeyboard`). Not called while paused. */
+  input?: (intent: GameIntent) => void;
   /** Tear down the game and release resources */
   destroy: () => void;
   /** Reactive accessibility text for screen readers */
@@ -70,7 +84,7 @@ export interface GameController {
    * When 'layered', the controller owns an opt-in extra GPU context (a composed
    * stack of layers or a bounded embedded 3D widget) over the container and is
    * responsible for its own GPU init for any GPU-based layer — the sanctioned
-   * exception to guardrail #16 (see `docs/standards/guardrails.md` Section 16).
+   * exception to the one-renderer rule (see `.agents/recipes/guardrails.md`, "One renderer").
    * Defaults to 'dom' if omitted.
    */
   gameMode?: GameMode;

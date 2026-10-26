@@ -1,12 +1,16 @@
 #!/usr/bin/env bun
-// amino-sync.ts — Pull amino template updates into a game repo (selective checkout)
+// amino-sync.ts — Pull template updates into a game repo (selective checkout)
 //
 // Usage: bun scripts/amino-sync.ts
 //
-// This performs a ROUTINE sync: overwrites src/core/ with the latest amino
-// version. Game-owned files (src/game/, src/app.tsx, index.html) are never
-// touched. Reusable building blocks come from the @wolfgames/components
-// package, not a synced tree.
+// The upstream is template-amino-ecs-pure (TEMPLATE_URL), the template a game
+// was forked from — not the older template-amino, whose src/core/ has diverged
+// from this one. A ROUTINE sync overwrites the template-owned paths in
+// SYNC_PATHS (the scaffold, the agent recipes and skills, the build configs).
+// Game-owned files are never touched: src/game/, schemas/ (each game edits its
+// own level schema), docs/, AGENTS.md, src/app.tsx, index.html. A recipe the
+// game added itself survives a sync; an edit to a template recipe does not.
+// Reusable building blocks come from the @wolfgames/components package.
 //
 // For MAJOR version updates (breaking changes), use a full merge instead:
 //   git fetch amino && git merge amino/main
@@ -22,8 +26,15 @@ export interface SyncConfig {
   cwd: string;
 }
 
-const SYNC_PATHS = [
+/** The template games fork from, and sync from. `AMINO_URL` overrides it. */
+export const TEMPLATE_URL =
+  'git@github.com:wolfgames/template-amino-ecs-pure.git';
+
+/** Template-owned paths, overwritten by a sync and compared by amino:drift. */
+export const SYNC_PATHS = [
   'src/core/',
+  '.agents/recipes/',
+  '.agents/skills/',
   'vite.config.ts',
   'tsconfig.json',
   'vitest.config.ts',
@@ -58,19 +69,36 @@ export function assertCleanWorkingTree(cwd: string): void {
   }
 }
 
+/** `owner/repo` from an ssh or https GitHub URL, so both spellings compare equal. */
+export function repoSlug(url: string): string {
+  const m = url.trim().match(/[:/]([^/:]+\/[^/]+?)(?:\.git)?\/?$/);
+  return (m ? m[1] : url.trim()).toLowerCase();
+}
+
 export function ensureAminoRemote(
   remote: string,
   url: string,
   cwd: string,
 ): boolean {
+  let existing: string;
   try {
-    git(`remote get-url ${remote}`, cwd);
-    return false; // already existed
+    existing = git(`remote get-url ${remote}`, cwd);
   } catch {
     console.log(`[sync] Adding amino remote: ${url}`);
     git(`remote add ${remote} ${url}`, cwd);
     return true; // newly added
   }
+  // A fork set up before the split may still point at the old template-amino:
+  // syncing from it would overwrite src/core/ with a different scaffold.
+  if (repoSlug(existing) !== repoSlug(url)) {
+    throw new Error(
+      `Remote "${remote}" points at ${existing}, not ${url}.\n` +
+        `Point it at the template this game was forked from:\n` +
+        `  git remote set-url ${remote} ${url}\n` +
+        `or set AMINO_URL to sync from somewhere else on purpose.`,
+    );
+  }
+  return false; // already existed, same repo
 }
 
 export function fetchAmino(
@@ -173,7 +201,7 @@ if (import.meta.main) {
   const cwd = process.cwd();
   const config: SyncConfig = {
     remote: process.env.AMINO_REMOTE || 'amino',
-    url: process.env.AMINO_URL || 'git@github.com:wolfgames/template-amino.git',
+    url: process.env.AMINO_URL || TEMPLATE_URL,
     branch: process.env.AMINO_BRANCH || 'main',
     cwd,
   };

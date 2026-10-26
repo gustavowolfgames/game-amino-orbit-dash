@@ -7,9 +7,8 @@
  *   SpriteButton       — interactive Play button with hover/press GSAP
  *
  * Art is the NEUTRAL template placeholder set (title wordmark, round play
- * button, title background) — bundled .webp loaded via Vite ?url + Pixi Assets
- * in render/textures.ts. Layout, animations, and events are independent of the
- * source, so swapping art for your game is a one-line texture change.
+ * button, title background), the `scene-title` bundle loaded in
+ * render/textures.ts. Publishing your game's art under the same names swaps it.
  *
  * The loader (IntroSting, reveal mode) ends on this screen's first frame: the
  * background and logo are already up when it mounts, and only the play button
@@ -120,16 +119,12 @@ export const setupStartScreen: SetupStartScreen = (
       void (async () => {
         try {
           await deps.initGpu();
-          // Start-screen art (title wordmark, round play button, title
-          // background) — bundled .webp loaded via Vite ?url + Pixi Assets (see
-          // render/textures.ts). Self-contained: no CDN round-trip, works
-          // identically in dev and the production build.
           const gpuLoader = deps.coordinator.getLoader<PixiLoader>('gpu')!;
           const {
             title: logoTex,
             play: btnTex,
             splash: bgTex,
-          } = await loadStartTextures();
+          } = await loadStartTextures(deps.coordinator);
 
           app = new Application();
           await app.init({

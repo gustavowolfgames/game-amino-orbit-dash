@@ -3,7 +3,7 @@
  * session (`./served-session.ts`): default, one daily edition, or the unlocked walk.
  *
  * The Vault's `contentId` IS a pack key (the manager's harvest reads `catalog/<slug>`, see
- * docs/recipes/game-packs.md), so loading a pack is just `loadContent(kit, packKey)`. Handles the
+ * .agents/recipes/dynamic-data.md), so loading a pack is just `loadContent(kit, packKey)`. Handles the
  * consumer hazards in `src/integrations/vault/README.md`:
  *
  *   1. Completion is game-owned: the game controller calls `completeActivePack()` when the pack's

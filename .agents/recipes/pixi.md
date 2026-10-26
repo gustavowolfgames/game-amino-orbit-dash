@@ -18,4 +18,4 @@ The new pixels use `pixi.js` imports from the skill. `bun run check:agent` passe
 
 ## Example
 
-`setupGame` mounts the app in `src/game/mygame/screens/gameController.ts`. New scene layout uses `DESIGN_CANVAS` through `DesignLayer`, per the skill. The template's own box (`DESIGN_W` by `DESIGN_H` in `src/game/mygame/config.ts`) predates that. Views go in `src/game/mygame/render/`; its README shows one.
+`setupGame` mounts the app in `src/game/mygame/screens/gameController.ts`. Its scene lays out on `DESIGN_CANVAS` (390×844) through a `DesignLayer`, the same canvas as the title screen, per the skill. Views go in `src/game/mygame/render/`; its README shows one.

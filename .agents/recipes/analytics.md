@@ -36,7 +36,7 @@ Add more events the same way: one per state transition the player cares about (a
 
 ## Example
 
-`src/game/setup/events.ts` holds the schemas. `src/game/setup/tracking.ts` is the screen-side function table (`trackGameStart`, ...); `src/game/setup/edition-analytics.ts` is the controller-side one (level and edition events) plus the super properties. The vault host bridge is in `src/integrations/vault/`.
+`src/game/setup/events.ts` holds the schemas. `src/game/setup/tracking.ts` is the screen-side function table (`trackGameStart`, ...); `src/game/setup/edition-analytics.ts` is the controller-side one (level and edition events) plus the super properties. The vault host bridge is in `src/integrations/vault/`. Fire a gameplay event such as `move_made` from the controller's per-frame event drain (a `run` hook in its cue table, `src/game/mygame/screens/README.md`), not from the tap handler, so it fires only for moves the sim accepted.
 
 ## Do not
 

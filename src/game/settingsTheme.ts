@@ -17,6 +17,6 @@
  * ```
  *
  * Full token list: `@wolfgames/components` →
- * `src/modules/prefabs/options-menu/README.md`.
+ * `src/modules/prefabs/settings-menu-dom/README.md`.
  */
 export const SETTINGS_THEME = {} as const;

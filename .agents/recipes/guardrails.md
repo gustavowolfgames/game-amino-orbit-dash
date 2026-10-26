@@ -12,9 +12,9 @@ After the GPU starts, draw gameplay with Pixi. DOM is for the Solid screen shell
 
 ### Input
 
-- **Taps and swipes** go through Pixi: `eventMode = 'static'` on the hit target, `'passive'` on its parents, and `pointertap` / `pointerdown` / `pointermove` handlers. Setup is in `.agents/skills/pixi-gameplay/SKILL.md`.
-- **Keyboard** is DOM, so it lives in a Solid screen, for example a `useGameKeyboard()` hook called from `src/game/screens/GameScreen.tsx`. It maps keys to intents and calls a controller method such as `controller.input('left')`. Add the listener in `onMount` and remove it in `onCleanup`.
-- Either way, input becomes an intent that a transaction or a system applies (taps: `pendingTaps`, from `src/game/mygame/input/pointer.ts`). Input never writes state directly.
+- **Taps and swipes** go through Pixi: `eventMode = 'static'` on the hit target, `'passive'` on its parents, and `pointerdown` / `pointermove` handlers. Use `pointerdown`, not `pointertap`, for taps: `pointertap` drops a tap with the slightest drag or a fast double tap (`src/game/mygame/input/pointer.ts`). Setup is in `.agents/skills/pixi-gameplay/SKILL.md`.
+- **Keyboard** is DOM, so it lives in a Solid screen such as `src/game/screens/GameScreen.tsx`: a `keydown` listener added in `onMount` and removed in `onCleanup`. It maps keys to intents and passes them to the controller, which calls a transaction or queues the intent. The template ships this as `useGameKeyboard` (`src/game/screens/useGameKeyboard.ts`): arrows, WASD, Enter and Space become a `GameIntent` for `controller.input`, Escape and P pause, and nothing fires while the settings menu is open. Change its key map and the `GameIntent` union in `src/game/mygame-contract.ts` for the game. Space never reaches the scaffold's pause toggle during play (it would pause on every press); `bun run check:agent` fails if `GameScreen.tsx` stops calling `useGameKeyboard` or `useSpaceKey`.
+- Either way, input calls a transaction, or queues an intent that a system applies on the next step (taps: `bindTapInput` in `src/game/mygame/input/pointer.ts`). Input never writes state directly.
 
 ### Animation and lifetime
 
@@ -22,9 +22,13 @@ Kill GSAP tweens of a sprite before you remove it and destroy it. Destroy childr
 
 Do not drive gameplay with `requestAnimationFrame`, `setInterval`, or `setTimeout`. Use the cadence in `.agents/recipes/ecs.md`. For delays use `gsap.delayedCall`.
 
+### One renderer
+
+The game draws with Pixi, on the one canvas the scaffold owns. Do not add a second `<canvas>`, a second engine (Phaser, Three.js), or a hand-built WebGL context; custom shapes are Pixi `Graphics`. The one exception is `gameMode: 'layered'` in `src/game/mygame-contract.ts`: an opt-in extra GPU layer (a 3D layer, an embedded 3D widget) that the controller creates, tears down in reverse order, and draws only as a read-only view of the same ECS world, never a second game-state store.
+
 ### Repo boundaries
 
-Do not edit `src/core/`. It is scaffold synced from template-amino with `bun run amino:sync`. If the scaffold lacks something, keep the change in `src/game/` or raise it on template-amino.
+Do not edit `src/core/`. It is scaffold synced from template-amino-ecs-pure with `bun run amino:sync`, which also overwrites `.agents/recipes/` and `.agents/skills/`. If the scaffold lacks something, keep the change in `src/game/` or raise it on template-amino-ecs-pure.
 
 Install with bun. Do not commit `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. Do not add a `postinstall` or `predev` step that writes rules or agent files.
 

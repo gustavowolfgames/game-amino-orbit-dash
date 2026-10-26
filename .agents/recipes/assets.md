@@ -18,13 +18,13 @@ Line art, UI, and text need `role: "ui-text"` on the tool that makes them. That 
 
 ### Stage and publish
 
-Stage files in `assets/src/`, which is gitignored. Rename them to `docs/reference/asset-naming.md`. Do not compress them first. Publish encodes images on the way up, so a file you squashed first gets squashed twice. Very large files skip the encoder, so shrink those yourself. The size limit is in `docs/reference/asset-pipeline.md`.
+Stage files in `assets/src/`, which is gitignored. Rename them to the naming rule under **Names** below. Do not compress them first. Publish encodes images on the way up, so a file you squashed first gets squashed twice. Files over 8 MiB skip the encoder and ship exactly as staged, so shrink those yourself.
 
 Packed PNG sheets go in as they are. Publish finds each sheet through its atlas JSON and keeps it lossless at full size. A sheet you add with `assets_set` from a local file needs `role: "atlas"`, because `assets_set` does not read the JSON. Atlas JSON that Pixi loads goes under `assets/src/json-data/`. DOM atlases and audio-sprite JSON stay at the top level.
 
 Publish with `assets_publish`. `bun run assets:publish` does the same from a terminal. The `wolf-dev` CLI behind the `assets:*` scripts refuses to run without an interactive terminal, so agents use the MCP tools. It writes `assets/asset-manifest.cdn.json` and `assets/registry.ts`. Commit both. Do not commit the media. Publish keeps no originals, so keep your own copy of anything you made.
 
-Assets land under `gameSlug` in `wolf-game-kit.json`. It must equal the Nucleo slug. If it still says `mygame`, stop and set the real slug. The `projectId` argument on asset-gen tools defaults to that slug. Pass it only to reach another project's assets.
+Assets land under `gameSlug` in `wolf-game-kit.json`. It must equal the Nucleo slug. If it still says `mygame` or `aminoecspure` (this template's own slug), stop and set the real slug: art made under `aminoecspure` lands in the template's folder, not the game's. The `projectId` argument on asset-gen tools defaults to that slug. Pass it only to reach another project's assets.
 
 Freeze the draft with `assets_release` before a build that players will run.
 
@@ -33,6 +33,24 @@ Freeze the draft with `assets_release` before a build that players will run.
 Register bundles in `src/game/asset-manifest.ts`, with lockfile keys as the `src` values. The CDN manifest provider resolves them at boot. Never put a `media.<env>.wolf.games` URL in `src/`. `check:assets` fails on one.
 
 Do not land code that references an asset that does not exist yet. A placeholder needs the user's approval, and each one is flagged for replacement.
+
+### Names
+
+`bun run check:assets` and `bun run check:manifest` enforce these, and print a fix with `--suggest`. When this page and the scripts disagree, the scripts win.
+
+- **Files** in `assets/src/` and `public/assets/`: `{category}-{name}[_{variant}].{ext}`, lowercase, a hyphen after the category and underscores inside the name (`item-hot_cocoa.webp`). Categories: `piece-`, `exit-`, `character-`, `bg-`, `item-`, `prop-`, `ui-`, `vfx-`, `sfx-`, `music-`. A new category needs a new prefix in `scripts/check-asset-naming.ts` first.
+- **Bundles** in `src/game/asset-manifest.ts`: lowercase letters, digits and hyphens, unique. The prefix picks when and how a bundle loads, so a bundle without one never loads:
+
+  | Prefix | Loads | Use for |
+  |---|---|---|
+  | `boot-` | DOM, before the engine (`boot-splash` first) | splash art |
+  | `theme-` | DOM, before the GPU | branding and logo |
+  | `audio-` | Howler | sound effects and music |
+  | `core-` | Pixi | in-game UI atlases |
+  | `scene-` | Pixi, through `loadScene('<name>')` | game sheets, backgrounds, characters |
+
+  Game art goes in `scene-` or `core-`. A `theme-` bundle never reaches Pixi, and the sprite lookup fails without an error.
+- **Assets**: every asset sets its own `alias`, unique across bundles. `src` is the lockfile key, relative, with no leading `/`, no `..` and no URL. Do not set `base` on a published asset.
 
 ### Size
 
@@ -44,19 +62,19 @@ The MCP config is machine-local. `.mcp.json` is gitignored. The key goes in that
 
 `Invalid API key` means the key belongs to a different environment than the one the tools call. Ask the user to run `wolf-dev auth asset-gen`, which prints where calls land. You cannot run it yourself.
 
-A CLI flag that returns `unknown option` means `wolf-dev` is too old. `docs/reference/asset-pipeline.md` names the minimum version for each flag. The user updates with `bun install -g @wolfgames/dev@latest`.
+A CLI flag that returns `unknown option` means `wolf-dev` is too old: the `assets:*` scripts need 0.2.46 or later, and sprite sheets need 0.2.57. The user updates the global install with `bun install -g @wolfgames/dev@latest`.
 
 The only committed files under `public/assets/` are the ones this template already has, plus fonts, the favicon, and VFX config JSON. Do not add new art there.
 
 ### Settings menu: volume and music
 
-The gear menu (`src/game/screens/components/GameSettingsMenu.tsx`, from the components recipe) has a **Sounds** slider and a **Music** toggle. They only save settings (core `audioState`: `volume()` 0–1 and `musicEnabled()`); `src/game/mygame/screens/audioSettings.ts` applies them. `bindAudioSettings(audio, deps.audio)` in `setupGame` turns volume into the engine's master volume and music on/off into play/stop of the `audio-music` channel, on load and on every change.
+The gear menu (`src/game/screens/components/GameSettingsMenu.tsx`, from the components recipe) has a **Sounds** slider and a **Music** toggle. They only save settings (core `audioState`: `volume()` 0–1 and `musicEnabled()`); `createGameAudio` in `src/game/mygame/screens/gameAudio.ts` applies them. In `setupGame`, `createGameAudio(() => deps.coordinator.audio, { sfx, music, settings: deps.audio })` turns volume into the engine's master volume and music on/off into play/stop of the current track, on load and on every change.
 
-- Start music with `music.startMusic()` once the scene is up, and `music.stopMusic()` in `destroy()`. Never `play('audio-music', …)` directly: that ignores the toggle.
-- Play effects through the controller's `tryPlay`. The master volume covers them; per-sound loudness is the `volume` option on `play`.
-- A second music track (a title theme, a boss loop) is its own `bindAudioSettings(audio, deps.audio, 'audio-music-boss')`.
+- List every channel the game plays in `sfx` and `music` (the `audio-*` aliases in `src/game/asset-manifest.ts`). A name not listed does not compile.
+- Start music with `audio.music('audio-music')` once the scene is up, and `audio.stopAll()` in `destroy()`. Never play the music channel directly: that ignores the toggle. A second track (a boss loop) is another `music` entry; `audio.music('audio-music-boss')` swaps to it.
+- Play effects from the cue table (`src/game/mygame/screens/cues.ts`) or `audio.play('sfx-pop', { volume: 0.7 })`. The master volume covers them; per-sound loudness is `volume`.
 
-An older game without `audioSettings.ts` (its menu changes nothing): copy the file from this template, then in `gameController.ts` add `const music = bindAudioSettings(audio, deps.audio as AudioSettings | undefined);` after the `audio` helper, replace its `tryPlay('audio-music', 'loop')` with `music.startMusic()` and its `stopMusic()` in `destroy()` with `music.stopMusic()`. `tests/unit/audio-settings.test.ts` covers the binding.
+An older game without `gameAudio.ts` (its menu changes nothing): copy `gameAudio.ts` from this template, replace its controller's audio helper with `createGameAudio`, its music start with `audio.music(...)` and its stop with `audio.stopAll()`. `tests/unit/game-audio.test.ts` covers it.
 
 ## Verify
 
@@ -68,4 +86,4 @@ Audio settings: start a game, open the gear, move **Sounds** to 0.3 and check `w
 
 ## Example
 
-The publish and verify scripts are `assets:publish` and `assets:verify` in `package.json`. Naming checks live in `scripts/check-asset-naming.ts`. Budget roles by key name are in `docs/reference/asset-pipeline.md`.
+The publish and verify scripts are `assets:publish` and `assets:verify` in `package.json`. Naming checks live in `scripts/check-asset-naming.ts`. The budget role comes from words in the lockfile key: `atlas-`/`vfx-` → atlas, `bg-`/`scene`/`cover` → background, `ui-`/`button`/`icon`/`logo` → ui, `prop-`/`item-`/`piece-` → prop, `host`/`portrait`/`avatar` → host, anything else unattributed. Pass `name` on every asset-gen call so the key carries the right word.

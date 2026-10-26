@@ -10,7 +10,7 @@
  *   served-mode.ts     a Vault selection → default / daily / unlocked + its packs; the edition cursor
  *   dynamic-client.ts  the one shared Dynamic Data client
  *
- * Kept apart from `../brand` (look) on purpose. See docs/recipes/game-packs.md.
+ * Kept apart from `../brand` (look) on purpose. See .agents/recipes/dynamic-data.md.
  */
 
 export {

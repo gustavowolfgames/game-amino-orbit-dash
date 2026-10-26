@@ -1,6 +1,6 @@
 // Shaped like the file `wolf-dev schema create` generates, so the CLI can take it over.
 // `nucleo game deploy <slug> --release-name <release>` registers every schema listed here
-// (`wolf-game-kit.json` → `schemasDir`). See docs/recipes/game-packs.md.
+// (`wolf-game-kit.json` → `schemasDir`). See .agents/recipes/dynamic-data.md.
 import type { DynamicDataRegistryEntry } from '@wolfgames/shared';
 import { blocksSchema } from './blocks';
 import { brandSchema } from './brand';

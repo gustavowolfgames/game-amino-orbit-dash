@@ -8,7 +8,7 @@
  *   load.ts      fetch the sheet (Content Pack, else `brand/theme`) and apply it
  *
  * Kept apart from `../content` (levels) on purpose: one build serves many partner looks and many
- * dated editions, in any combination. See docs/recipes/game-packs.md.
+ * dated editions, in any combination. See .agents/recipes/dynamic-data.md.
  */
 
 import { BUILD_SHEET } from './defaults';

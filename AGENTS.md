@@ -9,7 +9,7 @@ This game is SolidJS and Pixi 8. Gameplay state lives in the `@adobe/data` ECS w
 These hold for every change, whether or not you open a recipe.
 
 1. **No DOM in game code.** Outside `src/game/screens/`, `src/game/setup/` and `src/game/brand/` (theming), nothing under `src/game/` touches `document`, `window` listeners, `element.style`, `requestAnimationFrame`, `setTimeout`, or `setInterval`. Keyboard and other DOM input is wired in a Solid screen and passed to the controller as intents.
-2. **ECS models the world.** Grid cells, pieces, and bodies are archetype entities with a `spriteKey`. Resources hold only global values (score, phase, level, rng). State changes only inside `db.transactions`, with a seeded rng and no `Math.random`.
+2. **ECS models the world.** Things that keep their identity as they move, or appear and clear during play (pieces, falling blocks, bodies, projectiles), are archetype entities with a `spriteKey`. A fixed board whose squares never move, only change value (sudoku, wordle, a crossword), is one dense array in a resource, indexed by position. Other resources hold only global values (score, phase, level, rng). State changes only inside `db.transactions`, with a seeded rng and no `Math.random`.
 3. **`src/core/` is read-only.**
 4. **A new game fills the skeleton.** `src/game/mygame/` has a slot for each part (`sim/`, `input/`, `render/`, `agent/`), each with a README. Build the game there, one folder, and finish with `bun run check:agent`. Follow `.agents/recipes/new-game.md`.
 
@@ -26,8 +26,7 @@ Match the task, then open that file.
 - `setupGame`, a screen change, or `gameController.ts`. Open `.agents/recipes/game-controller.md`.
 - A HUD, button, screen, popup, or other visible element. Open `.agents/recipes/components.md`.
 - Colors, type, logos, or a partner skin. Open `.agents/recipes/reskin.md`.
-- Levels, questions, cards, or a content pack. Open `.agents/recipes/content.md`.
-- A daily edition, a vault schedule, or Games Manager config. Open `.agents/recipes/dynamic-data.md`.
+- Levels, questions, cards, a content pack, a daily edition, a vault schedule, or Games Manager config. Open `.agents/recipes/dynamic-data.md`.
 - An analytics event. Open `.agents/recipes/analytics.md`.
 - Images, audio, VFX, or the settings menu's volume and music. Open `.agents/recipes/assets.md`.
 - You are about to say the change works. Open `.agents/recipes/verify.md`.
@@ -46,4 +45,4 @@ Install with `bun install`. Start the dev server with `bun run dev`. Before you 
 
 ## Boundaries
 
-Do not edit `src/core/`. Do not add a `postinstall` or `predev` step that writes rules or agent files. Recipes link to `docs/reference/` when a task needs more depth. Open those only from a recipe.
+Do not edit `src/core/`. Do not add a `postinstall` or `predev` step that writes rules or agent files. The recipes in `.agents/recipes/` are the only instructions; `docs/` holds only `docs/GAME-DESIGN.md`, the game's own design.
