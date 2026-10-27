@@ -242,6 +242,19 @@ describe('game screen keyboard (useGameKeyboard)', () => {
       expect(pressOn(button, 'Space').defaultPrevented).toBe(false);
     });
 
+    it('a button clicked before the last hook went keeps its Space after a remount', () => {
+      clickFocus(button);
+      dispose();
+      button.blur();
+      button.focus(); // refocused (say with Tab) while no tracker is listening
+      createRoot((d) => {
+        dispose = d;
+        useGameKeyboard({ input: (intent) => intents.push(intent) });
+      });
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(false);
+      expect(intents).toEqual([]);
+    });
+
     it('the focus tracker stays while another hook is still mounted', () => {
       let disposeSecond = () => {};
       createRoot((d) => {

@@ -44,7 +44,7 @@ const ARROWS: ReadonlySet<string> = new Set([
 /** Controls that took focus from a pointer press. Chrome leaves a clicked button focused (the
  *  settings gear, after it opens and closes the menu); such a button does not take Space or
  *  Enter from the game. A button reached with Tab does. */
-const pointerFocused = new WeakSet<Element>();
+let pointerFocused = new WeakSet<Element>();
 let pointerPressed = false;
 /** Mounted `useSpaceKey`s sharing the tracker; its listeners go when the last one does. */
 let trackers = 0;
@@ -80,6 +80,8 @@ function trackFocusOrigin(): () => void {
     window.removeEventListener('pointerdown', onPointerDown, { capture: true });
     window.removeEventListener('keydown', onAnyKey, { capture: true });
     window.removeEventListener('focusin', onFocusIn, { capture: true });
+    // Focus moves unobserved from here on, so what was clicked before means nothing after.
+    pointerFocused = new WeakSet();
     pointerPressed = false;
   };
 }
