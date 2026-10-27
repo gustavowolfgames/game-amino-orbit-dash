@@ -36,6 +36,40 @@ test.describe('keyboard on the game screen', () => {
     await expect(pausedOverlay(page)).toHaveCount(0);
   });
 
+  // Chrome leaves focus on a clicked button: the gear must not take Space or Enter after it.
+  for (const key of ['Space', 'Enter']) {
+    test(`after the gear opens and closes settings, ${key} does not reopen them`, async ({
+      page,
+    }) => {
+      await startGame(page);
+      const gear = page.getByRole('button', { name: 'Settings' });
+
+      await gear.click();
+      await expect(gear).toHaveAttribute('aria-expanded', 'true');
+      await gear.click();
+      await expect(gear).toHaveAttribute('aria-expanded', 'false');
+      await expect(gear).toBeFocused();
+
+      await page.keyboard.press(key);
+      await expect(gear).toHaveAttribute('aria-expanded', 'false');
+      await expect(pausedOverlay(page)).toHaveCount(0);
+    });
+  }
+
+  test('a gear reached with Tab still opens settings with Space', async ({
+    page,
+  }) => {
+    await startGame(page);
+    const gear = page.getByRole('button', { name: 'Settings' });
+    await gear.focus();
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
+    await expect(gear).toBeFocused();
+
+    await page.keyboard.press('Space');
+    await expect(gear).toHaveAttribute('aria-expanded', 'true');
+  });
+
   test('Escape pauses and Space resumes', async ({ page }) => {
     await startGame(page);
 

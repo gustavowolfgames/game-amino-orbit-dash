@@ -25,6 +25,17 @@ const press = (code: string, init: KeyboardEventInit = {}) => {
   return event;
 };
 
+/** A keydown aimed at `el` (dispatched on it, so it bubbles to document and window). */
+const pressOn = (el: Element, code: string) => {
+  const event = new KeyboardEvent('keydown', {
+    code,
+    bubbles: true,
+    cancelable: true,
+  });
+  el.dispatchEvent(event);
+  return event;
+};
+
 describe('game screen keyboard (useGameKeyboard)', () => {
   let intents: GameIntent[];
   let dispose: () => void;
@@ -117,5 +128,121 @@ describe('game screen keyboard (useGameKeyboard)', () => {
     dispose();
     press('ArrowLeft');
     expect(intents).toEqual([]);
+  });
+
+  describe('a focused control keeps its keys', () => {
+    let field: HTMLInputElement;
+    let button: HTMLButtonElement;
+    beforeEach(() => {
+      field = document.createElement('input');
+      button = document.createElement('button');
+      document.body.append(field, button);
+    });
+    afterEach(() => {
+      field.remove();
+      button.remove();
+    });
+
+    it('typing W A S D or arrows in a text field sends no intent and is not cancelled', () => {
+      for (const code of [
+        'KeyW',
+        'KeyA',
+        'KeyS',
+        'KeyD',
+        'ArrowLeft',
+        'Enter',
+      ]) {
+        expect(pressOn(field, code).defaultPrevented).toBe(false);
+      }
+      expect(intents).toEqual([]);
+    });
+
+    it('P in a text field does not pause', () => {
+      pressOn(field, 'KeyP');
+      expect(pauseState.paused()).toBe(false);
+    });
+
+    it('Space on a focused button presses the button, and still never pauses', () => {
+      const event = pressOn(button, 'Space');
+      expect(event.defaultPrevented).toBe(false); // native activation stays
+      expect(pauseState.paused()).toBe(false); // the core listener never saw it
+      expect(intents).toEqual([]);
+    });
+
+    it('a button left focused by a click does not eat the game keys (the settings gear)', () => {
+      pressOn(button, 'ArrowLeft');
+      pressOn(button, 'KeyW');
+      expect(intents).toEqual([
+        { type: 'move', dir: 'left' },
+        { type: 'move', dir: 'up' },
+      ]);
+      pressOn(button, 'KeyP');
+      expect(pauseState.paused()).toBe(true); // P and Escape still pause
+    });
+
+    it('paused, Space on a focused button resumes instead of pressing it', () => {
+      pauseState.pause();
+      const event = pressOn(button, 'Space');
+      expect(event.defaultPrevented).toBe(true);
+      expect(pauseState.paused()).toBe(false);
+    });
+
+    it('paused, Space in a text field still types a space', () => {
+      pauseState.pause();
+      expect(pressOn(field, 'Space').defaultPrevented).toBe(false);
+      expect(pauseState.paused()).toBe(true);
+    });
+
+    it('Space with the settings menu open reaches its focused control', () => {
+      setSettingsOpen(true);
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(false);
+      expect(pauseState.paused()).toBe(false);
+    });
+
+    /** Focus `el` the way a mouse click does: pointerdown, then focus. */
+    const clickFocus = (el: HTMLElement) => {
+      el.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      el.focus();
+    };
+
+    it('a button focused by a click gives Space and Enter to the game (the gear does not reopen settings)', () => {
+      clickFocus(button);
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(true); // no native click
+      expect(pressOn(button, 'Enter').defaultPrevented).toBe(true);
+      expect(intents).toEqual([{ type: 'action' }, { type: 'action' }]);
+      expect(pauseState.paused()).toBe(false);
+    });
+
+    it('a click on a button that already had keyboard focus still counts as a click', () => {
+      press('Tab');
+      button.focus();
+      button.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(true);
+      expect(intents).toEqual([{ type: 'action' }]);
+    });
+
+    it('a button reached with Tab keeps Space and Enter', () => {
+      clickFocus(button);
+      button.blur();
+      press('Tab');
+      button.focus();
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(false);
+      expect(pressOn(button, 'Enter').defaultPrevented).toBe(false);
+      expect(intents).toEqual([]);
+    });
+
+    it('with the settings menu open, a clicked control keeps its Space', () => {
+      clickFocus(button);
+      setSettingsOpen(true);
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(false);
+    });
+
+    it('paused with the settings menu open, Space reaches its focused control and stays paused', () => {
+      pauseState.pause();
+      setSettingsOpen(true);
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(false);
+      expect(pauseState.paused()).toBe(true); // neither resumed nor toggled by the core listener
+      expect(intents).toEqual([]);
+    });
   });
 });
