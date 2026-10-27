@@ -16,8 +16,9 @@ import type { GamePhase } from '../sim/plugin';
 type Terminal = Exclude<GamePhase, 'playing' | 'idle'>;
 
 export interface RunEndOptions {
-  /** Seconds between the terminal phase and `afterPause`, so the last frame reads. */
-  pause: number;
+  /** Seconds between the terminal phase and `afterPause`, so the last frame reads (a getter is
+   *  read at each end, for a live-tuned hold). */
+  pause: number | (() => number);
   /** Runs once, on the first frame of a terminal phase. */
   onEnd?: (phase: Terminal) => void;
   /** The hand-off; skipped if a new run starts during the pause. */
@@ -60,7 +61,9 @@ export function createRunEnd(options: RunEndOptions): RunEnd {
       handled = phase;
       options.onEnd?.(phase);
       pending?.kill(); // lost → won inside the pause: only the latest end hands off
-      const call = schedule(options.pause, () => {
+      const pause =
+        typeof options.pause === 'function' ? options.pause() : options.pause;
+      const call = schedule(pause, () => {
         if (pending === call) pending = null;
         if (options.phase && options.phase() !== phase) return; // restarted since the last frame
         options.afterPause(phase);

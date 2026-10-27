@@ -24,6 +24,7 @@
     "check:assets": "bun run scripts/check-asset-naming.ts",
     "check:manifest": "bun run scripts/check-manifest.ts",
     "decompose:content": "bun run scripts/decompose-content.ts",
+    "carina": "node scripts/carina.mjs",
     "typecheck": "tsc --noEmit",
     "lint:unused": "knip",
     "prepare": "husky",

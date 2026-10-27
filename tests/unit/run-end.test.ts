@@ -124,4 +124,22 @@ describe('createRunEnd', () => {
     clock.flush();
     expect(handoffs).toEqual([]);
   });
+
+  it('a pause getter is read at each end (a live-tuned win hold)', () => {
+    const waits: number[] = [];
+    let hold = 1.7;
+    const runEnd = createRunEnd({
+      pause: () => hold,
+      afterPause: () => {},
+      schedule: (s) => {
+        waits.push(s);
+        return { kill: () => {} };
+      },
+    });
+    runEnd.update('won');
+    hold = 0.9;
+    runEnd.update('playing');
+    runEnd.update('lost');
+    expect(waits).toEqual([1.7, 0.9]);
+  });
 });

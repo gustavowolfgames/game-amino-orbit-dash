@@ -12,8 +12,9 @@
  *     plus a per-frame `render` where the game projects ECS into its views
  *     (`../render/`).
  *   • Feedback: `render` drains the sim's events (`drainEvents`) once a frame
- *     and runs them through the cue table (`./cues.ts`): sound through
- *     `./gameAudio.ts`, the screen-reader line through `ariaText`.
+ *     and runs them through the cue table (`./feedback.ts`, built on `./cues.ts`):
+ *     sound through `./gameAudio.ts`, the screen-reader line through `ariaText`,
+ *     and the Carina juice kit (`../render/juice.ts`; `?carina=0` turns it off).
  *   • Content: each run plays one level of the active Content Pack (`levelAt`,
  *     src/game/content). Winning moves to the pack's next level; winning its last
  *     level reports the edition complete to the Vault.
@@ -36,7 +37,6 @@
 // catalog: hud-display for the level/score HUD
 import { HudDisplay } from '@wolfgames/components/modules/primitives/hud-display';
 import { DesignLayer, trackHostBox } from '@wolfgames/components/pixi';
-import gsap from 'gsap';
 import { Application, type Container, Sprite, type Texture } from 'pixi.js';
 import { createSignal } from 'solid-js';
 import { exposePixiApp } from '~/core/dev/pixiDevtools';
@@ -50,6 +50,7 @@ import type {
   SetupGame,
 } from '~/game/mygame-contract';
 import { settingsOpen } from '~/game/settingsOpen';
+import { carinaJuiceOn } from '~/game/setup/carina';
 import { createRunAnalytics } from '~/game/setup/edition-analytics';
 import {
   recordLevelWon,
@@ -57,16 +58,18 @@ import {
   saveProgress,
 } from '~/game/setup/progress';
 import { completeActivePack } from '~/game/setup/served-session';
+import { GAME_DEFAULTS, type GameTuning } from '~/game/tuning';
 import { setLiveStart } from '../agent/agentPlugin';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
+import { createJuice, type Juice } from '../render/juice';
 import { loadGameTextures } from '../render/textures';
 import { drainEvents } from '../sim/events';
-import type { GameDatabase, GameEvent } from '../sim/plugin';
+import type { GameDatabase } from '../sim/plugin';
 import { stepWorld } from '../sim/schedule';
 import { getGameWorld } from '../world';
-import { createCues } from './cues';
+import { createFeedback, SOUNDS } from './feedback';
 import { type AudioSettings, createGameAudio } from './gameAudio';
 import { createRunEnd } from './runEnd';
 
@@ -76,13 +79,6 @@ const END_PAUSE = 0.9;
 /** HUD placement in design px on DESIGN_CANVAS (390×844). hud-display spaces
  *  its entries for its default 20px text, so the whole group is scaled. */
 const HUD = { x: 13, y: 16, scale: 0.76 };
-
-/** The audio channels this game plays (aliases in src/game/asset-manifest.ts). */
-const SOUNDS = {
-  sfx: ['sfx-pop', 'sfx-clear'],
-  music: ['audio-music'],
-} as const;
-type Sfx = (typeof SOUNDS.sfx)[number];
 
 /** Deps optionally carry `goto` (GameScreen injects it) for the results hop. */
 type Deps = GameControllerDeps & { goto?: (screen: string) => void };
@@ -113,11 +109,19 @@ export const setupGame: SetupGame = (
   /** Full-bleed background (screen space). */
   let fieldBg: Sprite | null = null;
   let hud: HudDisplay | null = null;
+  /** Feedback verbs (sparks, flash, pop); played from the cue table's `run` hooks. */
+  let juice: Juice | null = null;
+  /** Feel numbers, live from tuning (`juice` in src/game/tuning). */
+  const feel = () =>
+    (deps.tuning.game as Partial<GameTuning>).juice ?? GAME_DEFAULTS.juice;
+  /** Carina switch: `?carina=0|1` wins, else tuning. Read once per screen. */
+  const juiceOn = carinaJuiceOn(feel().carina);
 
   /** A terminal phase triggers one transition; a run restarted during the pause (by an agent,
    *  say) cancels it (./runEnd.ts). */
   const runEnd = createRunEnd({
-    pause: END_PAUSE,
+    // With juice on, hold long enough for the win payoff to read.
+    pause: () => (juiceOn ? feel().winHoldSec : END_PAUSE),
     onEnd: (phase) => {
       if (phase !== 'won' || !db) return;
       const last = isLastLevel(db.resources.level);
@@ -140,27 +144,23 @@ export const setupGame: SetupGame = (
     ...SOUNDS,
     settings: deps.audio as AudioSettings | undefined,
   });
-  /** What each sim event sounds like and says (./cues.ts). */
-  const cues = createCues<GameEvent, Sfx>(
-    {
-      scored: { sfx: 'sfx-pop', gapMs: 60 },
-      phase: {
-        sfx: (e) => (e.phase === 'won' ? 'sfx-clear' : null),
-        aria: (e) =>
-          e.phase === 'won'
-            ? 'Level complete.'
-            : e.phase === 'lost'
-              ? 'Run over.'
-              : null,
-      },
-    },
-    { play: audio.play, say: setAriaText },
-  );
+  /** What each sim event sounds like, says, and does on screen (./feedback.ts). */
+  const cues = createFeedback({
+    juice: () => juice,
+    hud: () => hud,
+    root: () => root,
+    theme,
+    tuning: feel,
+    on: () => juiceOn,
+    play: audio.play,
+    say: setAriaText,
+  });
 
   // ── Per-frame render (projection of ECS) ───────────────────────────────────
   // The game reconciles its views against ECS here, then plays the frame's events.
-  const render = (_dtSec: number) => {
+  const render = (dtSec: number) => {
     if (!db || destroyed) return;
+    juice?.tick(dtSec);
     hud?.setValues({
       level: `${db.resources.level + 1}/${getActivePack().levels.length}`,
       score: db.resources.score,
@@ -234,6 +234,9 @@ export const setupGame: SetupGame = (
     hud.position.set(HUD.x, HUD.y);
     hud.eventMode = 'none';
     root.addChild(hud);
+
+    juice = createJuice();
+    root.addChild(juice.layer);
   };
 
   return {
@@ -337,6 +340,8 @@ export const setupGame: SetupGame = (
         app = null;
         hud?.destroy();
         hud = null;
+        juice?.destroy();
+        juice = null;
         root = null;
         // Textures live in Pixi's global Assets cache (keyed by URL) and are
         // reused across screens: just drop our reference, don't destroy them.
