@@ -44,4 +44,4 @@ The task output names the catalog modules you opened. `bun run typecheck:baselin
 
 ## Example
 
-`src/game/screens/LoadingScreen.tsx` shows the `design-box-span` root and `pointer-events-auto`. `src/game/screens/ResultsScreen.tsx` reads the final score from `getGameWorld()`. `src/app.tsx` mounts `GameShell` from the package.
+`src/game/screens/LoadingScreen.tsx` shows the `design-box-span` root and `pointer-events-auto`. `src/game/mygame/render/endScreen.ts` composes catalog Pixi modules (`screen-results`, `particle-burst`, `screen-flash`) into the end card over the board. `src/app.tsx` mounts `GameShell` from the package.

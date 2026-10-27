@@ -60,3 +60,40 @@ body {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* The end card's screen-reader buttons (GameScreen.tsx): .sr-only until one has keyboard
+   focus, then a visible row, since the canvas buttons show no focus. Once shown it stays while
+   it holds focus or the pointer (a click must land before a browser moves focus off it), and
+   takes pointer events back from the design root. */
+.end-card-actions:has(:focus-visible),
+.end-card-actions:focus-within,
+.end-card-actions:hover {
+  left: 50%;
+  bottom: 2rem;
+  transform: translateX(-50%);
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  clip-path: none; /* Tailwind's own sr-only clips with this */
+  white-space: normal;
+  display: flex;
+  gap: 0.75rem;
+  pointer-events: auto;
+}
+
+.end-card-actions:has(:focus-visible) button,
+.end-card-actions:focus-within button,
+.end-card-actions:hover button {
+  padding: 0.5rem 1.25rem;
+  border-radius: 9999px;
+  background: rgb(var(--foreground-rgb));
+  color: rgb(var(--background-rgb));
+  font: inherit;
+}
+
+.end-card-actions button:focus-visible {
+  outline: 3px solid rgb(var(--foreground-rgb));
+  outline-offset: 3px;
+}

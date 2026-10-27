@@ -49,7 +49,7 @@ function setup(on: boolean) {
     juice: () => juice,
     hud: () => hud,
     root: () => hud,
-    theme,
+    theme: () => theme,
     tuning: () => GAME_DEFAULTS.juice,
     on: () => on,
     play: (id) => played.push(id),

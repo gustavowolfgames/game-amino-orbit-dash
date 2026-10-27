@@ -32,7 +32,8 @@ export interface FeedbackDeps {
   /** The HUD (punched on a score) and the design root (shaken on the win). */
   hud: () => Container | null;
   root: () => Container | null;
-  theme: GameTheme;
+  /** The theme in force (a Vault edition can bring another). */
+  theme: () => GameTheme;
   tuning: () => JuiceConfig;
   /** Carina juice on? Read per event, so a tuning change applies at once. */
   on: () => boolean;
@@ -41,9 +42,6 @@ export interface FeedbackDeps {
 }
 
 export function createFeedback(d: FeedbackDeps) {
-  const accent = hex(d.theme.accent);
-  const palette = [...d.theme.pieces, accent, WHITE];
-
   return createCues<GameEvent, Sfx>(
     {
       scored: {
@@ -53,12 +51,14 @@ export function createFeedback(d: FeedbackDeps) {
           const j = d.juice();
           if (!j || !d.on()) return;
           const t = d.tuning();
+          const theme = d.theme();
+          const accent = hex(theme.accent);
           // The reaction starts on the tap's own frame: no wind-up (Carina: patterns/no-wind-up-on-player-input).
           j.burst(e.x, e.y, [accent, WHITE], t.tapSparks);
           j.sparkle(e.x, e.y, 44, accent);
           j.fly(e.x, e.y, '+1', {
-            fill: d.theme.accent,
-            fontFamily: d.theme.fonts.numeric,
+            fill: theme.accent,
+            fontFamily: theme.fonts.numeric,
             peak: t.flyPeak,
             endScale: t.flyEndScale,
           });
@@ -78,6 +78,8 @@ export function createFeedback(d: FeedbackDeps) {
           const j = d.juice();
           if (e.phase !== 'won' || !j || !d.on()) return;
           const t = d.tuning();
+          const theme = d.theme();
+          const palette = [...theme.pieces, hex(theme.accent), WHITE];
           // Hold a beat, then the payoff in layers: contrast frame, flash, shake, confetti
           // (Carina: patterns/freeze-frame-before-impact, patterns/layered-explosion).
           j.freeze(t.winFreezeFrames, () => {

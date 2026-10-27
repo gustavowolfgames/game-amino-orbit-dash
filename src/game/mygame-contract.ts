@@ -53,7 +53,7 @@ export interface GameControllerDeps {
   audio: unknown;
   gameData: unknown;
   analytics: unknown;
-  /** Navigate to another screen (e.g. 'results' when the game ends). */
+  /** Navigate to another screen (e.g. 'start' for the end card's Main menu). */
   goto?: (screen: string) => void;
   /** Called once the game has drawn its first frame (the host can drop a stand-in). */
   onReady?: () => void;
@@ -67,7 +67,9 @@ export interface GameControllerDeps {
  */
 export type GameIntent =
   | { type: 'move'; dir: 'left' | 'right' | 'up' | 'down' }
-  | { type: 'action' };
+  | { type: 'action' }
+  /** Escape while the game's own end screen is up: leave it (Main menu). */
+  | { type: 'back' };
 
 export interface GameController {
   /** Mount the game into a container div (Pixi canvas, DOM, etc.) */
@@ -78,6 +80,8 @@ export interface GameController {
   destroy: () => void;
   /** Reactive accessibility text for screen readers */
   ariaText: () => string;
+  /** Optional: true while the game's own end screen is up (the screen hides its footer). */
+  endScreenOpen?: () => boolean;
   /**
    * Rendering mode. When 'dom', the scaffold skips GPU init and core-* bundle
    * loading. When 'pixi', the scaffold ensures GPU is initialised before mount.

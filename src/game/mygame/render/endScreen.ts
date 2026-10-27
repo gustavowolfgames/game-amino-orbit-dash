@@ -1,0 +1,287 @@
+/**
+ * endScreen — the end of a run, drawn in the game's own Pixi scene.
+ *
+ * A level ends on the canvas the player is looking at instead of a hop to a
+ * separate DOM screen, so the moment can carry particles and flashes. Three
+ * catalog modules, all in the game's `DesignLayer` (390×844 design px):
+ *
+ *   • `celebrate()` — a win: a brand-tinted flash, then a confetti burst and shower.
+ *   • `show(outcome)` — the win / lose card (`screen-results`): headline, stars,
+ *     score count-up, Next / Try again and Main menu.
+ *   • `hide()` — the card leaves; the next run starts underneath.
+ *
+ * The card's stars and character come from the `core-results` atlas. The
+ * template ships none, so `ensureResultsArt` draws them as grey boxes. Give the
+ * game art: publish a `core-results` atlas with the frames in `RESULTS_FRAMES`
+ * and add its bundle to src/game/asset-manifest.ts (.agents/recipes/assets.md).
+ * A frame the atlas lacks is not drawn.
+ *
+ * Driven by `../screens/endOfPlay.ts`: `tick` from the controller's per-frame
+ * render, `destroy` before the Pixi app goes.
+ */
+
+import { DESIGN_CANVAS } from '@wolfgames/components/core';
+import { ScreenResults } from '@wolfgames/components/modules/prefabs/screen-results';
+// catalog: screen-results (win/lose card), particle-burst (confetti), screen-flash — user chose these over a DOM results screen, for particles and effects
+import { ParticleBurst } from '@wolfgames/components/modules/primitives/particle-burst';
+import { ScreenFlash } from '@wolfgames/components/modules/primitives/screen-flash';
+import gsap from 'gsap';
+import { Assets, BufferImageSource, type Container, Texture } from 'pixi.js';
+import type { PixiLoader } from '~/core/systems/assets';
+
+/** The atlas the card's art comes from (a `core-*` bundle: Pixi, in-game UI). */
+export const RESULTS_ATLAS = 'core-results';
+
+/** Bigger and longer-lived than particle-burst's defaults: a celebration, not a hit spark. */
+const CONFETTI = { sizeMin: 6, sizeMax: 12, lifetime: 1.6 } as const;
+
+/** When screen-results starts popping its earned stars (s into its entrance). */
+const STARS_AT = 1.6;
+
+/** When its buttons have landed (s into its entrance: slide-up from 2.3 / 2.4, 0.35 long). */
+const BUTTONS_AT = 2.75;
+
+/** Frame names in `RESULTS_ATLAS`. One star art serves all three slots. */
+export const RESULTS_FRAMES = {
+  star: 'ui-star',
+  starEmpty: 'ui-star_empty',
+  character: 'character-host',
+  characterLose: 'character-host_lose',
+  icon: 'ui-icon_home',
+} as const;
+
+/** A 1×1 grey texture: the card scales it to each slot's size. */
+const greyTexture = (v: number) =>
+  new Texture({
+    source: new BufferImageSource({
+      resource: new Uint8Array([v, v, v, 255]),
+      width: 1,
+      height: 1,
+    }),
+  });
+
+/**
+ * Grey boxes for the card's stars and character, registered under `RESULTS_ATLAS`
+ * unless the game has loaded its own atlas there. No art ships with the template;
+ * the boxes keep the card's layout readable until a game publishes its atlas.
+ */
+export function ensureResultsArt(): void {
+  if (Assets.cache.has(RESULTS_ATLAS)) return;
+  const character = greyTexture(0x99);
+  Assets.cache.set(RESULTS_ATLAS, {
+    textures: {
+      [RESULTS_FRAMES.star]: greyTexture(0xdd),
+      [RESULTS_FRAMES.starEmpty]: greyTexture(0x55),
+      [RESULTS_FRAMES.character]: character,
+      [RESULTS_FRAMES.characterLose]: character,
+      // icon: none; the button draws without one.
+    },
+  });
+}
+
+export interface EndOutcome {
+  won: boolean;
+  /** The pack's last level was won. */
+  packDone: boolean;
+  /** …and play moves on to the next edition (the Vault's unlocked walk), not the same pack. */
+  nextEdition?: boolean;
+  /** 0-based level index. */
+  level: number;
+  score: number;
+}
+
+export interface EndScreenOptions {
+  /** Confetti colours (the theme's piece palette) and the flash colour (its accent). Read each
+   *  time the screen fires, so a brand that changed mid-session (a Vault edition) is followed. */
+  palette: () => { colors: readonly number[]; flash: number };
+  /** Next level / Try again / Play again. */
+  onPrimary: () => void;
+  /** Main menu. */
+  onSecondary: () => void;
+  /** The card went up or down (the screen hides its footer under the card's buttons). */
+  onOpenChange?: (open: boolean) => void;
+}
+
+export interface EndScreen {
+  /** The card is up (input to the board is off). */
+  readonly open: boolean;
+  /** Its buttons are visible and take taps / keys (a tap before they land does nothing). */
+  readonly ready: boolean;
+  celebrate(): void;
+  /** Shows the card; returns its screen-reader line (the card's buttons are canvas, not DOM). */
+  show(outcome: EndOutcome): string;
+  hide(): void;
+  tick(dtSec: number): void;
+  destroy(): void;
+}
+
+/** Headline and button copy for an outcome. */
+export function endCopy(o: EndOutcome): {
+  headlineLine1: string;
+  headlineLine2: string;
+  primaryLabel: string;
+  starsEarned: number;
+} {
+  if (!o.won)
+    return {
+      headlineLine1: 'GOOD TRY!',
+      headlineLine2: '',
+      primaryLabel: 'TRY AGAIN',
+      starsEarned: 0,
+    };
+  return {
+    headlineLine1: o.packDone ? 'ALL LEVELS' : `LEVEL ${o.level + 1}`,
+    headlineLine2: 'COMPLETE!',
+    primaryLabel: !o.packDone
+      ? 'NEXT LEVEL'
+      : o.nextEdition
+        ? 'NEXT EDITION'
+        : 'PLAY AGAIN',
+    starsEarned: 3,
+  };
+}
+
+export function createEndScreen(
+  root: Container,
+  gpuLoader: PixiLoader,
+  options: EndScreenOptions,
+): EndScreen {
+  const { width, height } = DESIGN_CANVAS;
+  let card: ScreenResults | null = null;
+  let open = false;
+  let ready = false;
+  let readyCall: gsap.core.Tween | null = null;
+  const setOpen = (next: boolean) => {
+    if (next === open) return;
+    open = next;
+    options.onOpenChange?.(next);
+  };
+
+  /** The theme's pieces, its accent, and white, so it reads on any ground. */
+  const confettiColors = () => {
+    const { colors, flash } = options.palette();
+    return [...colors, flash, 0xffffff];
+  };
+  let showers: gsap.core.Tween | null = null;
+  const confetti = new ParticleBurst();
+  confetti.eventMode = 'none';
+  const flash = new ScreenFlash({ screenWidth: width, screenHeight: height });
+  flash.eventMode = 'none';
+  root.addChild(flash, confetti);
+
+  const buildCard = () => {
+    ensureResultsArt();
+    const next = new ScreenResults(gpuLoader, {
+      atlasName: RESULTS_ATLAS,
+      characterFrameName: RESULTS_FRAMES.character,
+      characterLoseFrameName: RESULTS_FRAMES.characterLose,
+      buttonIconFrameName: RESULTS_FRAMES.icon,
+      starLeftFrameName: RESULTS_FRAMES.star,
+      starMiddleFrameName: RESULTS_FRAMES.star,
+      starRightFrameName: RESULTS_FRAMES.star,
+      starLeftEmptyFrameName: RESULTS_FRAMES.starEmpty,
+      starMiddleEmptyFrameName: RESULTS_FRAMES.starEmpty,
+      starRightEmptyFrameName: RESULTS_FRAMES.starEmpty,
+      onPrimary: () => open && ready && options.onPrimary(),
+      onSecondary: () => open && ready && options.onSecondary(),
+    });
+    next.eventMode = 'passive';
+    // Under the confetti, so the shower falls over the card.
+    root.addChildAt(next, root.getChildIndex(flash));
+    return next;
+  };
+
+  /** ScreenResults does not kill its entrance timeline on destroy (upstream gap); stop it first. */
+  const dropCard = () => {
+    if (!card) return;
+    (
+      card as unknown as { timeline?: gsap.core.Timeline | null }
+    ).timeline?.kill();
+    gsap.killTweensOf(card);
+    card.destroy({ children: true });
+    card = null;
+  };
+
+  return {
+    get open() {
+      return open;
+    },
+
+    get ready() {
+      return open && ready;
+    },
+
+    celebrate() {
+      void flash.flash(options.palette().flash, 0.35, 0.18);
+      confetti.burst(width / 2, height * 0.42, {
+        ...CONFETTI,
+        colors: confettiColors(),
+        count: 70,
+      });
+    },
+
+    show(outcome) {
+      card ??= buildCard();
+      gsap.killTweensOf(card);
+      card.visible = true;
+      card.alpha = 1;
+      setOpen(true);
+      ready = false;
+      readyCall?.kill();
+      readyCall = gsap.delayedCall(BUTTONS_AT, () => {
+        ready = true;
+      });
+      const copy = endCopy(outcome);
+      card.show({ score: outcome.score, ...copy }); // replays its entrance
+      showers?.kill();
+      // A won card: confetti showers over it as the stars pop (their pop starts at 1.6s).
+      showers = outcome.won
+        ? gsap.delayedCall(STARS_AT, () => {
+            const colors = confettiColors();
+            for (const x of [0.25, 0.5, 0.75])
+              confetti.cascade(width * x, height * 0.22, {
+                ...CONFETTI,
+                colors,
+                count: 45,
+              });
+          })
+        : null;
+      const done = outcome.won ? 'Level complete' : 'Run over';
+      return `${done}. Score ${outcome.score}. Enter: ${copy.primaryLabel.toLowerCase()}. Escape: main menu.`;
+    },
+
+    hide() {
+      setOpen(false);
+      ready = false;
+      readyCall?.kill();
+      showers?.kill();
+      showers = null;
+      const shown = card;
+      if (!shown) return;
+      gsap.to(shown, {
+        alpha: 0,
+        duration: 0.2,
+        ease: 'power2.out',
+        overwrite: 'auto',
+        onComplete: () => {
+          shown.visible = false;
+        },
+      });
+    },
+
+    tick(dtSec) {
+      confetti.tick(dtSec);
+    },
+
+    destroy() {
+      setOpen(false);
+      readyCall?.kill();
+      showers?.kill();
+      showers = null;
+      dropCard();
+      gsap.killTweensOf(flash);
+      flash.destroy();
+      confetti.destroy({ children: true });
+    },
+  };
+}

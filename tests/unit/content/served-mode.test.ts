@@ -154,7 +154,7 @@ describe('createServedSession', () => {
   it('default: reports the game completed, loads nothing', () => {
     const h = harness();
     h.session.select({ type: 'default' });
-    h.session.packCompleted();
+    expect(h.session.packCompleted()).toBe('vault'); // the Vault takes over
     expect(h.loads).toEqual([]);
     expect(h.reports).toEqual(['game']);
     expect(h.session.mode()).toBe('default');
@@ -165,8 +165,8 @@ describe('createServedSession', () => {
     h.session.select({ type: 'content', contentId: 'edition-2026-10-15' });
     expect(h.session.mode()).toBe('daily');
     expect(h.loads).toEqual(['edition-2026-10-15']);
-    h.session.packCompleted();
-    h.session.packCompleted();
+    expect(h.session.packCompleted()).toBe('vault');
+    expect(h.session.packCompleted()).toBe('replay'); // already handed over
     h.session.select({ type: 'content', contentId: 'edition-2026-10-15' }); // a re-send
     h.session.packCompleted();
     expect(h.reports).toEqual(['content:edition-2026-10-15']);
@@ -176,7 +176,7 @@ describe('createServedSession', () => {
     const h = harness();
     h.session.select({ type: 'content', contentId: 'edition-2026-10-15' });
     h.setActive(null);
-    h.session.packCompleted();
+    expect(h.session.packCompleted()).toBe('replay'); // the game keeps the player
     expect(h.reports).toEqual([]);
   });
 
@@ -187,11 +187,11 @@ describe('createServedSession', () => {
       contentId: UNLOCKED_EDITIONS_CONTENT_ID,
     });
     expect(h.session.mode()).toBe('unlocked');
-    h.session.packCompleted();
-    h.session.packCompleted();
+    expect(h.session.packCompleted()).toBe('next-edition'); // the next edition loads; play goes on
+    expect(h.session.packCompleted()).toBe('next-edition');
     expect(h.reports).toEqual([]); // no per-edition report: it would end the session mid-walk
-    h.session.packCompleted();
-    h.session.packCompleted();
+    expect(h.session.packCompleted()).toBe('vault'); // the last one: the Vault takes over
+    expect(h.session.packCompleted()).toBe('replay');
     expect(h.loads).toEqual([
       'edition-2026-10-08',
       'edition-2026-10-14',

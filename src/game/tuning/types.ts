@@ -49,7 +49,7 @@ export interface JuiceConfig {
   /** Confetti showers on the win, and sparks in each (kept under the 80-particle budget). */
   winCascades: number;
   winCascadeSparks: number;
-  /** Seconds the win moment holds before the results screen, so the payoff reads. */
+  /** Seconds the win moment holds before the end card, so the payoff reads. */
   winHoldSec: number;
 }
 

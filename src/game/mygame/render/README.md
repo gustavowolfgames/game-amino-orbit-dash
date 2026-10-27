@@ -58,6 +58,13 @@ export class ScorePopups {
 }
 ```
 
+The end of a run is already a view: `endScreen.ts` draws the win / lose card
+(catalog `screen-results`) over the board, with its own flash and confetti when
+the juice kit is off, and `../screens/endOfPlay.ts` decides when it shows. Change its text in `endCopy`,
+its colours through the theme. Its stars and character are grey boxes until
+you publish a `core-results` atlas with the frames in `RESULTS_FRAMES` and add
+its bundle to `src/game/asset-manifest.ts`.
+
 Game feel (sparks, pops, flashes, the win beat) goes through one kit of verbs,
 `juice.ts`, triggered from the cue table's `run` hooks in `../screens/feedback.ts`.
 Each verb wraps a catalog module and cites the Carina pattern it follows; the

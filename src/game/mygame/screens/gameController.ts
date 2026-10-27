@@ -21,8 +21,10 @@
  *   • The sim and input stop while the settings menu is open (`settingsOpen`,
  *     set by `GameSettingsMenu`, the one menu on every screen) or the game is
  *     paused (space bar, core pause state).
- *   • A terminal phase (`won` / `lost`) hands off to the results screen, unless a
- *     new run starts first (`./runEnd.ts`).
+ *   • A terminal phase (`won` / `lost`) never leaves this screen: `./endOfPlay.ts`
+ *     records it, celebrates a win and brings up the win / lose card over the board
+ *     (`../render/endScreen.ts`), unless a new run starts first (`./runEnd.ts`).
+ *     A pack the Vault takes over shows no card.
  *
  * Keep this file thin (`bun run check:agent` caps it): game views, rules and
  * input live in their own folders. A turn-based game drops the frame loop and
@@ -30,20 +32,25 @@
  *
  * Lifecycle (world owned by world.ts, never disposed here):
  *   init:    getGameWorld() → build Pixi → startRun → start the fixed-step loop
- *   destroy: destroyed flag → stop loop → engine.destroy → kill tweens →
+ *   destroy: destroyed flag → stop loop → engine.destroy → end of play →
  *            renderer teardown → setActiveInspectorActions([])
  */
 
-// catalog: hud-display for the level/score HUD
-import { HudDisplay } from '@wolfgames/components/modules/primitives/hud-display';
+import type { HudDisplay } from '@wolfgames/components/modules/primitives/hud-display';
 import { DesignLayer, trackHostBox } from '@wolfgames/components/pixi';
-import { Application, type Container, Sprite, type Texture } from 'pixi.js';
+import {
+  Application,
+  Color,
+  type Container,
+  Sprite,
+  type Texture,
+} from 'pixi.js';
 import { createSignal } from 'solid-js';
 import { exposePixiApp } from '~/core/dev/pixiDevtools';
 import { setActiveInspectorActions } from '~/core/systems/ecs';
 import { pauseState } from '~/core/systems/pause';
 import { getTheme } from '~/game/brand';
-import { getActivePack, isLastLevel, levelAt } from '~/game/content';
+import { getActivePack, levelAt } from '~/game/content';
 import type {
   GameController,
   GameControllerDeps,
@@ -51,36 +58,27 @@ import type {
 } from '~/game/mygame-contract';
 import { settingsOpen } from '~/game/settingsOpen';
 import { carinaJuiceOn } from '~/game/setup/carina';
+import { whenContentSettled } from '~/game/setup/content';
 import { createRunAnalytics } from '~/game/setup/edition-analytics';
-import {
-  recordLevelWon,
-  resumeLevel,
-  saveProgress,
-} from '~/game/setup/progress';
-import { completeActivePack } from '~/game/setup/served-session';
+import { resumeLevel, saveProgress } from '~/game/setup/progress';
 import { GAME_DEFAULTS, type GameTuning } from '~/game/tuning';
 import { setLiveStart } from '../agent/agentPlugin';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
+import { createHud } from '../render/hud';
 import { createJuice, type Juice } from '../render/juice';
 import { loadGameTextures } from '../render/textures';
 import { drainEvents } from '../sim/events';
 import type { GameDatabase } from '../sim/plugin';
 import { stepWorld } from '../sim/schedule';
 import { getGameWorld } from '../world';
+import { createEndOfPlay, END_PAUSE, type EndOfPlay } from './endOfPlay';
 import { createFeedback, SOUNDS } from './feedback';
 import { type AudioSettings, createGameAudio } from './gameAudio';
-import { createRunEnd } from './runEnd';
+import { createSettledStart } from './settledStart';
 
-/** Delay (s) before handing off to results, so the last frame reads. */
-const END_PAUSE = 0.9;
-
-/** HUD placement in design px on DESIGN_CANVAS (390×844). hud-display spaces
- *  its entries for its default 20px text, so the whole group is scaled. */
-const HUD = { x: 13, y: 16, scale: 0.76 };
-
-/** Deps optionally carry `goto` (GameScreen injects it) for the results hop. */
+/** Deps optionally carry `goto` (GameScreen injects it) for the Main menu hop. */
 type Deps = GameControllerDeps & { goto?: (screen: string) => void };
 
 export const setupGame: SetupGame = (
@@ -88,8 +86,10 @@ export const setupGame: SetupGame = (
 ): GameController => {
   const deps = rawDeps as Deps;
   const [ariaText, setAriaText] = createSignal('Loading…');
-  // Settled by the loading screen before this screen exists; read once per run.
-  const theme = getTheme();
+  const [endScreenOpen, setEndScreenOpen] = createSignal(false);
+  // Settled by the loading screen before this screen exists; re-read when a Vault edition
+  // brings its own brand (`restyle`).
+  let theme = getTheme();
   // level_* + edition_* events (src/game/setup/edition-analytics.ts); no-ops without a service.
   const runAnalytics = createRunAnalytics(deps.analytics);
 
@@ -109,6 +109,7 @@ export const setupGame: SetupGame = (
   /** Full-bleed background (screen space). */
   let fieldBg: Sprite | null = null;
   let hud: HudDisplay | null = null;
+  let endOfPlay: EndOfPlay | null = null;
   /** Feedback verbs (sparks, flash, pop); played from the cue table's `run` hooks. */
   let juice: Juice | null = null;
   /** Feel numbers, live from tuning (`juice` in src/game/tuning). */
@@ -116,26 +117,6 @@ export const setupGame: SetupGame = (
     (deps.tuning.game as Partial<GameTuning>).juice ?? GAME_DEFAULTS.juice;
   /** Carina switch: `?carina=0|1` wins, else tuning. Read once per screen. */
   const juiceOn = carinaJuiceOn(feel().carina);
-
-  /** A terminal phase triggers one transition; a run restarted during the pause (by an agent,
-   *  say) cancels it (./runEnd.ts). */
-  const runEnd = createRunEnd({
-    // With juice on, hold long enough for the win payoff to read.
-    pause: () => (juiceOn ? feel().winHoldSec : END_PAUSE),
-    onEnd: (phase) => {
-      if (phase !== 'won' || !db) return;
-      const last = isLastLevel(db.resources.level);
-      runAnalytics.levelWon(db.resources.level, db.resources.score);
-      if (last) completeActivePack(); // the Vault served mode decides what a finished pack means
-      recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
-    },
-    afterPause: () => {
-      if (!destroyed) deps.goto?.('results');
-    },
-    // GSAP fires the delayed call before the frame's render: a run restarted since the
-    // last render must not be sent to results.
-    phase: () => db?.resources.phase ?? 'idle',
-  });
 
   // ── Audio + feedback ───────────────────────────────────────────────────────
   // The gear menu's volume and music toggle apply through `settings`; a missing
@@ -149,7 +130,7 @@ export const setupGame: SetupGame = (
     juice: () => juice,
     hud: () => hud,
     root: () => root,
-    theme,
+    theme: () => theme,
     tuning: feel,
     on: () => juiceOn,
     play: audio.play,
@@ -166,8 +147,20 @@ export const setupGame: SetupGame = (
       score: db.resources.score,
     });
     cues(drainEvents(db), db.resources.elapsedMs);
-    runEnd.update(db.resources.phase);
+    endOfPlay?.tick(dtSec);
+    endOfPlay?.handlePhase(db.resources.phase);
   };
+
+  /** A new edition's brand: the ground and HUD follow it (the end card reads `theme`). */
+  const restyle = () => {
+    if (getTheme() === theme) return;
+    theme = getTheme();
+    if (app) app.renderer.background.color = theme.ground;
+    if (root) buildHud(root);
+  };
+
+  /** Runs started on this screen, so a deferred start can tell another one beat it. */
+  let runsStarted = 0;
 
   /**
    * Start (or restart) a run on the right level of the active pack: the next one after a win,
@@ -176,7 +169,7 @@ export const setupGame: SetupGame = (
    */
   const startRun = () => {
     if (!db) return;
-    runEnd.reset();
+    endOfPlay?.reset();
     const pack = getActivePack();
     const prev = db.resources;
     // Read before the transaction: `prev` is the live resource object.
@@ -189,10 +182,23 @@ export const setupGame: SetupGame = (
     const index = next % pack.levels.length;
     const { seed, goal } = levelAt(index);
     db.transactions.startRun({ seed, goal, level: index, packId: pack.id });
+    runsStarted++;
     saveProgress(pack.id, index);
     runAnalytics.levelStarted(index, entry);
     setAriaText(`Level ${index + 1} of ${pack.levels.length}.`);
   };
+
+  /** The end card's Next and an agent's `start`: the next run, in the brand of any new
+   *  edition, once it has loaded (./settledStart.ts). */
+  const startWhenSettled = createSettledStart({
+    settled: whenContentSettled,
+    runsStarted: () => runsStarted,
+    alive: () => !destroyed,
+    start: () => {
+      restyle();
+      startRun();
+    },
+  });
 
   // ── Layout ────────────────────────────────────────────────────────────────
   // `trackHostBox` fits the renderer and `root`; this is its callback for the
@@ -219,24 +225,38 @@ export const setupGame: SetupGame = (
     fieldBg.eventMode = 'none';
     stage.addChild(fieldBg);
     stage.addChild(root);
-
-    hud = new HudDisplay({
-      entries: [
-        { key: 'level', label: 'LEVEL ', value: '' },
-        { key: 'score', label: 'SCORE ', value: 0 },
-      ],
-      direction: 'horizontal',
-      fill: theme.text,
-      fontFamily: theme.fonts.numeric,
-      stroke: '', // no outline: the theme colour reads on the theme ground
-    });
-    hud.scale.set(HUD.scale);
-    hud.position.set(HUD.x, HUD.y);
-    hud.eventMode = 'none';
-    root.addChild(hud);
+    buildHud(root);
 
     juice = createJuice();
-    root.addChild(juice.layer);
+    root.addChild(juice.layer); // over the board and HUD, under the end screen
+
+    const gpu = deps.coordinator.getGpuLoader();
+    if (gpu)
+      endOfPlay = createEndOfPlay({
+        root,
+        gpu,
+        world: () => db,
+        analytics: runAnalytics,
+        palette: () => ({
+          colors: theme.pieces,
+          flash: new Color(theme.accent).toNumber(),
+        }),
+        // With juice on, its win payoff plays instead of the card's own, and the card
+        // waits long enough for it to read.
+        celebrates: () => !juiceOn,
+        pause: () => (juiceOn ? feel().winHoldSec : END_PAUSE),
+        playOn: startWhenSettled,
+        toMenu: () => deps.goto?.('start'),
+        say: setAriaText,
+        onOpenChange: setEndScreenOpen,
+      });
+  };
+
+  /** The level/score HUD in the current theme (replaces the old one on a restyle). */
+  const buildHud = (parent: Container) => {
+    hud?.destroy();
+    hud = createHud(theme);
+    parent.addChildAt(hud, 0); // under the juice and the end screen
   };
 
   return {
@@ -282,12 +302,13 @@ export const setupGame: SetupGame = (
             application,
             root as DesignLayer,
             (point) => world.transactions.tap(point),
-            () => !(pauseState.paused() || settingsOpen()),
+            () => !(pauseState.paused() || settingsOpen() || endOfPlay?.open),
           );
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
-          setLiveStart(world, startRun); // an agent's `start` takes the same level flow
+          // An agent's `start` takes the same level flow as the card's Next.
+          setLiveStart(world, startWhenSettled);
           audio.music('audio-music'); // audio unlocked on the start-screen tap; respects the toggle
 
           engine = createTickerEngine();
@@ -321,7 +342,6 @@ export const setupGame: SetupGame = (
     destroy() {
       destroyed = true;
       if (db) setLiveStart(db, null); // no agent restarts under another screen
-      runEnd.reset();
       audio.stopAll();
       stopSim?.();
       stopRender?.();
@@ -336,12 +356,14 @@ export const setupGame: SetupGame = (
       const teardown = () => {
         releasePixiApp?.();
         releasePixiApp = null;
+        endOfPlay?.destroy();
+        endOfPlay = null;
+        juice?.destroy();
+        juice = null;
         app?.destroy(true, { children: true });
         app = null;
         hud?.destroy();
         hud = null;
-        juice?.destroy();
-        juice = null;
         root = null;
         // Textures live in Pixi's global Assets cache (keyed by URL) and are
         // reused across screens: just drop our reference, don't destroy them.
@@ -352,6 +374,10 @@ export const setupGame: SetupGame = (
       void (initPromise ? initPromise.then(teardown, teardown) : teardown());
     },
 
+    /** Keyboard (useGameKeyboard): the end card's buttons. The template's board takes none. */
+    input: (intent) => endOfPlay?.input(intent),
+
     ariaText,
+    endScreenOpen,
   };
 };

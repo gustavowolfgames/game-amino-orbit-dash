@@ -9,6 +9,7 @@
  *   ← → ↑ ↓ / W A S D   { type: 'move', dir }
  *   Space / Enter        { type: 'action' }   (Space also resumes when paused)
  *   Escape / P           toggle the scaffold pause
+ *   Escape               { type: 'back' } instead, while the game's end screen is up
  *
  * Space never toggles the scaffold's pause during play (ENG-4797): `useSpaceKey` catches it
  * before the global listener in `src/core/systems/pause/keyboard.ts` (read-only) sees it. While
@@ -48,7 +49,7 @@ const GAME_KEYS: Readonly<Record<string, GameIntent>> = {
 const PAUSE_KEYS: ReadonlySet<string> = new Set(['Escape', 'KeyP']);
 
 export function useGameKeyboard(
-  controller: Pick<GameController, 'input'>,
+  controller: Pick<GameController, 'input' | 'endScreenOpen'>,
 ): void {
   const send = (intent: GameIntent) => {
     if (pauseState.paused()) return;
@@ -65,6 +66,16 @@ export function useGameKeyboard(
   const onKey = (e: KeyboardEvent) => {
     if (settingsOpen() || e.ctrlKey || e.metaKey || e.altKey) return;
     if (controlOwnsKey(e.target, e.code)) return; // typing, or Enter on a focused button
+    // Paused over the card, Escape resumes first (the pause overlay is on top).
+    if (
+      e.code === 'Escape' &&
+      controller.endScreenOpen?.() &&
+      !pauseState.paused()
+    ) {
+      e.preventDefault();
+      if (!e.repeat) send({ type: 'back' }); // the end card's Main menu, not a pause
+      return;
+    }
     if (PAUSE_KEYS.has(e.code)) {
       e.preventDefault();
       if (!e.repeat) pauseState.toggle();

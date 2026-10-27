@@ -45,13 +45,20 @@ export interface ServedSessionDeps {
   reportGameCompleted(): void;
 }
 
+/**
+ * Where the end of a pack leads: the Vault takes over (a completion report went out, and the
+ * Vault shows its own end screen), the next edition of an unlocked walk starts, or the game
+ * keeps the player on this pack (outside a Vault, or a report that doesn't apply).
+ */
+export type PackEnd = 'vault' | 'next-edition' | 'replay';
+
 export interface ServedSession {
   /** The mode in force. */
   mode(): ServedModeName;
   /** Obey a Vault selection. Identical re-sends are ignored. */
   select(content: VaultGameContext['content']): void;
-  /** The active pack's last level was won. */
-  packCompleted(): void;
+  /** The active pack's last level was won: report, advance or neither (`PackEnd`). */
+  packCompleted(): PackEnd;
 }
 
 export function createServedSession(deps: ServedSessionDeps): ServedSession {
@@ -84,28 +91,30 @@ export function createServedSession(deps: ServedSessionDeps): ServedSession {
     },
 
     packCompleted() {
-      if (ended) return;
+      if (ended) return 'replay';
       switch (mode) {
         case 'default':
           // A pending deselection still has the edition in play — that run is not the default.
-          if (deps.activeContentId() === null) deps.reportGameCompleted();
-          return;
+          if (deps.activeContentId() !== null) return 'replay';
+          deps.reportGameCompleted();
+          return 'vault';
         case 'daily':
           // Only the edition itself completes the edition: a pack that failed to load (the
           // bundled one still in play) never reports it.
-          if (selected === null || deps.activeContentId() !== selected) return;
+          if (selected === null || deps.activeContentId() !== selected)
+            return 'replay';
           ended = true;
           deps.reportContentCompleted(selected);
-          return;
+          return 'vault';
         case 'unlocked': {
           const next = cursor?.advance() ?? null;
           if (next !== null) {
             deps.load(next);
-            return;
+            return 'next-edition';
           }
           ended = true;
           deps.reportGameCompleted();
-          return;
+          return 'vault';
         }
       }
     },
@@ -121,8 +130,8 @@ export function installServedSession(next: ServedSession | null): void {
 
 /**
  * The game controller's completion boundary: the active pack's last level was won. Routed through
- * the served mode; inert outside a Vault (no session installed).
+ * the served mode; outside a Vault (no session installed) it reports nothing and the pack replays.
  */
-export function completeActivePack(): void {
-  session?.packCompleted();
+export function completeActivePack(): PackEnd {
+  return session?.packCompleted() ?? 'replay';
 }

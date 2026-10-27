@@ -41,8 +41,9 @@ actions: {
   by the same rules.
 - `start` restarts by transaction in a headless world. On the running game's
   world it is offered only while the game screen is up: the controller installs
-  its own `startRun` with `setLiveStart(db, startRun)` (and `null` on destroy),
-  so an agent's restart gets the same seed, saved progress and analytics.
+  its own restart with `setLiveStart` (and `null` on destroy). That restart
+  waits for any new Vault edition to load, then runs `startRun`, so an agent's
+  restart gets the same pack, seed, saved progress and analytics as the player's.
 
 Rewrite `role` to say what the game is and how to win. Test new states and
 actions in `tests/unit/schedule.test.ts` (`createGameAgentWorld()`).
