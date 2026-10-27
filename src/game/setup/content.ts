@@ -49,8 +49,8 @@ let bootSelection: string | null = null;
 let warnedNoContext = false;
 
 /**
- * The Daily Editions schedule loaded at boot, for the Vault runtime's `content_catalog`. The
- * runtime starts after loading, so it is always settled by the time the bridge reads it.
+ * The Daily Editions schedule loaded at boot, the answer to the manager's `content_catalog`
+ * request. The request arrives on `ready`, after loading, so the list is settled by then.
  */
 export function getEditions(): readonly ScheduledContentMetadata[] {
   return editions;

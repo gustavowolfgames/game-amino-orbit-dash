@@ -6,8 +6,7 @@
  *                                   the game's *first inbound message* —
  *                                   whichever it is, not `ready` specifically —
  *                                   and again on every later selection)
- *   Game -> Vault: content_catalog (optional scheduling metadata)  ┐ startVaultRuntime
- *   Game -> Vault: ready           (first non-loading screen — see below)  ┘ in order
+ *   Game -> Vault: ready           (first non-loading screen — see below; startVaultRuntime)
  *   ... gameplay ...
  *   Game -> Vault: play_ended      (session exit only, never completion)
  *
@@ -20,7 +19,7 @@
  * so a delayed start costs a delayed context, never a dropped one.
  *
  * The SDK keeps a single active runtime: mount once, and route content handling
- * through the `onContext` / `catalog` props rather than a second call.
+ * through the `onContext` prop rather than a second call.
  *
  * Context is **unauthenticated**; never gate entitlement on it. `play_ended`
  * fires on session exit (`beforeunload`, plus SPA cleanup below), never on
@@ -29,7 +28,6 @@
 import {
   inVault,
   reportPlayEnded,
-  type ScheduledContentMetadata,
   startVaultRuntime,
   type VaultGameContext,
 } from '@wolfgames/client';
@@ -43,11 +41,6 @@ export interface VaultHostBridgeProps {
    * Identical re-sends are ignored. Omit for lifecycle-only (template default).
    */
   onContext?: (context: VaultGameContext) => void;
-  /**
-   * Temporary scheduling metadata (`{contentId, availableFrom}[]`), sent as
-   * `content_catalog` before `ready`. The Vault owns all selection and pacing.
-   */
-  catalog?: readonly ScheduledContentMetadata[];
 }
 
 /**
@@ -78,7 +71,6 @@ export function VaultHostBridge(props: VaultHostBridgeProps = {}) {
         }
         props.onContext?.(context);
       },
-      catalog: props.catalog,
     });
   });
 

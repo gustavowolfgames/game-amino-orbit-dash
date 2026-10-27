@@ -36,7 +36,7 @@ import type { GameDatabase, GamePhase } from '../sim/plugin';
 import { createRunEnd } from './runEnd';
 
 /** Delay (s) before the end card, so the last frame (and the confetti) reads. */
-const END_PAUSE = 0.9;
+export const END_PAUSE = 0.9;
 
 export interface EndOfPlayDeps {
   /** The game's design-space root: the card and its effects draw on top of the board here. */
@@ -47,6 +47,11 @@ export interface EndOfPlayDeps {
   analytics: RunAnalytics;
   /** Confetti and flash colours from the current theme. */
   palette: EndScreenOptions['palette'];
+  /** The card's own flash and confetti on a win; false while the juice kit plays the win
+   *  payoff (./feedback.ts). Default true. */
+  celebrates?: () => boolean;
+  /** Seconds from the end to the card (read at each end). Default `END_PAUSE`. */
+  pause?: () => number;
   /** Start the next run once any new edition has loaded (the controller's `startWhenSettled`). */
   playOn: () => Promise<void>;
   /** Main menu. */
@@ -91,7 +96,7 @@ export function createEndOfPlay(deps: EndOfPlayDeps): EndOfPlay {
 
   /** Once per terminal phase; a run restarted during the pause cancels the card (./runEnd.ts). */
   const runEnd = createRunEnd({
-    pause: END_PAUSE,
+    pause: deps.pause ?? END_PAUSE,
     onEnd: (phase) => {
       outcome = null;
       const db = deps.world();
@@ -104,7 +109,7 @@ export function createEndOfPlay(deps: EndOfPlayDeps): EndOfPlay {
       const next = last ? completeActivePack() : 'replay';
       if (won) {
         recordLevelWon(packId, level, last); // a reload resumes the next level
-        card.celebrate();
+        if (deps.celebrates?.() ?? true) card.celebrate();
       }
       if (next === 'vault') return; // the Vault's end screen, not ours
       outcome = {

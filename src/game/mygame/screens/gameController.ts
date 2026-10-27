@@ -12,8 +12,9 @@
  *     plus a per-frame `render` where the game projects ECS into its views
  *     (`../render/`).
  *   • Feedback: `render` drains the sim's events (`drainEvents`) once a frame
- *     and runs them through the cue table (`./cues.ts`): sound through
- *     `./gameAudio.ts`, the screen-reader line through `ariaText`.
+ *     and runs them through the cue table (`./feedback.ts`, built on `./cues.ts`):
+ *     sound through `./gameAudio.ts`, the screen-reader line through `ariaText`,
+ *     and the Carina juice kit (`../render/juice.ts`; `?carina=0` turns it off).
  *   • Content: each run plays one level of the active Content Pack (`levelAt`,
  *     src/game/content). Winning moves to the pack's next level; winning its last
  *     level reports the edition complete to the Vault.
@@ -56,30 +57,26 @@ import type {
   SetupGame,
 } from '~/game/mygame-contract';
 import { settingsOpen } from '~/game/settingsOpen';
+import { carinaJuiceOn } from '~/game/setup/carina';
 import { whenContentSettled } from '~/game/setup/content';
 import { createRunAnalytics } from '~/game/setup/edition-analytics';
 import { resumeLevel, saveProgress } from '~/game/setup/progress';
+import { GAME_DEFAULTS, type GameTuning } from '~/game/tuning';
 import { setLiveStart } from '../agent/agentPlugin';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
 import { createHud } from '../render/hud';
+import { createJuice, type Juice } from '../render/juice';
 import { loadGameTextures } from '../render/textures';
 import { drainEvents } from '../sim/events';
-import type { GameDatabase, GameEvent } from '../sim/plugin';
+import type { GameDatabase } from '../sim/plugin';
 import { stepWorld } from '../sim/schedule';
 import { getGameWorld } from '../world';
-import { createCues } from './cues';
-import { createEndOfPlay, type EndOfPlay } from './endOfPlay';
-import { createSettledStart } from './settledStart';
+import { createEndOfPlay, END_PAUSE, type EndOfPlay } from './endOfPlay';
+import { createFeedback, SOUNDS } from './feedback';
 import { type AudioSettings, createGameAudio } from './gameAudio';
-
-/** The audio channels this game plays (aliases in src/game/asset-manifest.ts). */
-const SOUNDS = {
-  sfx: ['sfx-pop', 'sfx-clear'],
-  music: ['audio-music'],
-} as const;
-type Sfx = (typeof SOUNDS.sfx)[number];
+import { createSettledStart } from './settledStart';
 
 /** Deps optionally carry `goto` (GameScreen injects it) for the Main menu hop. */
 type Deps = GameControllerDeps & { goto?: (screen: string) => void };
@@ -113,6 +110,13 @@ export const setupGame: SetupGame = (
   let fieldBg: Sprite | null = null;
   let hud: HudDisplay | null = null;
   let endOfPlay: EndOfPlay | null = null;
+  /** Feedback verbs (sparks, flash, pop); played from the cue table's `run` hooks. */
+  let juice: Juice | null = null;
+  /** Feel numbers, live from tuning (`juice` in src/game/tuning). */
+  const feel = () =>
+    (deps.tuning.game as Partial<GameTuning>).juice ?? GAME_DEFAULTS.juice;
+  /** Carina switch: `?carina=0|1` wins, else tuning. Read once per screen. */
+  const juiceOn = carinaJuiceOn(feel().carina);
 
   // ── Audio + feedback ───────────────────────────────────────────────────────
   // The gear menu's volume and music toggle apply through `settings`; a missing
@@ -121,33 +125,29 @@ export const setupGame: SetupGame = (
     ...SOUNDS,
     settings: deps.audio as AudioSettings | undefined,
   });
-  /** What each sim event sounds like and says (./cues.ts). */
-  const cues = createCues<GameEvent, Sfx>(
-    {
-      scored: { sfx: 'sfx-pop', gapMs: 60 },
-      phase: {
-        sfx: (e) => (e.phase === 'won' ? 'sfx-clear' : null),
-        aria: (e) =>
-          e.phase === 'won'
-            ? 'Level complete.'
-            : e.phase === 'lost'
-              ? 'Run over.'
-              : null,
-      },
-    },
-    { play: audio.play, say: setAriaText },
-  );
+  /** What each sim event sounds like, says, and does on screen (./feedback.ts). */
+  const cues = createFeedback({
+    juice: () => juice,
+    hud: () => hud,
+    root: () => root,
+    theme: () => theme,
+    tuning: feel,
+    on: () => juiceOn,
+    play: audio.play,
+    say: setAriaText,
+  });
 
   // ── Per-frame render (projection of ECS) ───────────────────────────────────
   // The game reconciles its views against ECS here, then plays the frame's events.
-  const render = (_dtSec: number) => {
+  const render = (dtSec: number) => {
     if (!db || destroyed) return;
+    juice?.tick(dtSec);
     hud?.setValues({
       level: `${db.resources.level + 1}/${getActivePack().levels.length}`,
       score: db.resources.score,
     });
     cues(drainEvents(db), db.resources.elapsedMs);
-    endOfPlay?.tick(_dtSec);
+    endOfPlay?.tick(dtSec);
     endOfPlay?.handlePhase(db.resources.phase);
   };
 
@@ -227,6 +227,9 @@ export const setupGame: SetupGame = (
     stage.addChild(root);
     buildHud(root);
 
+    juice = createJuice();
+    root.addChild(juice.layer); // over the board and HUD, under the end screen
+
     const gpu = deps.coordinator.getGpuLoader();
     if (gpu)
       endOfPlay = createEndOfPlay({
@@ -238,6 +241,10 @@ export const setupGame: SetupGame = (
           colors: theme.pieces,
           flash: new Color(theme.accent).toNumber(),
         }),
+        // With juice on, its win payoff plays instead of the card's own, and the card
+        // waits long enough for it to read.
+        celebrates: () => !juiceOn,
+        pause: () => (juiceOn ? feel().winHoldSec : END_PAUSE),
         playOn: startWhenSettled,
         toMenu: () => deps.goto?.('start'),
         say: setAriaText,
@@ -249,7 +256,7 @@ export const setupGame: SetupGame = (
   const buildHud = (parent: Container) => {
     hud?.destroy();
     hud = createHud(theme);
-    parent.addChildAt(hud, 0); // under the end screen
+    parent.addChildAt(hud, 0); // under the juice and the end screen
   };
 
   return {
@@ -351,6 +358,8 @@ export const setupGame: SetupGame = (
         releasePixiApp = null;
         endOfPlay?.destroy();
         endOfPlay = null;
+        juice?.destroy();
+        juice = null;
         app?.destroy(true, { children: true });
         app = null;
         hud?.destroy();

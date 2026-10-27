@@ -17,7 +17,8 @@ one does not imply the other.
 - **Hosted by Vault** — `inVault()` is true (the game was launched with the
   Vault's `wolfHost`/`wolfSurface` params). Host-driven, decided by the launch
   URL. `<VaultHostBridge />` always runs here and no-ops everywhere else.
-- **Daily mode** — the game passes a `catalog` and handles `content` selections.
+- **Daily mode** — the game handles `content` selections (and can answer the
+  manager's `content_catalog` request, below).
   This is **game-content-driven**: your game's own call about whether it has
   dated content to offer. There is no host-side or URL `daily` signal. A game
   can be Vault-hosted with no Daily Editions, or offer content without one.
@@ -25,8 +26,7 @@ one does not imply the other.
 ## The wire contract (0.1.36)
 
 ```
-Game -> Vault: content_catalog  (optional scheduling metadata)  ┐ startVaultRuntime
-Game -> Vault: ready            (first non-loading screen)       ┘ sends these in order
+Game -> Vault: ready            (first non-loading screen; startVaultRuntime)
 Vault -> Game: context          (re-sent on selection; may arrive the instant Vault sees `ready`)
 ... gameplay ...
 Game -> Vault: content_completed (per-content completion boundary; deduped)
@@ -54,7 +54,7 @@ interface VaultGameContext {
 
 `<VaultHostBridge />` is the **single owner** of `startVaultRuntime` for the
 app. On the first non-`loading` screen it subscribes the context listener,
-sends the optional `content_catalog`, then `ready` — in that order, once (a
+then sends `ready` — in that order, once (a
 later `results -> game` revisit must not restart it). It reports `play_ended`
 on session exit (`startVaultRuntime` fires it on `beforeunload`; the bridge
 also fires it on SPA cleanup). It reads `useScreen()` to time `ready`, so it
@@ -81,7 +81,7 @@ import { VaultHostBridge } from '~/integrations/vault';
 <VaultHostBridge />
 
 // content fork — pass handling in, no second bridge:
-<VaultHostBridge onContext={handleContext} catalog={myCatalog} />
+<VaultHostBridge onContext={handleContext} />
 ```
 
 `app.tsx` is game-owned and **not** covered by `amino-sync` — this wiring is
@@ -110,21 +110,20 @@ context changes) alongside content maps both from its one `onContext` handler.
 
 ## Daily Editions consumer seam
 
-Daily Editions are **opt-in and game-specific**, built from two SDK primitives
-re-exported from this module:
+Daily Editions are **opt-in and game-specific**, built from these SDK
+primitives:
 
-- **`catalog`** (via `<VaultHostBridge catalog={...} />`) — temporary
-  scheduling metadata, `readonly { contentId, availableFrom }[]`, sent as
-  `content_catalog` before `ready`. The Vault owns all sorting, selection and
-  pacing; this is metadata only. Read once when the runtime starts, so populate
-  it synchronously — an async/signal-built catalog still `undefined` then is
-  sent empty with no error.
+- **`defineGameData('content_catalog', provider)`** (from `@wolfgames/client`) —
+  answers the Game Manager when it asks for this game's schedule,
+  `{ items: readonly { contentId, availableFrom }[] }`. It runs only on that
+  request, never on a player launch. The game never sends the schedule unasked:
+  the Vault's own config is the only list of editions it plays.
 - **`onContext`** (via `<VaultHostBridge onContext={...} />`) — receives each
   resolved `VaultGameContext`. Map `content` onto your game's content:
   `{ type: 'default' }` → your normal/authored run; `{ type: 'content', contentId }`
   → resolve `contentId` and start it. Identical re-sends are ignored by the SDK.
   **Only `contentId` comes back on the wire** — the `availableFrom` date and any
-  other metadata you put in the `catalog` do *not* round-trip. The Vault treats
+  other metadata in your schedule do *not* round-trip. The Vault treats
   `contentId` as opaque; resolve the date/thumbnail/etc. from your own authored
   catalog by that id.
 - **`reportContentCompleted(contentId)`** — call at your game's completion
@@ -134,7 +133,7 @@ re-exported from this module:
   `gameSessionId`).
 
 To enable Daily mode, create **`src/game/setup/vault-content.tsx`** that owns
-your content mapping and either renders `<VaultHostBridge onContext=… catalog=…/>`
+your content mapping and either renders `<VaultHostBridge onContext=…/>`
 itself, or lifts those handlers up to the `app.tsx` mount. Mount inside
 `<ScreenProvider>` and under `<AssetProvider>`.
 
@@ -171,6 +170,7 @@ Each is genuinely game-specific and must be handled in your consumer:
 ### Consumer sketch (adapt to your content model)
 
 ```tsx
+import { defineGameData } from '@wolfgames/client';
 import { createSignal } from 'solid-js';
 import { useScreen } from '~/core';
 import {
@@ -183,6 +183,8 @@ import {
 const CATALOG: readonly ScheduledContentMetadata[] = [
   { contentId: 'my-pack-2026-09-01', availableFrom: '2026-09-01' },
 ];
+
+defineGameData('content_catalog', () => ({ items: CATALOG }));
 
 export function VaultContentBridge() {
   const { current } = useScreen();
@@ -206,7 +208,7 @@ export function VaultContentBridge() {
   // ...drain `pending` once past 'loading'; call
   // reportContentCompleted(contentId) at your completion boundary (hazard 1).
 
-  return <VaultHostBridge onContext={handleContext} catalog={CATALOG} />;
+  return <VaultHostBridge onContext={handleContext} />;
 }
 ```
 
