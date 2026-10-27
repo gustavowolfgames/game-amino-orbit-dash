@@ -13,6 +13,13 @@ export const ROOT = path.resolve(
 export const script = (name: string) =>
   path.join(ROOT, `scripts/amino-${name}.ts`);
 
+/**
+ * The fixture's amino repo, passed to every CLI run as `AMINO_URL`: amino-sync and
+ * amino-drift refuse a remote that is not the real template unless it is named there.
+ * Set by `createAminoAndGame`; an explicit `env` wins.
+ */
+let fixtureAminoUrl: string | undefined;
+
 export function runIn(
   dir: string,
   cmd: string,
@@ -22,7 +29,11 @@ export function runIn(
     cwd: dir,
     encoding: 'utf-8',
     stdio: ['pipe', 'pipe', 'pipe'],
-    env: { ...process.env, ...env },
+    env: {
+      ...process.env,
+      ...(fixtureAminoUrl ? { AMINO_URL: fixtureAminoUrl } : {}),
+      ...env,
+    },
     timeout: 15000,
   });
 }
@@ -89,6 +100,7 @@ export function createAminoAndGame(version: string): {
   commitAll(gameDir, 'customize game');
   // The scripts default to a remote named "amino".
   runIn(gameDir, 'git remote rename origin amino');
+  fixtureAminoUrl = aminoDir;
 
   return { base, aminoDir, gameDir };
 }

@@ -19,7 +19,6 @@
  */
 
 import type { Container } from 'pixi.js';
-import gsap from 'gsap';
 import type { PixiLoader } from '~/core/systems/assets';
 import { pauseState } from '~/core/systems/pause';
 import { isLastLevel } from '~/game/content';
@@ -29,8 +28,13 @@ import { whenContentSettled } from '~/game/setup/content';
 import type { RunAnalytics } from '~/game/setup/edition-analytics';
 import { recordLevelWon } from '~/game/setup/progress';
 import { completeActivePack } from '~/game/setup/served-session';
-import { createEndScreen, type EndScreenOptions } from '../render/endScreen';
+import {
+  createEndScreen,
+  type EndOutcome,
+  type EndScreenOptions,
+} from '../render/endScreen';
 import type { GameDatabase, GamePhase } from '../sim/plugin';
+import { createRunEnd } from './runEnd';
 
 /** Delay (s) before the end card, so the last frame (and the confetti) reads. */
 const END_PAUSE = 0.9;
@@ -68,9 +72,9 @@ export interface EndOfPlay {
 }
 
 export function createEndOfPlay(deps: EndOfPlayDeps): EndOfPlay {
-  let handled: GamePhase | null = null;
   let destroyed = false;
-  let pending: gsap.core.Tween | null = null;
+  /** The card the current end will show; null when the Vault takes over. */
+  let outcome: EndOutcome | null = null;
 
   /** Next / Try again / Play again. A finished pack in the Vault's unlocked walk has started
    *  loading the next edition; wait for it (bounded) so the run starts there. */
@@ -87,14 +91,11 @@ export function createEndOfPlay(deps: EndOfPlayDeps): EndOfPlay {
     onOpenChange: deps.onOpenChange,
   });
 
-  return {
-    get open() {
-      return card.open;
-    },
-
-    handlePhase(phase) {
-      if (phase === 'playing' || phase === 'idle' || phase === handled) return;
-      handled = phase;
+  /** Once per terminal phase; a run restarted during the pause cancels the card (./runEnd.ts). */
+  const runEnd = createRunEnd({
+    pause: END_PAUSE,
+    onEnd: (phase) => {
+      outcome = null;
       const db = deps.world();
       if (!db) return;
       const { level, score, packId } = db.resources;
@@ -108,22 +109,32 @@ export function createEndOfPlay(deps: EndOfPlayDeps): EndOfPlay {
         card.celebrate();
       }
       if (next === 'vault') return; // the Vault's end screen, not ours
-      const outcome = {
+      outcome = {
         won,
         packDone: last,
         nextEdition: next === 'next-edition',
         level,
         score,
       };
-      pending = gsap.delayedCall(END_PAUSE, () => {
-        if (!destroyed) deps.say(card.show(outcome));
-      });
+    },
+    afterPause: () => {
+      if (!destroyed && outcome) deps.say(card.show(outcome));
+    },
+    phase: () => deps.world()?.resources.phase ?? 'idle',
+  });
+
+  return {
+    get open() {
+      return card.open;
+    },
+
+    handlePhase(phase) {
+      runEnd.update(phase);
     },
 
     reset() {
-      handled = null;
-      pending?.kill();
-      pending = null;
+      runEnd.reset();
+      outcome = null;
       if (card.open) card.hide(); // the Inspector's restart, mid-card
     },
 
@@ -140,8 +151,7 @@ export function createEndOfPlay(deps: EndOfPlayDeps): EndOfPlay {
 
     destroy() {
       destroyed = true;
-      pending?.kill();
-      pending = null;
+      runEnd.reset();
       card.destroy();
     },
   };

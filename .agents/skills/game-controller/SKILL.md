@@ -5,7 +5,7 @@ description: Keep setupGame a thin Pixi bridge. Use when editing gameController.
 
 # Game controller
 
-`setupGame` in `src/game/mygame/screens/gameController.ts` returns the contract in `src/game/mygame-contract.ts`. The contract is `init`, `destroy`, `ariaText`, and an optional `gameMode`. It defaults to `'dom'`, so a Pixi game sets `gameMode: 'pixi'`. `GameScreen` calls `init`.
+`setupGame` in `src/game/mygame/screens/gameController.ts` returns the contract in `src/game/mygame-contract.ts`. The contract is `init`, `destroy`, `ariaText`, an optional `input(intent)`, and an optional `gameMode`. It defaults to `'dom'`, so a Pixi game sets `gameMode: 'pixi'`. `GameScreen` calls `init`.
 
 The controller may do four things.
 
@@ -22,7 +22,7 @@ The template's controller is thin: the renderer, the level flow, the fixed-step 
 
 `scripts/check-agent-surface.mjs` fails when a new game's `gameController.ts` grows past `CONTROLLER_MAX_LINES` (400). Move the new function into a sibling module. Do not raise the cap.
 
-Keyboard listeners do not belong here. The controller exposes an input method (`input('left')`), and a Solid screen hook in `src/game/screens/` calls it. See `.agents/recipes/guardrails.md`.
+Keyboard listeners do not belong here. `useGameKeyboard` (`src/game/screens/useGameKeyboard.ts`, called by `GameScreen.tsx`) maps keys to a `GameIntent` and calls the controller's optional `input(intent)`. The template's `setupGame` does not implement `input`, so every key intent is dropped until the game adds one that turns the intent into a transaction or queues it. Pointer input is `bindTapInput` in `src/game/mygame/input/pointer.ts`. Change the key map and the `GameIntent` union in `src/game/mygame-contract.ts` for the game. See `.agents/recipes/guardrails.md`.
 
 End of play stays on the game screen. A terminal phase (`won` / `lost`) goes to `src/game/mygame/screens/endOfPlay.ts`: it records the win, celebrates (flash and confetti), and after a beat brings up the end card over the board (`src/game/mygame/render/endScreen.ts`, catalog `screen-results`). Its primary button starts the next run with no screen change; Main menu is `deps.goto?.('start')`. When the Vault takes over a finished pack (`completeActivePack()` returns `'vault'`), the game shows no card. The card's text is `endCopy` in `endScreen.ts`; its stars and character are grey boxes (`ensureResultsArt`) until the game publishes a `core-results` atlas and adds its bundle to `src/game/asset-manifest.ts`. Put more end-of-run behaviour in `endOfPlay.ts`, not the controller.
 

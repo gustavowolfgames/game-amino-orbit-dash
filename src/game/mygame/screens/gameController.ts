@@ -22,7 +22,8 @@
  *     paused (space bar, core pause state).
  *   • A terminal phase (`won` / `lost`) never leaves this screen: `./endOfPlay.ts`
  *     records it, celebrates a win and brings up the win / lose card over the board
- *     (`../render/endScreen.ts`). A pack the Vault takes over shows no card.
+ *     (`../render/endScreen.ts`), unless a new run starts first (`./runEnd.ts`).
+ *     A pack the Vault takes over shows no card.
  *
  * Keep this file thin (`bun run check:agent` caps it): game views, rules and
  * input live in their own folders. A turn-based game drops the frame loop and
@@ -57,6 +58,7 @@ import type {
 import { settingsOpen } from '~/game/settingsOpen';
 import { createRunAnalytics } from '~/game/setup/edition-analytics';
 import { resumeLevel, saveProgress } from '~/game/setup/progress';
+import { setLiveStart } from '../agent/agentPlugin';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
@@ -283,6 +285,7 @@ export const setupGame: SetupGame = (
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
+          setLiveStart(world, startRun); // an agent's `start` takes the same level flow
           audio.music('audio-music'); // audio unlocked on the start-screen tap; respects the toggle
 
           engine = createTickerEngine();
@@ -315,6 +318,7 @@ export const setupGame: SetupGame = (
 
     destroy() {
       destroyed = true;
+      if (db) setLiveStart(db, null); // no agent restarts under another screen
       audio.stopAll();
       stopSim?.();
       stopRender?.();
