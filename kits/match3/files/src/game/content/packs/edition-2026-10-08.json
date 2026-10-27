@@ -1,0 +1,23 @@
+{
+  "id": "edition-2026-10-08",
+  "blocks": [
+    {
+      "id": "edition-2026-10-08",
+      "name": "October 8, 2026",
+      "levels": [
+        {
+          "seed": 11,
+          "goal": 15,
+          "goalColor": "yellow",
+          "moves": 20
+        },
+        {
+          "seed": 12,
+          "goal": 25,
+          "goalColor": "purple",
+          "moves": 20
+        }
+      ]
+    }
+  ]
+}

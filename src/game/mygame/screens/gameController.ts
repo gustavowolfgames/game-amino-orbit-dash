@@ -21,7 +21,8 @@
  *   • The sim and input stop while the settings menu is open (`settingsOpen`,
  *     set by `GameSettingsMenu`, the one menu on every screen) or the game is
  *     paused (space bar, core pause state).
- *   • A terminal phase (`won` / `lost`) hands off to the results screen.
+ *   • A terminal phase (`won` / `lost`) hands off to the results screen, unless a
+ *     new run starts first (`./runEnd.ts`).
  *
  * Keep this file thin (`bun run check:agent` caps it): game views, rules and
  * input live in their own folders. A turn-based game drops the frame loop and
@@ -36,7 +37,6 @@
 // catalog: hud-display for the level/score HUD
 import { HudDisplay } from '@wolfgames/components/modules/primitives/hud-display';
 import { DesignLayer, trackHostBox } from '@wolfgames/components/pixi';
-import gsap from 'gsap';
 import { Application, type Container, Sprite, type Texture } from 'pixi.js';
 import { createSignal } from 'solid-js';
 import { exposePixiApp } from '~/core/dev/pixiDevtools';
@@ -59,17 +59,19 @@ import {
 } from '~/game/setup/progress';
 import { completeActivePack } from '~/game/setup/served-session';
 import { GAME_DEFAULTS, type GameTuning } from '~/game/tuning';
+import { setLiveStart } from '../agent/agentPlugin';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
 import { createJuice, type Juice } from '../render/juice';
 import { loadGameTextures } from '../render/textures';
 import { drainEvents } from '../sim/events';
-import type { GameDatabase, GamePhase } from '../sim/plugin';
+import type { GameDatabase } from '../sim/plugin';
 import { stepWorld } from '../sim/schedule';
 import { getGameWorld } from '../world';
 import { createFeedback, SOUNDS } from './feedback';
 import { type AudioSettings, createGameAudio } from './gameAudio';
+import { createRunEnd } from './runEnd';
 
 /** Delay (s) before handing off to results, so the last frame reads. */
 const END_PAUSE = 0.9;
@@ -115,8 +117,25 @@ export const setupGame: SetupGame = (
   /** Carina switch: `?carina=0|1` wins, else tuning. Read once per screen. */
   const juiceOn = carinaJuiceOn(feel().carina);
 
-  /** Guard so a terminal phase only triggers one transition. */
-  let handledPhase: GamePhase | null = null;
+  /** A terminal phase triggers one transition; a run restarted during the pause (by an agent,
+   *  say) cancels it (./runEnd.ts). */
+  const runEnd = createRunEnd({
+    // With juice on, hold long enough for the win payoff to read.
+    pause: () => (juiceOn ? feel().winHoldSec : END_PAUSE),
+    onEnd: (phase) => {
+      if (phase !== 'won' || !db) return;
+      const last = isLastLevel(db.resources.level);
+      runAnalytics.levelWon(db.resources.level, db.resources.score);
+      if (last) completeActivePack(); // the Vault served mode decides what a finished pack means
+      recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
+    },
+    afterPause: () => {
+      if (!destroyed) deps.goto?.('results');
+    },
+    // GSAP fires the delayed call before the frame's render: a run restarted since the
+    // last render must not be sent to results.
+    phase: () => db?.resources.phase ?? 'idle',
+  });
 
   // ── Audio + feedback ───────────────────────────────────────────────────────
   // The gear menu's volume and music toggle apply through `settings`; a missing
@@ -147,24 +166,7 @@ export const setupGame: SetupGame = (
       score: db.resources.score,
     });
     cues(drainEvents(db), db.resources.elapsedMs);
-    handlePhase(db.resources.phase);
-  };
-
-  const handlePhase = (phase: GamePhase) => {
-    if (phase === 'playing' || phase === 'idle' || phase === handledPhase) {
-      return;
-    }
-    handledPhase = phase;
-    if (phase === 'won') {
-      const last = !!db && isLastLevel(db.resources.level);
-      if (db) runAnalytics.levelWon(db.resources.level, db.resources.score);
-      if (last) completeActivePack(); // the Vault served mode decides what a finished pack means
-      if (db) recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
-    }
-    // With juice on, hold long enough for the win payoff to read.
-    gsap.delayedCall(juiceOn ? feel().winHoldSec : END_PAUSE, () => {
-      if (!destroyed) deps.goto?.('results');
-    });
+    runEnd.update(db.resources.phase);
   };
 
   /**
@@ -174,7 +176,7 @@ export const setupGame: SetupGame = (
    */
   const startRun = () => {
     if (!db) return;
-    handledPhase = null;
+    runEnd.reset();
     const pack = getActivePack();
     const prev = db.resources;
     // Read before the transaction: `prev` is the live resource object.
@@ -285,6 +287,7 @@ export const setupGame: SetupGame = (
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
+          setLiveStart(world, startRun); // an agent's `start` takes the same level flow
           audio.music('audio-music'); // audio unlocked on the start-screen tap; respects the toggle
 
           engine = createTickerEngine();
@@ -317,6 +320,8 @@ export const setupGame: SetupGame = (
 
     destroy() {
       destroyed = true;
+      if (db) setLiveStart(db, null); // no agent restarts under another screen
+      runEnd.reset();
       audio.stopAll();
       stopSim?.();
       stopRender?.();

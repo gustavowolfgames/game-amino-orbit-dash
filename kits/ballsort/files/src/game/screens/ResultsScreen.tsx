@@ -1,0 +1,94 @@
+import { useScreen } from '~/core/systems/screens';
+import { Button } from '~/core/ui/Button';
+import { getActivePack } from '~/game/content';
+import { starsFor } from '~/game/mygame/sim/rules/ballSort';
+import { getGameWorld } from '~/game/mygame/world';
+import { whenContentSettled } from '~/game/setup/content';
+
+export function ResultsScreen() {
+  const { goto } = useScreen();
+
+  // Read the final score straight from the app-scoped ECS world — the single
+  // source of truth. It's final by the time this screen shows; a plain read is
+  // correct (no signals clipboard). The next run resets on game-screen init.
+  const { runMoves, runPar, level, phase } = getGameWorld().resources;
+  const won = phase === 'won';
+  const packDone = won && level >= getActivePack().levels.length - 1;
+  // Stars from the run's total moves against the summed par of the levels played.
+  const stars = starsFor(runMoves, runPar);
+
+  // A finished pack in the Vault's unlocked walk has started loading the next edition
+  // (src/game/setup/served-session.ts); wait for it (bounded) so the next run starts there.
+  // Otherwise the settled promise is already resolved.
+  const handlePlayAgain = async () => {
+    await whenContentSettled();
+    goto('game');
+  };
+
+  const handleMainMenu = () => {
+    goto('start');
+  };
+
+  // Colours and type come from the brand theme's CSS variables (src/game/brand/theme.ts),
+  // so a published partner sheet restyles this screen with no code change.
+  return (
+    // Fully-DOM screen: `design-box-span` so it fills the frame rather than the
+    // canvas, and `pointer-events-auto` to take its events back — GameShell passes
+    // them through for the sake of the gameplay screen's canvas.
+    <div
+      class="design-box-span pointer-events-auto flex flex-col items-center justify-center px-6"
+      style={{
+        background: 'var(--brand-ground)',
+        color: 'var(--brand-text)',
+        'font-family': 'var(--font-body)',
+      }}
+    >
+      <h1
+        class="text-3xl font-bold mb-2"
+        style={{ 'font-family': 'var(--font-display)' }}
+      >
+        {packDone
+          ? 'All Levels Complete'
+          : won
+            ? `Level ${level + 1} Complete`
+            : 'Game Over'}
+      </h1>
+
+      <div class="text-center mb-8">
+        <p
+          class="text-5xl mb-4"
+          role="img"
+          aria-label={`${stars} of 3 stars`}
+          style={{ color: 'var(--brand-accent)', 'letter-spacing': '0.15em' }}
+        >
+          {'★'.repeat(stars)}
+          <span style={{ opacity: 0.25 }}>{'★'.repeat(3 - stars)}</span>
+        </p>
+        <p class="text-sm mb-1" style={{ color: 'var(--brand-muted)' }}>
+          Total moves
+        </p>
+        <p
+          class="text-5xl font-bold"
+          style={{
+            color: 'var(--brand-accent)',
+            'font-family': 'var(--font-numeric)',
+          }}
+        >
+          {runMoves}
+        </p>
+        <p class="text-xs mt-1" style={{ color: 'var(--brand-muted)' }}>
+          Par {runPar}
+        </p>
+      </div>
+
+      <div class="flex gap-4">
+        <Button onClick={handlePlayAgain}>
+          {won && !packDone ? 'Next Level' : 'Play Again'}
+        </Button>
+        <Button variant="secondary" onClick={handleMainMenu}>
+          Main Menu
+        </Button>
+      </div>
+    </div>
+  );
+}

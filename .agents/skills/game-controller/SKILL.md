@@ -5,7 +5,7 @@ description: Keep setupGame a thin Pixi bridge. Use when editing gameController.
 
 # Game controller
 
-`setupGame` in `src/game/mygame/screens/gameController.ts` returns the contract in `src/game/mygame-contract.ts`. The contract is `init`, `destroy`, `ariaText`, and an optional `gameMode`. It defaults to `'dom'`, so a Pixi game sets `gameMode: 'pixi'`. `GameScreen` calls `init`.
+`setupGame` in `src/game/mygame/screens/gameController.ts` returns the contract in `src/game/mygame-contract.ts`. The contract is `init`, `destroy`, `ariaText`, an optional `input(intent)`, and an optional `gameMode`. It defaults to `'dom'`, so a Pixi game sets `gameMode: 'pixi'`. `GameScreen` calls `init`.
 
 The controller may do four things.
 
@@ -22,7 +22,7 @@ The template's controller is thin: the renderer, the level flow, the fixed-step 
 
 `scripts/check-agent-surface.mjs` fails when a new game's `gameController.ts` grows past `CONTROLLER_MAX_LINES` (400). Move the new function into a sibling module. Do not raise the cap.
 
-Keyboard listeners do not belong here. The controller exposes an input method (`input('left')`), and a Solid screen hook in `src/game/screens/` calls it. See `.agents/recipes/guardrails.md`.
+Keyboard listeners do not belong here. `useGameKeyboard` (`src/game/screens/useGameKeyboard.ts`, called by `GameScreen.tsx`) maps keys to a `GameIntent` and calls the controller's optional `input(intent)`. The template's `setupGame` does not implement `input`, so every key intent is dropped until the game adds one that turns the intent into a transaction or queues it. Pointer input is `bindTapInput` in `src/game/mygame/input/pointer.ts`. Change the key map and the `GameIntent` union in `src/game/mygame-contract.ts` for the game. See `.agents/recipes/guardrails.md`.
 
 Screen ids are `loading`, `start`, `game`, and `results` (`src/core/systems/screens/types.ts`). There is no `game_over`. End of play is `deps.goto?.('results')`. Home is `deps.goto?.('start')`. `deps.goto` is typed `(screen: string) => void`, so a wrong id compiles and fails at runtime. Do not construct a second `Application` for the results screen.
 

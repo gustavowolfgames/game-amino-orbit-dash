@@ -32,7 +32,8 @@
     "check:agent": "node scripts/check-agent-surface.mjs && node scripts/check-snippets.mjs && bun run check:assets && bun run check:manifest",
     "check": "nucleo game check local",
     "check:fix": "nucleo game check local --fix",
-    "prebuild": "nucleo game check local --tier 0 --no-commit-hooks --warn-only || echo \"[prebuild] nucleo not available; skipped game checks\""
+    "prebuild": "nucleo game check local --tier 0 --no-commit-hooks --warn-only || echo \"[prebuild] nucleo not available; skipped game checks\"",
+    "add-kit": "node scripts/add-kit.mjs"
   },
   "dependencies": {
     "@adobe/data": "^0.9.103",

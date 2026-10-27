@@ -1,0 +1,29 @@
+{
+  "id": "default",
+  "blocks": [
+    {
+      "id": "basics",
+      "name": "Basics",
+      "levels": [
+        {
+          "seed": 1,
+          "goal": 15,
+          "goalColor": "red",
+          "moves": 20
+        },
+        {
+          "seed": 2,
+          "goal": 20,
+          "goalColor": "blue",
+          "moves": 20
+        },
+        {
+          "seed": 3,
+          "goal": 25,
+          "goalColor": "green",
+          "moves": 20
+        }
+      ]
+    }
+  ]
+}

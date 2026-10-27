@@ -1,0 +1,26 @@
+{
+  "id": "default",
+  "blocks": [
+    {
+      "id": "basics",
+      "name": "Basics",
+      "levels": [
+        {
+          "seed": 1,
+          "colors": 4,
+          "par": 12
+        },
+        {
+          "seed": 2,
+          "colors": 5,
+          "par": 22
+        },
+        {
+          "seed": 3,
+          "colors": 7,
+          "par": 40
+        }
+      ]
+    }
+  ]
+}
