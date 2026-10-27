@@ -24,7 +24,6 @@ import { pauseState } from '~/core/systems/pause';
 import { isLastLevel } from '~/game/content';
 import type { GameIntent } from '~/game/mygame-contract';
 import { settingsOpen } from '~/game/settingsOpen';
-import { whenContentSettled } from '~/game/setup/content';
 import type { RunAnalytics } from '~/game/setup/edition-analytics';
 import { recordLevelWon } from '~/game/setup/progress';
 import { completeActivePack } from '~/game/setup/served-session';
@@ -48,8 +47,8 @@ export interface EndOfPlayDeps {
   analytics: RunAnalytics;
   /** Confetti and flash colours from the current theme. */
   palette: EndScreenOptions['palette'];
-  /** Start the next run (the controller's `startRun`, after it re-reads the brand). */
-  playOn: () => void;
+  /** Start the next run once any new edition has loaded (the controller's `startWhenSettled`). */
+  playOn: () => Promise<void>;
   /** Main menu. */
   toMenu: () => void;
   /** The card's screen-reader line. */
@@ -77,11 +76,10 @@ export function createEndOfPlay(deps: EndOfPlayDeps): EndOfPlay {
   let outcome: EndOutcome | null = null;
 
   /** Next / Try again / Play again. A finished pack in the Vault's unlocked walk has started
-   *  loading the next edition; wait for it (bounded) so the run starts there. */
-  const playOn = async () => {
+   *  loading the next edition; the controller waits for it (bounded) so the run starts there. */
+  const playOn = () => {
     card.hide();
-    await whenContentSettled();
-    if (!destroyed) deps.playOn();
+    void deps.playOn();
   };
 
   const card = createEndScreen(deps.root, deps.gpu, {

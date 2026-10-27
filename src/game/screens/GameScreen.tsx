@@ -107,9 +107,10 @@ export default function GameScreen() {
         </div>
 
         {/* The end card's buttons are canvas: these give screen readers (touch ones too) real
-          buttons for the same two actions, through the same intents as the keyboard. */}
+          buttons for the same two actions, through the same intents as the keyboard. Hidden until
+          one has keyboard focus, then shown (src/app.css), so Tab shows what Enter will press. */}
         <Show when={controller.endScreenOpen?.()}>
-          <div class="sr-only">
+          <div class="sr-only end-card-actions">
             <button
               type="button"
               onClick={() => controller.input?.({ type: 'action' })}

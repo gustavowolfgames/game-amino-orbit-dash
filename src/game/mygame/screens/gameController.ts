@@ -71,6 +71,7 @@ import { stepWorld } from '../sim/schedule';
 import { getGameWorld } from '../world';
 import { createCues } from './cues';
 import { createEndOfPlay, type EndOfPlay } from './endOfPlay';
+import { createSettledStart } from './settledStart';
 import { type AudioSettings, createGameAudio } from './gameAudio';
 
 /** The audio channels this game plays (aliases in src/game/asset-manifest.ts). */
@@ -158,6 +159,9 @@ export const setupGame: SetupGame = (
     if (root) buildHud(root);
   };
 
+  /** Runs started on this screen, so a deferred start can tell another one beat it. */
+  let runsStarted = 0;
+
   /**
    * Start (or restart) a run on the right level of the active pack: the next one after a win,
    * the same one on a restart, the first one when the pack changed (a Vault edition arrived).
@@ -178,10 +182,23 @@ export const setupGame: SetupGame = (
     const index = next % pack.levels.length;
     const { seed, goal } = levelAt(index);
     db.transactions.startRun({ seed, goal, level: index, packId: pack.id });
+    runsStarted++;
     saveProgress(pack.id, index);
     runAnalytics.levelStarted(index, entry);
     setAriaText(`Level ${index + 1} of ${pack.levels.length}.`);
   };
+
+  /** The end card's Next and an agent's `start`: the next run, in the brand of any new
+   *  edition, once it has loaded (./settledStart.ts). */
+  const startWhenSettled = createSettledStart({
+    settled: whenContentSettled,
+    runsStarted: () => runsStarted,
+    alive: () => !destroyed,
+    start: () => {
+      restyle();
+      startRun();
+    },
+  });
 
   // ── Layout ────────────────────────────────────────────────────────────────
   // `trackHostBox` fits the renderer and `root`; this is its callback for the
@@ -221,10 +238,7 @@ export const setupGame: SetupGame = (
           colors: theme.pieces,
           flash: new Color(theme.accent).toNumber(),
         }),
-        playOn: () => {
-          restyle();
-          startRun();
-        },
+        playOn: startWhenSettled,
         toMenu: () => deps.goto?.('start'),
         say: setAriaText,
         onOpenChange: setEndScreenOpen,
@@ -286,12 +300,8 @@ export const setupGame: SetupGame = (
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
-          // An agent's `start` takes the same level flow, after any new Vault edition has
-          // loaded (the card's Next waits the same way).
-          setLiveStart(world, async () => {
-            await whenContentSettled();
-            if (!destroyed) startRun();
-          });
+          // An agent's `start` takes the same level flow as the card's Next.
+          setLiveStart(world, startWhenSettled);
           audio.music('audio-music'); // audio unlocked on the start-screen tap; respects the toggle
 
           engine = createTickerEngine();

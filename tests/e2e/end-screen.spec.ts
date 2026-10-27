@@ -97,3 +97,21 @@ test('screen readers get real buttons for the card', async ({ page }) => {
   await page.getByRole('button', { name: 'Main menu' }).dispatchEvent('click');
   await expect(page.locator('#app canvas')).toHaveCount(0, { timeout: 10_000 }); // the title screen is DOM
 });
+
+test('Tab shows the focused card button, and Enter presses it', async ({
+  page,
+}) => {
+  await winLevelOne(page);
+  await page.waitForTimeout(3100);
+  const menu = page.getByRole('button', { name: 'Main menu' });
+  for (let i = 0; i < 6; i++) {
+    if (await menu.evaluate((el) => el === document.activeElement)) break;
+    await page.keyboard.press('Tab');
+  }
+  await expect(menu).toBeFocused();
+  // Revealed while it has keyboard focus (it is clipped to 1px otherwise).
+  const box = await menu.boundingBox();
+  expect(box?.width ?? 0).toBeGreaterThan(20);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#app canvas')).toHaveCount(0, { timeout: 10_000 });
+});
