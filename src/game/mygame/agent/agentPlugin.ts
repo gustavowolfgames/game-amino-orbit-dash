@@ -35,7 +35,7 @@ const pointSchema = {
   },
 } as const satisfies Schema;
 
-type Start = () => void;
+type Start = () => void | Promise<void>;
 
 /** Each world's `start` setter, filled in when its agent service is built. */
 const liveStarts = new WeakMap<GameDatabase, (start: Start | null) => void>();

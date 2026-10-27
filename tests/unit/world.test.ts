@@ -33,4 +33,29 @@ describe('getGameWorld', () => {
     expect(await db.services.agent.execute('start', {})).toBeTruthy();
     expect(starts).toEqual([1]);
   });
+
+  it('`start` completes only after an async restart does (a new Vault edition loading)', async () => {
+    const db = getGameWorld();
+    let settle = () => {};
+    const settled = new Promise<void>((resolve) => {
+      settle = resolve;
+    });
+    const starts: string[] = [];
+    setLiveStart(db, async () => {
+      await settled; // the controller awaits whenContentSettled()
+      starts.push('run');
+    });
+
+    let done = false;
+    const call = db.services.agent.execute('start', {}).then(() => {
+      done = true;
+    });
+    await Promise.resolve();
+    expect(done).toBe(false); // still waiting on the content
+    expect(starts).toEqual([]);
+
+    settle();
+    await call;
+    expect(starts).toEqual(['run']);
+  });
 });

@@ -56,6 +56,7 @@ import type {
   SetupGame,
 } from '~/game/mygame-contract';
 import { settingsOpen } from '~/game/settingsOpen';
+import { whenContentSettled } from '~/game/setup/content';
 import { createRunAnalytics } from '~/game/setup/edition-analytics';
 import { resumeLevel, saveProgress } from '~/game/setup/progress';
 import { setLiveStart } from '../agent/agentPlugin';
@@ -285,7 +286,12 @@ export const setupGame: SetupGame = (
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
-          setLiveStart(world, startRun); // an agent's `start` takes the same level flow
+          // An agent's `start` takes the same level flow, after any new Vault edition has
+          // loaded (the card's Next waits the same way).
+          setLiveStart(world, async () => {
+            await whenContentSettled();
+            if (!destroyed) startRun();
+          });
           audio.music('audio-music'); // audio unlocked on the start-screen tap; respects the toggle
 
           engine = createTickerEngine();
