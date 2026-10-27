@@ -231,6 +231,41 @@ describe('game screen keyboard (useGameKeyboard)', () => {
       expect(intents).toEqual([]);
     });
 
+    it('the focus tracker goes with the last hook: a click after cleanup is not recorded', () => {
+      dispose();
+      clickFocus(button); // no tracker listening
+      createRoot((d) => {
+        dispose = d;
+        useGameKeyboard({ input: (intent) => intents.push(intent) });
+      });
+      // Not recorded as a click, so the button keeps its Space.
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(false);
+    });
+
+    it('a button clicked before the last hook went keeps its Space after a remount', () => {
+      clickFocus(button);
+      dispose();
+      button.blur();
+      button.focus(); // refocused (say with Tab) while no tracker is listening
+      createRoot((d) => {
+        dispose = d;
+        useGameKeyboard({ input: (intent) => intents.push(intent) });
+      });
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(false);
+      expect(intents).toEqual([]);
+    });
+
+    it('the focus tracker stays while another hook is still mounted', () => {
+      let disposeSecond = () => {};
+      createRoot((d) => {
+        disposeSecond = d;
+        useGameKeyboard({ input: () => {} });
+      });
+      disposeSecond();
+      clickFocus(button);
+      expect(pressOn(button, 'Space').defaultPrevented).toBe(true);
+    });
+
     it('with the settings menu open, a clicked control keeps its Space', () => {
       clickFocus(button);
       setSettingsOpen(true);

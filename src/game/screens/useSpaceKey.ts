@@ -44,36 +44,46 @@ const ARROWS: ReadonlySet<string> = new Set([
 /** Controls that took focus from a pointer press. Chrome leaves a clicked button focused (the
  *  settings gear, after it opens and closes the menu); such a button does not take Space or
  *  Enter from the game. A button reached with Tab does. */
-const pointerFocused = new WeakSet<Element>();
+let pointerFocused = new WeakSet<Element>();
 let pointerPressed = false;
-let trackingFocus = false;
+/** Mounted `useSpaceKey`s sharing the tracker; its listeners go when the last one does. */
+let trackers = 0;
 
-function trackFocusOrigin(): void {
-  if (trackingFocus) return;
-  trackingFocus = true;
-  window.addEventListener(
-    'pointerdown',
-    (e) => {
-      pointerPressed = true;
-      // A press on a control that already has focus (no focusin follows).
-      const active = document.activeElement;
-      if (active && e.target instanceof Node && active.contains(e.target))
-        pointerFocused.add(active);
-    },
-    { capture: true },
-  );
-  window.addEventListener('keydown', () => (pointerPressed = false), {
-    capture: true,
-  });
-  window.addEventListener(
-    'focusin',
-    (e) => {
-      if (!(e.target instanceof Element)) return;
-      if (pointerPressed) pointerFocused.add(e.target);
-      else pointerFocused.delete(e.target);
-    },
-    { capture: true },
-  );
+const onPointerDown = (e: PointerEvent) => {
+  pointerPressed = true;
+  // A press on a control that already has focus (no focusin follows).
+  const active = document.activeElement;
+  if (active && e.target instanceof Node && active.contains(e.target))
+    pointerFocused.add(active);
+};
+const onAnyKey = () => {
+  pointerPressed = false;
+};
+const onFocusIn = (e: FocusEvent) => {
+  if (!(e.target instanceof Element)) return;
+  if (pointerPressed) pointerFocused.add(e.target);
+  else pointerFocused.delete(e.target);
+};
+
+/** Start tracking how controls get focus; returns the release for this mount. */
+function trackFocusOrigin(): () => void {
+  if (trackers++ === 0) {
+    window.addEventListener('pointerdown', onPointerDown, { capture: true });
+    window.addEventListener('keydown', onAnyKey, { capture: true });
+    window.addEventListener('focusin', onFocusIn, { capture: true });
+  }
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    if (--trackers > 0) return;
+    window.removeEventListener('pointerdown', onPointerDown, { capture: true });
+    window.removeEventListener('keydown', onAnyKey, { capture: true });
+    window.removeEventListener('focusin', onFocusIn, { capture: true });
+    // Focus moves unobserved from here on, so what was clicked before means nothing after.
+    pointerFocused = new WeakSet();
+    pointerPressed = false;
+  };
 }
 
 /** True when the focused element a key event is aimed at has its own use for that key. */
@@ -105,6 +115,7 @@ const yieldsSpace = (target: EventTarget | null) =>
   );
 
 export function useSpaceKey(onSpace?: () => void): void {
+  let releaseTracker: (() => void) | null = null;
   const onKey = (e: KeyboardEvent) => {
     if (e.code !== 'Space' || yieldsSpace(e.target)) return;
     e.preventDefault();
@@ -117,12 +128,14 @@ export function useSpaceKey(onSpace?: () => void): void {
   };
 
   onMount(() => {
-    trackFocusOrigin();
+    releaseTracker = trackFocusOrigin();
     pauseState.resume();
     window.addEventListener('keydown', onKey, { capture: true });
     document.addEventListener('keydown', onControlSpace);
   });
   onCleanup(() => {
+    releaseTracker?.();
+    releaseTracker = null;
     window.removeEventListener('keydown', onKey, { capture: true });
     document.removeEventListener('keydown', onControlSpace);
   });
