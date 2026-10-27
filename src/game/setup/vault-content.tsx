@@ -18,12 +18,14 @@
  * The first selection is normally applied during `loading` by the boot's first-context gate
  * (`loadBootContent`); this bridge starts from it, so the Vault's re-send on `ready` is a no-op.
  *
- * It also answers the manager's Daily Editions harvest: the schedule (`catalog/<slug>`) loaded at
- * boot goes out as `content_catalog` when the runtime starts.
+ * It also answers the manager's Daily Editions harvest: when the manager asks for
+ * `content_catalog`, the schedule (`catalog/<slug>`) loaded at boot is the answer. The game never
+ * sends it unasked; the Vault's own config is the only list of editions it plays.
  *
  * Inert outside a Vault (the bridge renders nothing). Mount inside `<ScreenProvider>`.
  */
 
+import { defineGameData } from '@wolfgames/client';
 import { useConfigState, useSignal } from '@wolfgames/components/solid';
 import { onCleanup } from 'solid-js';
 import { resetBrand } from '~/game/brand';
@@ -68,12 +70,14 @@ export function VaultContentBridge() {
   // Installed only inside a Vault: standalone, `completeActivePack()` reports nothing.
   if (inVault()) {
     installServedSession(session);
-    onCleanup(() => installServedSession(null));
+    defineGameData('content_catalog', () => ({ items: getEditions() }));
+    onCleanup(() => {
+      installServedSession(null);
+      defineGameData('content_catalog', undefined);
+    });
   }
 
   const onContext = (ctx: VaultGameContext) => session.select(ctx.content);
 
-  // `catalog` is read when the runtime starts (after loading, when boot has loaded the schedule);
-  // Solid passes it as a getter, so the bridge sees the settled list, not the empty initial one.
-  return <VaultHostBridge onContext={onContext} catalog={getEditions()} />;
+  return <VaultHostBridge onContext={onContext} />;
 }
