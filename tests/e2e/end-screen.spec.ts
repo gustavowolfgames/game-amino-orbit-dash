@@ -109,9 +109,29 @@ test('Tab shows the focused card button, and Enter presses it', async ({
     await page.keyboard.press('Tab');
   }
   await expect(menu).toBeFocused();
-  // Revealed while it has keyboard focus (it is clipped to 1px otherwise).
+  // Revealed while it has keyboard focus: full size, unclipped, and on top at its centre.
   const box = await menu.boundingBox();
   expect(box?.width ?? 0).toBeGreaterThan(20);
+  expect(
+    await menu.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === el;
+    }),
+  ).toBe(true);
   await page.keyboard.press('Enter');
   await expect(page.locator('#app canvas')).toHaveCount(0, { timeout: 10_000 });
+});
+
+test('a card button Tab revealed takes a mouse click', async ({ page }) => {
+  await winLevelOne(page);
+  await page.waitForTimeout(3100);
+  const cont = page.getByRole('button', { name: 'Continue' });
+  for (let i = 0; i < 6; i++) {
+    if (await cont.evaluate((el) => el === document.activeElement)) break;
+    await page.keyboard.press('Tab');
+  }
+  await expect(cont).toBeFocused();
+  // A real click (no force): it must reach the button, not pass through to the canvas.
+  await cont.click({ timeout: 2_000 });
+  await expect(ariaLine(page)).toHaveText(/^Level 2 of \d+/);
 });

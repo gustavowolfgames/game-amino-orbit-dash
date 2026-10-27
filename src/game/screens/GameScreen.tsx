@@ -59,6 +59,24 @@ export default function GameScreen() {
      elements are authored in design px and belong inside the transform. */
   const isPixi = controller.gameMode === 'pixi';
 
+  /** Real buttons for the end card's two canvas buttons, through the keyboard's intents. */
+  const EndCardActions = () => (
+    <div class="sr-only end-card-actions">
+      <button
+        type="button"
+        onClick={() => controller.input?.({ type: 'action' })}
+      >
+        Continue
+      </button>
+      <button
+        type="button"
+        onClick={() => controller.input?.({ type: 'back' })}
+      >
+        Main menu
+      </button>
+    </div>
+  );
+
   /* The root below uses `design-box-span`, not `fixed inset-0`: under the design
      root, `fixed` resolves to the canvas rather than the frame box.
 
@@ -108,22 +126,17 @@ export default function GameScreen() {
 
         {/* The end card's buttons are canvas: these give screen readers (touch ones too) real
           buttons for the same two actions, through the same intents as the keyboard. Hidden until
-          one has keyboard focus, then shown (src/app.css), so Tab shows what Enter will press. */}
+          one has keyboard focus, then shown (src/app.css), so Tab shows what Enter will press.
+          Shown, they must sit over the canvas to take a click: the canvas host comes after the
+          design root, so a Pixi game puts them in the host, after the canvas. */}
         <Show when={controller.endScreenOpen?.()}>
-          <div class="sr-only end-card-actions">
-            <button
-              type="button"
-              onClick={() => controller.input?.({ type: 'action' })}
-            >
-              Continue
-            </button>
-            <button
-              type="button"
-              onClick={() => controller.input?.({ type: 'back' })}
-            >
-              Main menu
-            </button>
-          </div>
+          <Show when={isPixi && rendererHost()} fallback={<EndCardActions />}>
+            {(host) => (
+              <Portal mount={host()}>
+                <EndCardActions />
+              </Portal>
+            )}
+          </Show>
         </Show>
 
         {/* Wolf Games logo at bottom center; off while the game's end card has its buttons there */}
