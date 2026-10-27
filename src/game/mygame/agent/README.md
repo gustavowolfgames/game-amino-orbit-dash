@@ -1,7 +1,8 @@
 # agent: the game as states and actions
 
 An agent (a bot, a test harness, an MCP client) reads **states** and calls
-**actions** with `db.services.agent.execute(action, input)`.
+**actions** with `db.services.agent.execute(action, input)`. The running game's
+world has it too: `getGameWorld()` (`../world.ts`) is built from this plugin.
 
 - `createAgentService.ts` is generic: it turns a declaration into an
   `AgenticService` (@adobe/data). Leave it as is.
@@ -38,6 +39,10 @@ actions: {
   ActionError.
 - Actions call the same transactions as the player's input, so an agent plays
   by the same rules.
+- `start` restarts by transaction in a headless world. On the running game's
+  world it is offered only while the game screen is up: the controller installs
+  its own `startRun` with `setLiveStart(db, startRun)` (and `null` on destroy),
+  so an agent's restart gets the same seed, saved progress and analytics.
 
 Rewrite `role` to say what the game is and how to win. Test new states and
 actions in `tests/unit/schedule.test.ts` (`createGameAgentWorld()`).
