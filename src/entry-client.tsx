@@ -1,6 +1,7 @@
 /* @refresh reload */
 import { render } from 'solid-js/web';
 import { resolvePlayerId, whenStoresReady } from '~/core';
+import { markSavesBooted } from '~/game/setup/saves';
 import App from './app';
 
 // Load game font in parallel with app mount (ready before any Pixi Text is created)
@@ -16,6 +17,7 @@ gameFont.load().then((loaded) => document.fonts.add(loaded));
 async function boot() {
   await resolvePlayerId();
   await whenStoresReady();
+  markSavesBooted();
   render(() => <App />, document.getElementById('app')!);
 }
 void boot();

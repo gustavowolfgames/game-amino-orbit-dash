@@ -71,7 +71,7 @@ src/game/setup/edition-analytics.ts
 src/game/setup/events.ts
 src/game/setup/flags.ts
 src/game/setup/loading-tracker.ts
-src/game/setup/progress.ts
+src/game/setup/progress.save.ts
 src/game/setup/saves.ts
 src/game/setup/served-session.ts
 src/game/setup/session-tracker.ts

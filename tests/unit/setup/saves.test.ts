@@ -73,7 +73,7 @@ describe('save keys', () => {
   });
 
   it('keep the progress key the template already shipped', async () => {
-    const { PROGRESS_KEY } = await import('~/game/setup/progress');
+    const { PROGRESS_KEY } = await import('~/game/setup/progress.save');
     expect(PROGRESS_KEY).toBe(`${wolfGameKit.gameSlug}:progress`);
   });
 });
@@ -111,13 +111,48 @@ describe('registerSave', () => {
     expect(getSave('coins')).toBe(again);
     expect(saveNames()).toEqual(['coins']);
   });
+
+  it('warns in dev about a save first registered after boot, not about a hot reload', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { registerSave, markSavesBooted } = await boot();
+    registerSave<Coins>({ name: 'coins', version: 1, defaults: COINS });
+    markSavesBooted();
+    registerSave<Coins>({ name: 'coins', version: 1, defaults: COINS });
+    expect(warn).not.toHaveBeenCalled();
+    registerSave<Coins>({ name: 'late', version: 1, defaults: COINS });
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain('"late"');
+    warn.mockRestore();
+  });
+});
+
+describe('save files', () => {
+  // app.tsx loads every `*.save.ts` before boot; a registerSave anywhere else hydrates late.
+  it('registerSave is called only from *.save.ts files', () => {
+    const sources = import.meta.glob('/src/game/**/*.{ts,tsx}', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    const callers = Object.entries(sources)
+      .filter(([, text]) => /\bregisterSave\s*[<(]/.test(text))
+      .map(([path]) => path)
+      .filter((path) => !path.endsWith('/setup/saves.ts'));
+    expect(callers.length).toBeGreaterThan(0);
+    expect(callers.filter((path) => !path.endsWith('.save.ts'))).toEqual([]);
+  });
+
+  it('app.tsx loads the save files before boot', async () => {
+    const app = (await import('/src/app.tsx?raw')).default as string;
+    expect(app).toContain("import.meta.glob('/src/game/**/*.save.ts'");
+  });
 });
 
 describe('clearSaves', () => {
   it('clears every registered store, the template progress included', async () => {
     const { registerSave, clearSaves, saveNames, whenStoresReady } =
       await boot();
-    const progress = await import('~/game/setup/progress');
+    const progress = await import('~/game/setup/progress.save');
     const coins = registerSave<Coins>({
       name: 'coins',
       version: 1,

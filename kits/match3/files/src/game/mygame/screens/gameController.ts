@@ -55,7 +55,7 @@ import {
   recordLevelWon,
   resumeLevel,
   saveProgress,
-} from '~/game/setup/progress';
+} from '~/game/setup/progress.save';
 import { completeActivePack } from '~/game/setup/served-session';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';

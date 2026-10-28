@@ -13,8 +13,9 @@
  * A store that used to live under another key lists it in `adoptFrom`: on registration, a save
  * found there is moved once to the new key (only when the new key holds nothing yet).
  *
- * Register at module scope, like `progress.ts`, so boot's `whenStoresReady()` hydrates the store
- * before the first screen. See .agents/recipes/dynamic-data.md, "Saved progress".
+ * Register at module scope in a file named `<name>.save.ts` under `src/game/`, like
+ * `progress.save.ts`. `app.tsx` loads every such file before boot, so `whenStoresReady()`
+ * hydrates the store before the first screen. See .agents/recipes/dynamic-data.md, "Saved progress".
  */
 
 import {
@@ -43,6 +44,14 @@ export interface SaveConfig<T> extends Omit<VersionedStoreConfig<T>, 'key'> {
 type AnyStore = VersionedStore<{ version: number }>;
 
 const stores = new Map<string, AnyStore>();
+
+/** Set once boot has hydrated the stores; a save registered after that starts on defaults. */
+let booted = false;
+
+/** Boot calls this after `whenStoresReady()` (entry-client.tsx). */
+export function markSavesBooted(): void {
+  booted = true;
+}
 
 /** SDK envelope slot for a store key (see `createVersionedStore`). */
 const envelopeSlot = (key: string) => `${key}_save_data`;
@@ -86,6 +95,12 @@ export function registerSave<T extends { version: number }>(
 ): VersionedStore<T> {
   const { name, adoptFrom, ...rest } = config;
   const key = saveKey(name);
+  // A hot reload re-registers a known name; only a save boot never saw is late.
+  if (booted && !stores.has(name) && import.meta.env.DEV)
+    console.warn(
+      `[saves] "${name}" registered after boot, so its first load() returns the defaults. ` +
+        'Register it at module scope in a file named <name>.save.ts under src/game/: app.tsx loads those before boot.',
+    );
   if (adoptFrom?.length) adoptSave(key, adoptFrom);
   const store = createVersionedStore<T>({ ...rest, key });
   stores.set(name, store as unknown as AnyStore);
