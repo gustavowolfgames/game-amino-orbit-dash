@@ -65,8 +65,8 @@ last win and a loss go to results.
 - `wolf-game-kit.json` and `.env.example` (`VITE_GAME_KIT_PROJECT_ID`) are on
   the local-only slug `mygame`, and the asset lockfile
   (`assets/asset-manifest.cdn.json`, `assets/registry.ts`) is emptied, so local
-  dev serves `public/assets/`. Set the real slug in both per
-  `.agents/recipes/new-game.md` step 1.
+  dev serves `public/assets/`. Commit the kit, then set the real slug with
+  `bun run init-game <slug> "<Title>"` (`.agents/recipes/new-game.md` step 1).
 
 ## Tests
 

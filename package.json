@@ -33,7 +33,8 @@
     "check": "nucleo game check local",
     "check:fix": "nucleo game check local --fix",
     "prebuild": "nucleo game check local --tier 0 --no-commit-hooks --warn-only || echo \"[prebuild] nucleo not available; skipped game checks\"",
-    "add-kit": "node scripts/add-kit.mjs"
+    "add-kit": "node scripts/add-kit.mjs",
+    "init-game": "node scripts/init-game.mjs"
   },
   "dependencies": {
     "@adobe/data": "^0.9.103",
