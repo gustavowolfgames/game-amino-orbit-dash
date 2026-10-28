@@ -309,7 +309,7 @@ export const setupGame: SetupGame = (
           startRun();
           // An agent's `start` takes the same level flow as the card's Next.
           setLiveStart(world, startWhenSettled);
-          audio.music('audio-music'); // audio unlocked on the start-screen tap; respects the toggle
+          audio.music('audio-music'); // plays once loaded and unlocked (./gameAudio.ts); respects the toggle
 
           engine = createTickerEngine();
           stopSim = startFixedStepLoop(engine, (dt) => {

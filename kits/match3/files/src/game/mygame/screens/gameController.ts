@@ -314,7 +314,7 @@ export const setupGame: SetupGame = (
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
-          audio.music('audio-music'); // audio unlocked on the start-screen tap; respects the toggle
+          audio.music('audio-music'); // plays once loaded and unlocked (./gameAudio.ts); respects the toggle
 
           engine = createTickerEngine();
           stopSim = startFixedStepLoop(engine, (dt) => {

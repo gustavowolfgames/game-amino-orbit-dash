@@ -81,8 +81,8 @@ export const manifest: Manifest = {
 
     // ── Audio (Howler) ──────────────────────────────────────────────────────
     // One Howl per JSON sidecar, keyed by alias = the channel the game plays
-    // (gameController.tryPlay('sfx-pop') → play whole file). Loaded by
-    // loadAudio() (all audio-* bundles) before the game screen. Audio JSON is
+    // (gameController.tryPlay('sfx-pop') → play whole file). Loaded last, in the
+    // background (src/game/setup/audioLoad.ts): no screen waits for it. Audio JSON is
     // top-level in assets/src (not json-data/); publish rewrites the mp3 refs.
     // The demo plays two SFX channels; add more as your game grows. Audio is
     // optional — the controller no-ops if a channel is missing.

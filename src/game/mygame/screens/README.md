@@ -51,7 +51,9 @@ export function wireFeedback(engine: () => AudioEngine | undefined) {
 - Channel names are the `audio-*` aliases in `src/game/asset-manifest.ts`; a
   name not in `sfx` / `music` does not compile.
 - Start music with `audio.music(id)`, never by playing the music channel: the
-  gear menu's toggle only applies through it.
+  gear menu's toggle only applies through it. Call it when the scene is up, even
+  if audio is still loading: the track starts once its file has loaded and the
+  first tap has unlocked audio (`../../setup/audioLoad.ts`).
 - A new kind of feedback is a new event in the sim plus a row in the table, not
   a counter the controller remembers from last frame.
 - The table is plain data: a new game replaces the rows, not the helpers.

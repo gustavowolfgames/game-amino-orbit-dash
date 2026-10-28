@@ -65,6 +65,7 @@ src/game/screens/useGameKeyboard.ts
 src/game/screens/useSpaceKey.ts
 src/game/settingsOpen.ts
 src/game/settingsTheme.ts
+src/game/setup/audioLoad.ts
 src/game/setup/carina.ts
 src/game/setup/content.ts
 src/game/setup/edition-analytics.ts

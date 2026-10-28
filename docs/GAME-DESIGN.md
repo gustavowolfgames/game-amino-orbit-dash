@@ -45,4 +45,6 @@ Start, game, results; the HUD; the effects that make a hit or a clear feel good.
 
 The art, audio and VFX the game needs (published through the wolf-game-kit MCP).
 Browsers stay silent until the player's first tap, so the loading screen and the
-title have no music or sound: the first track starts after that tap.
+title have no music or sound. The game loads its art first and its audio last, in
+the background: the game opens without waiting for the music, which starts once
+its file has arrived (a few seconds late on a slow phone).

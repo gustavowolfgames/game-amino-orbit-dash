@@ -22,9 +22,13 @@ Kill GSAP tweens of a sprite before you remove it and destroy it. Destroy childr
 
 Do not drive gameplay with `requestAnimationFrame`, `setInterval`, or `setTimeout`. Use the cadence in `.agents/recipes/ecs.md`. For delays use `gsap.delayedCall`.
 
-### No sound before the first tap
+### Audio: art first, music last, nothing waits for it
 
-Browsers keep audio locked until the player's first tap or key press. Nothing plays on the loading screen or on the title before that tap, so do not plan or generate music or sound for them. Start music on the first screen after a tap (the template starts it on the game screen, after the title's tap), with `audio.music(id)`. A boot that skips the title (`?screen=game`, the Vault) has no tap before play: sound works from the first tap on the board (`src/game/screens/unlockAudioOnFirstTap.ts`), and music asked for before it can stay silent. Design for that; do not add retries that replay music queued before the unlock.
+Browsers keep audio locked until the player's first tap or key press, so nothing plays on the loading screen or the title before that tap. Do not plan or generate music or sound for them.
+
+- **Loading order.** The loader and the title wait for art only. Audio loads last, in the background, through `loadAudioInBackground` (`src/game/setup/audioLoad.ts`). Never `await` an audio load before a screen shows: a big track on a slow phone held the Play button about 10 seconds, and with no tap yet the components Howler loader stalls between sounds until there is one.
+- **The game starts the music, not a button.** The game screen calls `audio.music(id)` when its scene is up. `gameAudio` plays the track once its file has loaded and the first tap has unlocked audio, whichever comes last. The same code covers the title's Play tap, `?screen=game` and a Vault launch (`src/game/screens/unlockAudioOnFirstTap.ts` unlocks on the first tap on the board).
+- **Unlock inside the tap.** Call `unlockAudio()` in the tap's own handler, not after an animation: iOS Safari only lets a gesture's handler resume audio.
 
 ### One renderer
 
