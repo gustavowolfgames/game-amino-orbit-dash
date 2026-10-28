@@ -22,6 +22,10 @@ Kill GSAP tweens of a sprite before you remove it and destroy it. Destroy childr
 
 Do not drive gameplay with `requestAnimationFrame`, `setInterval`, or `setTimeout`. Use the cadence in `.agents/recipes/ecs.md`. For delays use `gsap.delayedCall`.
 
+### No sound before the first tap
+
+Browsers keep audio locked until the player's first tap or key press. Nothing plays on the loading screen or on the title before that tap, so do not plan or generate music or sound for them. Start music on the first screen after a tap (the template starts it on the game screen, after the title's tap), with `audio.music(id)`. A boot that skips the title (`?screen=game`, the Vault) has no tap before play: sound works from the first tap on the board (`src/game/screens/unlockAudioOnFirstTap.ts`), and music asked for before it can stay silent. Design for that; do not add retries that replay music queued before the unlock.
+
 ### One renderer
 
 The game draws with Pixi, on the one canvas the scaffold owns. Do not add a second `<canvas>`, a second engine (Phaser, Three.js), or a hand-built WebGL context; custom shapes are Pixi `Graphics`. The one exception is `gameMode: 'layered'` in `src/game/mygame-contract.ts`: an opt-in extra GPU layer (a 3D layer, an embedded 3D widget) that the controller creates, tears down in reverse order, and draws only as a read-only view of the same ECS world, never a second game-state store.

@@ -44,3 +44,5 @@ Start, game, results; the HUD; the effects that make a hit or a clear feel good.
 ## Assets
 
 The art, audio and VFX the game needs (published through the wolf-game-kit MCP).
+Browsers stay silent until the player's first tap, so the loading screen and the
+title have no music or sound: the first track starts after that tap.
