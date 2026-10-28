@@ -19,6 +19,12 @@
 // printed as next steps, never run. Running it again with the same arguments changes
 // nothing. It refuses a dirty git tree unless --force, so its diff stands alone.
 //
+// Some lockfile files exist only on the template's CDN, with no copy in public/assets/
+// (the template's music). Emptying the lockfile would leave the game silently without
+// them, so it refuses until they are staged in assets/src/ for the game's first publish:
+// run the wolf-game-kit MCP assets_pull first, while the slug is still the template's.
+// --skip-cdn-only goes on without them (the game will publish its own).
+//
 //   bun run init-game ballblast "Ball Blast"
 //   bun run init-game mygame "My Game"        local-only build: no Nucleo slug yet
 import { execFileSync } from 'node:child_process';
@@ -48,9 +54,12 @@ export type AssetName = keyof typeof assetSeed.files;
 `;
 
 const args = process.argv.slice(2);
+const FLAGS = ['--force', '--skip-cdn-only'];
 const force = args.includes('--force');
-const [slug, title] = args.filter((a) => a !== '--force');
-const usage = 'usage: bun run init-game <slug> "<Title>" [--force]';
+const skipCdnOnly = args.includes('--skip-cdn-only');
+const [slug, title] = args.filter((a) => !FLAGS.includes(a));
+const usage =
+  'usage: bun run init-game <slug> "<Title>" [--force] [--skip-cdn-only]';
 
 if (!slug || !title?.trim()) {
   console.error(usage);
@@ -88,6 +97,35 @@ if (!force) {
     );
     process.exit(1);
   }
+}
+
+// Lockfile files the game would lose: published only under the template's slug, with no
+// stand-in in public/assets/ (local dev serves those until the first publish).
+const LOCKFILE = 'assets/asset-manifest.cdn.json';
+const lockfileFiles = existsSync(path.join(root, LOCKFILE))
+  ? Object.keys(
+      JSON.parse(readFileSync(path.join(root, LOCKFILE), 'utf8')).files ?? {},
+    )
+  : [];
+const cdnOnly = lockfileFiles.filter(
+  (f) => !existsSync(path.join(root, 'public/assets', f)),
+);
+const staged = cdnOnly.filter((f) =>
+  existsSync(path.join(root, 'assets/src', f)),
+);
+const unstaged = cdnOnly.filter((f) => !staged.includes(f));
+const localOnly = slug === 'mygame';
+
+if (unstaged.length && !skipCdnOnly && !localOnly) {
+  console.error(
+    `Refusing: these files exist only on the template's CDN, and nothing in public/assets/ stands in for them:
+${unstaged.map((f) => `  ${f}`).join('\n')}
+Emptying the lockfile would leave the game without them (an audio-* bundle plays silent).
+Keep them: run the wolf-game-kit MCP assets_pull now, while the slug is still the template's; it
+stages them in assets/src/ (gitignored) for the game's first assets_publish. Then rerun this.
+Or pass --skip-cdn-only to go on without them, if the game will publish its own.`,
+  );
+  process.exit(1);
 }
 
 const changed = [];
@@ -146,17 +184,26 @@ if (changed.length) {
   console.log(`✓ already "${title}" on slug "${slug}": nothing to change.`);
 }
 
-const next =
-  slug === 'mygame'
-    ? [
-        '"mygame" is local-only: do not publish under it. Rerun with the real slug once Nucleo has one.',
-        'cp .env.example .env && bun install',
-      ]
-    : [
-        `Register "${slug}" in Nucleo if it is not already (wolf-game-kit MCP game_create / game_setup, or ask whoever owns Nucleo). The slug must match exactly.`,
-        'cp .env.example .env && bun install',
-        "Until the first assets_publish, local dev serves public/assets/. Publish the game's own art with the wolf-game-kit MCP (.agents/recipes/assets.md), then commit assets/asset-manifest.cdn.json and assets/registry.ts.",
-      ];
+const list = (files) => files.join(', ');
+const next = localOnly
+  ? [
+      '"mygame" is local-only: do not publish under it. Rerun with the real slug once Nucleo has one.',
+      'cp .env.example .env && bun install',
+    ]
+  : [
+      `Register "${slug}" in Nucleo if it is not already (wolf-game-kit MCP game_create / game_setup, or ask whoever owns Nucleo). The slug must match exactly.`,
+      'cp .env.example .env && bun install',
+      ...(staged.length
+        ? [
+            `Publish the template files staged in assets/src/ under "${slug}" with the wolf-game-kit MCP assets_publish (${list(staged)}); they do not load until then.`,
+          ]
+        : []),
+      "Until the first assets_publish, local dev serves public/assets/. Publish the game's own art with the wolf-game-kit MCP (.agents/recipes/assets.md), then commit assets/asset-manifest.cdn.json and assets/registry.ts.",
+    ];
+if (unstaged.length && changed.includes(LOCKFILE))
+  console.log(
+    `\n⚠ Left behind on the template's CDN, so they do not load in this game: ${list(unstaged)}.${localOnly ? ' A local-only build plays without them.' : " Publish replacements under the game's slug."}`,
+  );
 console.log('\nNext (not run by this script):');
 for (const [i, s] of next.entries()) console.log(`  ${i + 1}. ${s}`);
 console.log('  Then carry on with .agents/recipes/new-game.md step 3.');
