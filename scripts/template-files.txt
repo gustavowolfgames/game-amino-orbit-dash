@@ -35,6 +35,7 @@ src/game/mygame/render/endScreen.ts
 src/game/mygame/render/hud.ts
 src/game/mygame/render/juice.ts
 src/game/mygame/render/textures.ts
+src/game/mygame/render/tweens.ts
 src/game/mygame/screens/cues.ts
 src/game/mygame/screens/endOfPlay.ts
 src/game/mygame/screens/feedback.ts
@@ -49,6 +50,7 @@ src/game/mygame/sim/rng.ts
 src/game/mygame/sim/schedule.ts
 src/game/mygame/sim/systems/index.ts
 src/game/mygame/world.ts
+src/game/safeZones.ts
 src/game/screens/GameScreen.tsx
 src/game/screens/LoadingScreen.tsx
 src/game/screens/PixiBackdrop.ts
@@ -67,6 +69,7 @@ src/game/settingsOpen.ts
 src/game/settingsTheme.ts
 src/game/setup/carina.ts
 src/game/setup/content.ts
+src/game/setup/devLinks.ts
 src/game/setup/edition-analytics.ts
 src/game/setup/events.ts
 src/game/setup/flags.ts
@@ -76,6 +79,7 @@ src/game/setup/saves.ts
 src/game/setup/served-session.ts
 src/game/setup/session-tracker.ts
 src/game/setup/tracking.ts
+src/game/setup/unlock.ts
 src/game/setup/vault-content.tsx
 src/game/tuning/index.ts
 src/game/tuning/types.ts

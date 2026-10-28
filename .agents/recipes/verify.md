@@ -18,6 +18,8 @@ Run the checks that match the change.
 
 Paste the command and the exit status. Do not say the tests passed unless you ran them in this checkout.
 
+In dev and QA builds two URL shortcuts help you look (`src/game/setup/devLinks.ts`; off for players): `?screen=results` opens the game screen with the end card already up for the level in play, and `?unlock=all` runs each save's `onUnlockAll` hook at boot (the template resumes the active pack on its last level). They show a screen; they do not replace the unit test.
+
 In dev, the backtick key toggles the ECS Inspector. What it shows is not proof of ECS state. Proof is the unit test or a value read from `getGameWorld()`.
 
 `bun run amino:drift` reports local changes to the template-owned paths (`src/core/`, `.agents/recipes/`, `.agents/skills/`, build configs) against template-amino-ecs-pure. `bun run amino:verify` runs the typecheck baseline, lint, and build after `amino:sync`. `bunx biome check .` reports 0 errors on the template (warnings remain). Run them when you touched scaffold sync, not for an ordinary feature.

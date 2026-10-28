@@ -14,6 +14,8 @@
  *     published default) resets it — `onActivePackChange` clears a save from another pack, and
  *     `resumeLevel` ignores one that does not match the pack in play.
  *   • Cleared when the pack's last level is won, so the next run starts the pack over.
+ *   • `?unlock=all` (dev/QA, ./unlock.ts) saves the active pack's last level, so every level is
+ *     behind the player and the run resumes at the end.
  *
  * Built at module scope so boot's `whenStoresReady()` hydrates it before the first screen.
  * A new game keeps this shape and swaps the fields (see .agents/recipes/dynamic-data.md, "Saved progress").
@@ -22,9 +24,11 @@
 import {
   type ActivePack,
   BUNDLED_PACK,
+  getActivePack,
   onActivePackChange,
 } from '~/game/content';
 import { registerSave, saveKey } from './saves';
+import { onUnlockAll } from './unlock';
 
 export const PROGRESS_VERSION = 2;
 
@@ -133,3 +137,12 @@ export function syncProgressPack(packId: string): void {
 }
 
 onActivePackChange((pack) => syncProgressPack(pack.id));
+
+/** Every level of `pack` open: the save resumes on its last one (`?unlock=all`). */
+export function unlockAllLevels(
+  pack: Pick<ActivePack, 'id' | 'levels'> = getActivePack(),
+): void {
+  saveProgress(pack.id, Math.max(0, pack.levels.length - 1));
+}
+
+onUnlockAll('progress', () => unlockAllLevels());

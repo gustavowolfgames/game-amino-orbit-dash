@@ -15,7 +15,8 @@
  * lock both, the same as taps on the board.
  *
  * The controller drives it: `handlePhase` and `tick` from its per-frame render, `reset` from
- * `startRun`, `destroy` before the Pixi app goes.
+ * `startRun`, `destroy` before the Pixi app goes. A dev/QA `?screen=results` link
+ * (src/game/setup/devLinks.ts) calls `preview` once the first run has started.
  */
 
 import type { Container } from 'pixi.js';
@@ -37,6 +38,14 @@ import { createRunEnd } from './runEnd';
 
 /** Delay (s) before the end card, so the last frame (and the confetti) reads. */
 export const END_PAUSE = 0.9;
+
+/**
+ * What `?screen=results` shows: the run's level, won, scored at its goal (what a real win of it
+ * scores). The primary button restarts that level: nothing was won, so nothing moves on.
+ */
+export function resultsPreview(level: number, goal: number): EndOutcome {
+  return { won: true, packDone: isLastLevel(level), level, score: goal };
+}
 
 export interface EndOfPlayDeps {
   /** The game's design-space root: the card and its effects draw on top of the board here. */
@@ -71,6 +80,9 @@ export interface EndOfPlay {
   reset(): void;
   /** Enter / Space = the card's primary action, Escape = Main menu. */
   input(intent: GameIntent): void;
+  /** Dev/QA `?screen=results`: the card for the run in play (`resultsPreview`), up now.
+   *  Records no progress and sends no analytics. */
+  preview(): void;
   tick(dtSec: number): void;
   destroy(): void;
 }
@@ -146,6 +158,14 @@ export function createEndOfPlay(deps: EndOfPlayDeps): EndOfPlay {
       if (!card.ready || pauseState.paused() || settingsOpen()) return;
       if (intent.type === 'action') void playOn();
       else if (intent.type === 'back') deps.toMenu();
+    },
+
+    preview() {
+      const db = deps.world();
+      if (destroyed || !db) return;
+      runEnd.reset();
+      outcome = resultsPreview(db.resources.level, db.resources.goal);
+      deps.say(card.show(outcome));
     },
 
     tick(dtSec) {

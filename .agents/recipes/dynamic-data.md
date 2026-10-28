@@ -80,6 +80,8 @@ const store = registerSave<ColonySave>({ name: 'colony', version: 1, defaults, v
 
 `registerSave` stores it under `saveKey(name)`, which is `<gameSlug>:<name>` with the slug from `wolf-game-kit.json`, so a fork with its own slug never loads its parent's saves. Reset Progress calls `clearSaves()`, which clears every registered store; do not edit `app.tsx` for a new store. Build the store at module scope and import its module from `app.tsx`, as `progress.ts` is, so boot hydrates it. A store moving from an older key lists that key in `adoptFrom: ['<old key>']`; its save is moved to the new key once, when the new key is empty. `getSave(name)` returns a registered store.
 
+Next to the store, say what `?unlock=all` means for it with `onUnlockAll(name, fn)` from `src/game/setup/unlock.ts` (every chapter open, every level reachable). The hook writes through the store, so the game reads the real save with no dev branch. The loader runs the hooks once the content has settled, in dev and QA builds only. `progress.ts` registers the template's: it resumes the active pack on its last level.
+
 ## Publish
 
 Publishing is the content person's job, in order: deploy (registers the schemas), create entries, bind a Game Pack. The `wolf-dev` CLI refuses to run without an interactive terminal, so agents use the wolf-game-kit MCP tools of the same names: `schema_data_batch-create`, `pack_create`, `pack_assign`, `pack_entries_set`.

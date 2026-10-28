@@ -7,6 +7,7 @@ import { type ScreenId, useScreen } from '~/core/systems/screens';
 import { Logo } from '~/core/ui/Logo';
 // Game-specific start screen — swap this import for a different game
 import { setupStartScreen } from '~/game/mygame/screens/startView';
+import { BRAND_LOGO } from '~/game/safeZones';
 import { useGameTracking } from '~/game/setup/tracking';
 import type { GameTuning } from '~/game/tuning';
 import {
@@ -129,7 +130,10 @@ export default function StartScreen() {
       {/* WolfGames logo at bottom centre, as on the game screen. The loader's reveal fades
           the same logo in at this spot, so it carries straight through the handoff.
           pointer-events-none keeps the root pass-through (see above). */}
-      <div class="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-none">
+      <div
+        class="absolute left-1/2 -translate-x-1/2 pointer-events-none"
+        style={{ bottom: `${BRAND_LOGO.bottom}px` }}
+      >
         <Logo />
       </div>
     </div>
