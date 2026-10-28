@@ -103,6 +103,8 @@ export const setupGame: SetupGame = (
   let unbindInput: (() => void) | null = null;
   let stopResize: (() => void) | null = null;
   let destroyed = false;
+  /** `?screen=results` asked for the end card; render() opens it after the first frame. */
+  let previewPending = false;
   let initPromise: Promise<void> | null = null;
 
   /** Design-space root on DESIGN_CANVAS: the game's views go in here. */
@@ -148,6 +150,12 @@ export const setupGame: SetupGame = (
       score: db.resources.score,
     });
     cues(drainEvents(db), db.resources.elapsedMs);
+    // Dev/QA `?screen=results`: the card opens after the run's first frame of cues, so a
+    // line the start announces (a scene title, a level intro) cannot replace the card's.
+    if (previewPending) {
+      previewPending = false;
+      endOfPlay?.preview();
+    }
     endOfPlay?.tick(dtSec);
     endOfPlay?.handlePhase(db.resources.phase);
   };
@@ -308,7 +316,7 @@ export const setupGame: SetupGame = (
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
-          if (opensResults()) endOfPlay?.preview(); // dev/QA `?screen=results`
+          previewPending = opensResults(); // dev/QA `?screen=results`, opened by render()
           // An agent's `start` takes the same level flow as the card's Next.
           setLiveStart(world, startWhenSettled);
           audio.music('audio-music'); // audio unlocked on the start-screen tap; respects the toggle
