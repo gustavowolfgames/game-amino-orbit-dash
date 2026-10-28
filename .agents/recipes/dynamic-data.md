@@ -72,6 +72,14 @@ The save holds the pack id next to the level. When a different pack becomes acti
 
 To save more, add the field to `RunProgress` and `PROGRESS_DEFAULTS`, repair it in `sanitizeProgress`, bump `PROGRESS_VERSION`, and add `migrations[<new version>]` for the old shape. Read and write the store from the controller or a screen, never inside a transaction or system.
 
+A game with its own save (a colony, unlocks, coins) registers it in `src/game/setup/saves.ts` instead of calling `createVersionedStore`:
+
+```ts
+const store = registerSave<ColonySave>({ name: 'colony', version: 1, defaults, validate });
+```
+
+`registerSave` stores it under `saveKey(name)`, which is `<gameSlug>:<name>` with the slug from `wolf-game-kit.json`, so a fork with its own slug never loads its parent's saves. Reset Progress calls `clearSaves()`, which clears every registered store; do not edit `app.tsx` for a new store. Build the store at module scope and import its module from `app.tsx`, as `progress.ts` is, so boot hydrates it. A store moving from an older key lists that key in `adoptFrom: ['<old key>']`; its save is moved to the new key once, when the new key is empty. `getSave(name)` returns a registered store.
+
 ## Publish
 
 Publishing is the content person's job, in order: deploy (registers the schemas), create entries, bind a Game Pack. The `wolf-dev` CLI refuses to run without an interactive terminal, so agents use the wolf-game-kit MCP tools of the same names: `schema_data_batch-create`, `pack_create`, `pack_assign`, `pack_entries_set`.
