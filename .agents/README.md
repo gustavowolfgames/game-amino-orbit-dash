@@ -10,7 +10,7 @@ Hand-written agent notes. Nothing here is generated on install, and agents do no
 
 `AGENTS.md` is the one agent instruction file. `CLAUDE.md` only imports it with `@AGENTS.md`, because Claude Code loads `CLAUDE.md` (not `AGENTS.md`) on every turn. Both are tracked, plain files: nothing generates them, and nothing runs on `bun install` or `bun run dev` to write rules, skills or agent files.
 
-`.claude/settings.json` sets permissions only. It denies edits to `src/core/` and reads of real env files.
+`.claude/settings.json` sets permissions only. It denies edits to `src/core/`, reads of real env files, force pushes and pushes to `main`. Other pushes need no approval, so an unattended run can push its own branch.
 
 Project instructions belong in a recipe. The recipes' own skills (`.agents/skills/`) are tracked files too.
 
