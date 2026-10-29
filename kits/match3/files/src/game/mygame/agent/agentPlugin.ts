@@ -7,6 +7,11 @@
  * plugin below registers it as `db.services.agent` on top of the game world.
  * `swap` calls the same turn function the player's drag does (`applySwap`),
  * so an agent plays by the same rules. `./README.md` shows how to add one of each.
+ *
+ * `start` restarts the level on the same board in a headless world (tests, a CLI).
+ * The running game's world (`../world.ts`) offers it only while the game screen has
+ * installed its own restart (`setLiveStart`), so an agent's restart takes the same
+ * level flow as the player's: seed, saved progress, analytics.
  */
 
 import type { Schema } from '@adobe/data/schema';
@@ -43,8 +48,38 @@ const boardSchema = {
   items: { type: 'integer' },
 } as const satisfies Schema;
 
+type Start = () => void | Promise<void>;
+
+/** Each world's `start` setter, filled in when its agent service is built. */
+const liveStarts = new WeakMap<GameDatabase, (start: Start | null) => void>();
+
+/**
+ * Replace what the agent's `start` does on this world; `null` withdraws `start`.
+ * The game controller installs its `startRun` while the game screen is up.
+ */
+export function setLiveStart(db: GameDatabase, start: Start | null): void {
+  liveStarts.get(db)?.(start);
+}
+
 export function createGameAgentService(db: GameDatabase): AgenticService {
   const r = db.observe.resources;
+  // Headless default: restart the current level on the same board.
+  let start: Start | null = () => {
+    const { level, packId, goal, seed, goalColor, maxMoves } = db.resources;
+    db.transactions.startRun({
+      seed,
+      level,
+      packId,
+      goal,
+      goalColor,
+      moves: maxMoves,
+    });
+  };
+  const [canStart, setCanStart] = Observe.createState(true);
+  liveStarts.set(db, (next) => {
+    start = next;
+    setCanStart(next !== null);
+  });
   return createAgentService({
     role:
       'You are playing match-3 on an 8×8 board. `board` is 64 colour indices, row-major ' +
@@ -99,19 +134,10 @@ export function createGameAgentService(db: GameDatabase): AgenticService {
         },
       },
       start: {
-        description: 'Restart the current level on the same board',
-        run: () => {
-          const { level, packId, goal, seed, goalColor, maxMoves } =
-            db.resources;
-          db.transactions.startRun({
-            seed,
-            level,
-            packId,
-            goal,
-            goalColor,
-            moves: maxMoves,
-          });
-        },
+        description:
+          'Restart the current level (in the running game, the next level after a win)',
+        when: canStart,
+        run: () => start?.(),
       },
     },
   });
