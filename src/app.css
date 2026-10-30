@@ -33,6 +33,24 @@ body {
   height: 100%;
   background: rgb(var(--background-rgb));
   color: rgb(var(--foreground-rgb));
+  /* A long press on a phone belongs to the game. Without these it selects the
+     nearest text (the settings gear) and turns the screen blue, or opens the
+     save-image callout (ENG-5234). Form fields keep selection below. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+img {
+  -webkit-user-drag: none;
 }
 
 #app {
