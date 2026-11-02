@@ -40,8 +40,9 @@ render/BoardView.ts        reads Ball / Tube entities every frame; a ball whose 
                            lift changed tweens there (lift → across → down). Draws the keyboard cursor.
 render/Controls.ts         the HUD (LEVEL / MOVES / UNDOS), Undo / Restart buttons and the
                            "No moves left" Retry (Pixi, catalog modules)
-screens/gameController.ts  render: views update, then drainEvents → cue table (sound + aria line).
-                           A won level starts the next; the pack's last one goes to results.
+screens/gameController.ts  render: views update, then drainEvents → cue table (screens/feedback.ts:
+                           sound + aria line). screens/endOfPlay.ts: a won level starts the next;
+                           the pack's last one goes to results.
 ```
 
 Balls are entities (`tube`, `slot`, `color`); tubes are entities (`tubeIndex`,
@@ -52,7 +53,7 @@ plays the last one backwards.
 Events (`GameEvent` in `sim/plugin.ts`): `lifted`, `putBack` (`illegal` when a
 drop was refused), `moved`, `tubeDone`, `undone`, `restarted`, `stuck`,
 `cursor`, `phase`. Sounds and screen-reader lines are rows in the controller's
-cue table (`sfx-pop`, `sfx-clear`).
+cue table, `screens/feedback.ts` (`sfx-pop`, `sfx-clear`).
 
 ## Where to change what
 
@@ -65,9 +66,10 @@ cue table (`sfx-pop`, `sfx-clear`).
 | Generator, solvability | `generateBoard` and `solve` in `sim/rules/ballSort.ts`. `solve` is a depth-first search capped at `maxStates`; keep it cheap if moves get richer |
 | Level fields (colours, par, …) | `schemas/levels/schema.ts`, defaults in `src/game/content/level.ts`, levels in `src/game/content/packs/default.json`, passed to `startRun` in `screens/gameController.ts` |
 | HUD, buttons | `render/Controls.ts` for the label or button, its `Command` in the controller's `command`, a transaction in `sim/plugin.ts` |
-| Sounds, screen-reader lines | an event in `GameEvent` + `emit` in `sim/plugin.ts`, a row in the controller's cue table |
+| Sounds, screen-reader lines | an event in `GameEvent` + `emit` in `sim/plugin.ts`, a row in the cue table (`screens/feedback.ts`) |
+| End of a level | `screens/endOfPlay.ts`: analytics (with `moves`), saved progress, then the next level or results |
 | Keys | `input` in `screens/gameController.ts` (intents from `src/game/screens/useGameKeyboard.ts`); cursor steps in `neighborTube` (`sim/rules/layout.ts`) |
-| Agent / bot surface | states and actions in `agent/agentPlugin.ts` (`board`, `heldTube`, `moves`, … / `tapTube`, `undo`, `start`) |
+| Agent / bot surface | states and actions in `agent/agentPlugin.ts` (`board`, `heldTube`, `moves`, … / `tapTube`, `undo`, `start`). On the running game the controller installs `start` (`setLiveStart`): the player's own `startRun` |
 | Layout, sizes, rows | `sim/rules/layout.ts` (design px on DESIGN_CANVAS; `tubeRects` wraps tubes into rows; `tubeAt` is the hit test) |
 | Colours | `BALL_COLORS` in `render/BoardView.ts` (up to 7) |
 | Stars | `starsFor` in `sim/rules/ballSort.ts`; results in `src/game/screens/ResultsScreen.tsx` |
@@ -77,12 +79,14 @@ cue table (`sfx-pop`, `sfx-clear`).
 New: `sim/rules/ballSort.ts`, `sim/rules/layout.ts`, `sim/readBoard.ts`,
 `render/BoardView.ts`, `render/Controls.ts`, `tests/unit/ballSort.test.ts`.
 Replaced: `sim/plugin.ts`, `agent/agentPlugin.ts`, `screens/gameController.ts`,
+`screens/feedback.ts` (ball sort's cue table), `screens/endOfPlay.ts` (next level or
+results, on the template's `runEnd.ts`; no end card),
 the `README.md` in `sim/`, `sim/systems/`, `render/`, `screens/`, `input/`,
 `agent/` (their checked snippets compile against ball sort),
 `src/game/screens/ResultsScreen.tsx`, the level schema and pack,
 `docs/GAME-DESIGN.md`, `wolf-game-kit.json`, `.env.example`, the asset lockfile
-and `assets/registry.ts`. Tests: `tests/unit/schedule.test.ts` and
-`tests/unit/events.test.ts` are the kit's own versions (the template's drive its
+and `assets/registry.ts`. Tests: `tests/unit/schedule.test.ts`,
+`tests/unit/events.test.ts` and `tests/unit/feedback.test.ts` are the kit's own versions (the template's drive its
 example `tap`, which scores; ball sort has no score).
 
 ## Tests

@@ -24,8 +24,9 @@ sim/plugin.ts commitMove writes the settled board, rng, score, moves, goal progr
 render/BoardView.ts play animates the ruling step by step (swap or swap-back, clear, fall, refill)
                          then re-syncs from ECS. `busy` blocks input while it plays.
 screens/gameController   render(): views update from ECS, then drainEvents → cue table
-                         (sfx-pop per move, sfx-clear on a win, the screen-reader line);
-                         once the board settles, a won/lost phase shows a banner and moves on
+                         (screens/feedback.ts: sfx-pop per move, sfx-clear on a win, the
+                         screen-reader line); once the board settles, a won/lost phase goes
+                         to screens/endOfPlay.ts: a banner, then the next level or results
 ```
 
 Turn-based: no systems in `SYSTEM_ORDER`. The fixed-step loop still runs, so a
@@ -45,10 +46,11 @@ last win and a loss go to results.
 | What a match is / special tiles | `findMatches` and the clear in `resolveSwap`: anything you add to a step's `cleared` cells, `falls` and `spawns` animates for free |
 | Scoring, stars | `sim/rules/scoring.ts` (`pointsFor`, `STAR_THRESHOLDS`) |
 | Win / lose | `commitMove` in `sim/plugin.ts` (goal reached → `won`, moves out → `lost`) |
-| Sounds, screen-reader lines | a new event in `GameEvent` (`sim/plugin.ts`), `emit` it in a transaction, a row in the controller's cue table (`createCues`); channels in `SOUNDS` |
+| Sounds, screen-reader lines | a new event in `GameEvent` (`sim/plugin.ts`), `emit` it in a transaction, a row in the cue table (`screens/feedback.ts`); channels in `SOUNDS` there |
+| End of a level | `screens/endOfPlay.ts`: the banner, analytics, saved progress, then the next level or results |
 | Keys | `key` in `input/swap.ts` (intents come from `src/game/screens/useGameKeyboard.ts`) |
 | Level fields (goal, moves, …) | `schemas/levels/schema.ts`, defaults in `src/game/content/level.ts`, levels in `src/game/content/packs/default.json`, passed to `startRun` in `screens/gameController.ts` |
-| Agent states / actions | `agent/agentPlugin.ts` (`board`, `goal`, `movesLeft`, … and `swap`, `start`) |
+| Agent states / actions | `agent/agentPlugin.ts` (`board`, `goal`, `movesLeft`, … and `swap`, `start`). On the running game the controller installs `start` (`setLiveStart`): the player's own `startRun` |
 | HUD | `render/GameHud.ts` |
 | Results screen | `src/game/screens/ResultsScreen.tsx` |
 | Animation timing | constants at the top of `render/BoardView.ts` |
@@ -59,6 +61,10 @@ last win and a loss go to results.
   stays in the repo but nothing calls it (swap input is `input/swap.ts`). The
   slot READMEs still describe `tap` as the skeleton's example; the code above
   is the match-3's.
+- `screens/feedback.ts` and `screens/endOfPlay.ts` are the match-3's own (its
+  cue table; its banner and next-level-or-results hop, on the template's
+  `runEnd.ts`), in place of the template's juice table and end card.
+  `tests/unit/feedback.test.ts` tests its table.
 - `tests/unit/schedule.test.ts` and `tests/unit/events.test.ts` are the kit's
   own versions of the template's tests: same lifecycle, determinism, event
   queue and agent checks, driven by swaps instead of `tap`.
