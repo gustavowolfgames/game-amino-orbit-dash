@@ -160,4 +160,62 @@ describe('createGameAudio', () => {
     expect(String(warn.mock.calls[1][0])).toContain('not loaded');
     warn.mockRestore();
   });
+
+  it('music asked for while audio is still loading starts once the load settles', async () => {
+    let loaded = false;
+    const calls: string[] = [];
+    const engine: AudioEngine = {
+      play: (channel, sprite) => {
+        calls.push(`play ${channel} ${sprite}`);
+        return loaded ? 1 : -1;
+      },
+      stop: (channel) => calls.push(`stop ${channel}`),
+    };
+    let finish!: () => void;
+    const done = new Promise<void>((r) => {
+      finish = r;
+    });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const audio = createGameAudio(() => engine, {
+      ...SOUNDS,
+      whenLoaded: () => done,
+    });
+    audio.music('audio-music'); // the game screen asks before the file has arrived
+    expect(calls).toEqual(['play audio-music loop']);
+    loaded = true;
+    finish();
+    await settle();
+    expect(calls).toEqual(['play audio-music loop', 'play audio-music loop']);
+    expect(warn).not.toHaveBeenCalled(); // not loaded *yet* is not an error
+    warn.mockRestore();
+  });
+
+  it('a track stopped before its load settles does not start', async () => {
+    let loaded = false;
+    const calls: string[] = [];
+    const engine: AudioEngine = {
+      play: (channel) => {
+        calls.push(`play ${channel}`);
+        return loaded ? 1 : -1;
+      },
+      stop: (channel) => calls.push(`stop ${channel}`),
+    };
+    let finish!: () => void;
+    const done = new Promise<void>((r) => {
+      finish = r;
+    });
+    const audio = createGameAudio(() => engine, {
+      ...SOUNDS,
+      whenLoaded: () => done,
+    });
+    audio.music('audio-music');
+    audio.stopAll(); // the player left the game screen first
+    loaded = true;
+    finish();
+    await settle();
+    expect(calls.filter((c) => c.startsWith('play audio-music'))).toHaveLength(
+      1,
+    );
+    expect(calls).not.toContain('stop audio-music'); // it never played, nothing to stop
+  });
 });

@@ -31,6 +31,7 @@ import type {
   StartScreenController,
   StartScreenDeps,
 } from '~/game/mygame-contract';
+import { loadAudioInBackground } from '~/game/setup/audioLoad';
 import { whenContentSettled } from '~/game/setup/content';
 import type { GameTuning } from '~/game/tuning/types';
 import {
@@ -80,15 +81,14 @@ export const setupStartScreen: SetupStartScreen = (
       const onPlay = async () => {
         if (loading) return;
         loading = true;
+        // Unlock inside the tap itself: iOS Safari only lets a gesture's own handler resume
+        // audio. The music is the game screen's to start, once its file has loaded
+        // (src/game/setup/audioLoad.ts); Play never waits for audio.
+        deps.unlockAudio();
+        loadAudioInBackground(deps.loadAudio);
         const tl = gsap.timeline({
           onComplete: async () => {
-            deps.unlockAudio();
             await deps.loadCore();
-            try {
-              await deps.loadAudio();
-            } catch {
-              /* audio optional */
-            }
             // A Vault edition selected while the title was up: play it, not the boot pack.
             await whenContentSettled();
             deps.analytics.trackGameStart({
@@ -240,6 +240,8 @@ export const setupStartScreen: SetupStartScreen = (
           // The host shows a stand-in of this frame until Pixi has drawn it once.
           // (Two ticks: listeners run before that tick's render.)
           app.ticker.addOnce(() => app?.ticker.addOnce(() => deps.onReady?.()));
+          // The title's art is up: audio loads last, behind it, while the player looks.
+          loadAudioInBackground(deps.loadAudio);
 
           // ── Ticker + resize ────────────────────────────────────────────────
           app.ticker.add((ticker: Ticker) => bg?.tick(ticker.deltaMS / 1000));

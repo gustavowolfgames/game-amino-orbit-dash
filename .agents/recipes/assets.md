@@ -71,6 +71,7 @@ The only committed files under `public/assets/` are the ones this template alrea
 The gear menu (`src/game/screens/components/GameSettingsMenu.tsx`, from the components recipe) has a **Sounds** slider and a **Music** toggle. They only save settings (core `audioState`: `volume()` 0–1 and `musicEnabled()`); `createGameAudio` in `src/game/mygame/screens/gameAudio.ts` applies them. In `setupGame`, `createGameAudio(() => deps.coordinator.audio, { sfx, music, settings: deps.audio })` turns volume into the engine's master volume and music on/off into play/stop of the current track, on load and on every change.
 
 - List every channel the game plays in `sfx` and `music` (the `audio-*` aliases in `src/game/asset-manifest.ts`). A name not listed does not compile.
+- No music or sound plays before the player's first tap, so do not make tracks for the loading screen or the title. Audio loads last, in the background, and the game screen starts its music once the file has loaded (`.agents/recipes/guardrails.md`, "Audio: art first, music last"). Keep a looping track small: it is the largest file most games load.
 - Start music with `audio.music('audio-music')` once the scene is up, and `audio.stopAll()` in `destroy()`. Never play the music channel directly: that ignores the toggle. A second track (a boss loop) is another `music` entry; `audio.music('audio-music-boss')` swaps to it.
 - Play effects from the cue table (`src/game/mygame/screens/cues.ts`) or `audio.play('sfx-pop', { volume: 0.7 })`. The master volume covers them; per-sound loudness is `volume`.
 

@@ -22,6 +22,14 @@ Kill GSAP tweens of a sprite before you remove it and destroy it. Destroy childr
 
 Do not drive gameplay with `requestAnimationFrame`, `setInterval`, or `setTimeout`. Use the cadence in `.agents/recipes/ecs.md`. For delays use `gsap.delayedCall`.
 
+### Audio: art first, music last, nothing waits for it
+
+Browsers keep audio locked until the player's first tap or key press, so nothing plays on the loading screen or the title before that tap. Do not plan or generate music or sound for them.
+
+- **Loading order.** The loader and the title wait for art only. Audio loads last, in the background, through `loadAudioInBackground` (`src/game/setup/audioLoad.ts`). Never `await` an audio load before a screen shows: a big track on a slow phone held the Play button about 10 seconds, and with no tap yet the components Howler loader stalls between sounds until there is one.
+- **The game starts the music, not a button.** The game screen calls `audio.music(id)` when its scene is up. `gameAudio` plays the track once its file has loaded and the first tap has unlocked audio, whichever comes last. The same code covers the title's Play tap, `?screen=game` and a Vault launch (`src/game/screens/unlockAudioOnFirstTap.ts` unlocks on the first tap on the board).
+- **Unlock inside the tap.** Call `unlockAudio()` in the tap's own handler, not after an animation: iOS Safari only lets a gesture's handler resume audio.
+
 ### One renderer
 
 The game draws with Pixi, on the one canvas the scaffold owns. Do not add a second `<canvas>`, a second engine (Phaser, Three.js), or a hand-built WebGL context; custom shapes are Pixi `Graphics`. The one exception is `gameMode: 'layered'` in `src/game/mygame-contract.ts`: an opt-in extra GPU layer (a 3D layer, an embedded 3D widget) that the controller creates, tears down in reverse order, and draws only as a read-only view of the same ECS world, never a second game-state store.

@@ -17,6 +17,10 @@
  * and an engine error or an unloaded channel is logged once in dev, never
  * thrown.
  *
+ * Audio loads last, in the background (src/game/setup/audioLoad.ts), so the game can start
+ * before its track has arrived: `music(id)` sets the track the game wants, and it starts as
+ * soon as its file has loaded and the first tap has unlocked audio, whichever comes last.
+ *
  * `settings` is the gear menu's saved choices (core `audioState`, passed to
  * `setupGame` as `deps.audio`): volume becomes the engine's master volume, and
  * the music toggle plays or stops the current track, now and on every change.
@@ -25,6 +29,7 @@
  */
 
 import { createEffect, createSignal } from 'solid-js';
+import { whenAudioLoaded } from '~/game/setup/audioLoad';
 
 /** The slice of the coordinator's audio API this needs (`deps.coordinator.audio`). */
 export interface AudioEngine {
@@ -51,6 +56,9 @@ export interface GameAudioOptions<S extends string, M extends string> {
   music?: readonly M[];
   /** The gear menu's volume and music toggle. Without it: full volume, music on. */
   settings?: AudioSettings;
+  /** Settles when the background audio load finishes; a track asked for before then starts
+   *  at that point. Default: `whenAudioLoaded` (src/game/setup/audioLoad.ts). */
+  whenLoaded?: () => Promise<unknown>;
 }
 
 export interface GameAudio<S extends string, M extends string> {
@@ -72,7 +80,7 @@ export function createGameAudio<
   engine: () => AudioEngine | undefined,
   options: GameAudioOptions<S, M>,
 ): GameAudio<S, M> {
-  const { sfx, settings } = options;
+  const { sfx, settings, whenLoaded = whenAudioLoaded } = options;
   const warned = new Set<string>();
 
   const warnOnce = (key: string, message: string, err?: unknown) => {
@@ -81,12 +89,17 @@ export function createGameAudio<
     console.warn(`[gameAudio] ${message}`, ...(err === undefined ? [] : [err]));
   };
 
-  /** Run one engine call; never throw. */
-  const safely = (key: string, fn: (e: AudioEngine) => unknown) => {
+  /** Run one engine call; never throw. False when it failed or the channel is not loaded. */
+  const safely = (
+    key: string,
+    fn: (e: AudioEngine) => unknown,
+    quiet = false,
+  ): boolean => {
     const e = engine();
-    if (!e) return;
+    if (!e) return false;
     try {
-      if (fn(e) === -1)
+      if (fn(e) !== -1) return true;
+      if (!quiet)
         warnOnce(
           `missing:${key}`,
           `channel "${key}" is not loaded (an audio-* bundle in asset-manifest.ts?)`,
@@ -94,16 +107,29 @@ export function createGameAudio<
     } catch (err) {
       warnOnce(`error:${key}`, `"${key}" failed`, err);
     }
+    return false;
   };
 
   // ── Music: the wanted track, gated by the toggle ──────────────────────────
+  // `current` is the track the game wants now; `playing` says whether the engine took it.
+  // A track asked for before its file has loaded starts when the background load settles.
   let current: M | null = null;
+  let playing = false;
+  const start = (track: M, quiet: boolean) => {
+    playing = safely(track, (e) => e.play(track, MUSIC_SPRITE), quiet);
+  };
   const apply = (target: M | null) => {
     if (target === current) return;
     const prev = current;
     current = target;
-    if (prev) safely(prev, (e) => e.stop(prev));
-    if (target) safely(target, (e) => e.play(target, MUSIC_SPRITE));
+    if (prev && playing) safely(prev, (e) => e.stop(prev));
+    playing = false;
+    if (!target) return;
+    start(target, true);
+    if (!playing)
+      void whenLoaded().then(() => {
+        if (current === target && !playing) start(target, false);
+      });
   };
 
   const [wanted, setWanted] = createSignal<M | null>(null);

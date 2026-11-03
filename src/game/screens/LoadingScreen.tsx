@@ -9,14 +9,15 @@ import { type ScaffoldTuning, useTuning } from '~/core';
 import { useAssets, useLoadingState } from '~/core/systems/assets';
 import { useScreen } from '~/core/systems/screens';
 import { GAME_TITLE, gameConfig } from '~/game/config';
+import { loadAudioInBackground } from '~/game/setup/audioLoad';
 import { loadBootContent } from '~/game/setup/content';
 import { useGameTracking } from '~/game/setup/tracking';
 import type { GameTuning } from '~/game/tuning';
 import { inVault } from '~/integrations/vault';
 import { IntroSting } from './components/IntroSting';
 import { gameArt, titleArt } from './components/titleFrame';
-import { playsIntro, resolveSkipSource } from './skipStartScreen';
 import { optional, required } from './loadSteps';
+import { playsIntro, resolveSkipSource } from './skipStartScreen';
 import { unlockAudioOnFirstTap } from './unlockAudioOnFirstTap';
 
 export function LoadingScreen() {
@@ -44,7 +45,6 @@ export function LoadingScreen() {
     .map((b) => b.name);
   const themeBundles = bundlesByPrefix('theme-');
   const coreBundles = bundlesByPrefix('core-');
-  const audioBundles = bundlesByPrefix('audio-');
 
   // In the Vault (or when config, dev mode or `?screen=game` asks), loading hands straight to
   // the game. Precedence: ./skipStartScreen.ts.
@@ -60,10 +60,10 @@ export function LoadingScreen() {
   const title = titleArt(m);
   const game = gameArt(m);
 
-  // When skipping: block on splash + theme + core + audio; title boot assets load in background.
+  // When skipping: block on splash + theme + core; title boot assets and audio load in background.
   // When not skipping: block only on splash + theme (start screen loads the rest).
   const targetBundles = skipToGame
-    ? [...splashBundles, ...themeBundles, ...coreBundles, ...audioBundles]
+    ? [...splashBundles, ...themeBundles, ...coreBundles]
     : [...splashBundles, ...themeBundles];
 
   /* progress: 0–1 across all target bundles — drives the sting's loader bar */
@@ -118,7 +118,11 @@ export function LoadingScreen() {
         await required('the game art', () =>
           assets.coordinator.loadScene('game'),
         );
-        await optional('audio', () => assets.loadAudio());
+        // Audio loads last, in the background: nothing waits for it. Without a tap yet the
+        // components Howler loader stalls between sounds until the first tap, so waiting here
+        // could hang the loader. The game screen's music starts once it has loaded and that
+        // tap has unlocked audio (../setup/audioLoad.ts).
+        loadAudioInBackground(assets.loadAudio);
       } else {
         // The title screen loads the rest itself when the player taps Play.
         await optional('the splash', () => assets.loadBoot());
