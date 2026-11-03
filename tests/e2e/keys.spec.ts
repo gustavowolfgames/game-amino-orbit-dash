@@ -56,6 +56,19 @@ test.describe('keyboard on the game screen', () => {
     });
   }
 
+  // ENG-5234: a long press on a phone selected the gear and turned the screen blue.
+  test('the gear and the page cannot be text-selected', async ({ page }) => {
+    await startGame(page);
+    const gear = page.getByRole('button', { name: 'Settings' });
+    const userSelect = (el: Element) => getComputedStyle(el).userSelect;
+
+    expect(await gear.evaluate(userSelect)).toBe('none');
+    expect(await page.locator('body').evaluate(userSelect)).toBe('none');
+
+    await page.evaluate(() => document.getSelection()?.selectAllChildren(document.body));
+    expect(await page.evaluate(() => document.getSelection()?.toString().trim())).toBe('');
+  });
+
   test('a gear reached with Tab still opens settings with Space', async ({
     page,
   }) => {

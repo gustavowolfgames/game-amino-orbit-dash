@@ -48,7 +48,7 @@ Reuse these; do not build a second copy.
 - `src/game/content/dynamic-client.ts` holds the one Dynamic Data client per GameKIT. Call `dynamicClient(kit)`. Inside a Vault each client opens its own parent-frame bridge.
 - `src/game/content/load.ts` picks the pack key (`?wolfPack=`, else the Vault `contentId`, else `default`) and fetches it with `getPack`.
 - `src/game/brand/load.ts` fetches the brand sheet: the one in the pack, else the `brand/theme` entry.
-- `src/game/setup/content.ts` runs the pack and the brand at boot, in parallel with the assets, capped at `CONTENT_BUDGET_MS`. A missing, failing or malformed response falls back to the bundled pack and the build's brand, and the game still plays.
+- `src/game/setup/content.ts` runs the pack and the brand at boot, in parallel with the assets, capped at `CONTENT_BUDGET_MS`. A missing, failing or malformed response falls back to the bundled pack and the build's brand, and the game still plays. Nothing published (the default pack and `brand/theme` 404) is the expected state of a new game: it falls back with only a dev-only `console.info`, while a network error, a 5xx or a malformed payload still warns (`tests/unit/content/not-published.test.ts`). The browser still prints one "Failed to load resource: 404" line per URL; `tests/e2e/smoke.spec.ts` ignores exactly those two.
 - Inside a Vault, `loadBootContent` in `src/game/setup/content.ts` is the first-context gate: boot waits up to `VAULT_CONTEXT_WAIT_MS` for the host's first `context` (`awaitFirstVaultContext` in `src/integrations/vault/first-context.ts`) and loads that selection, so a Vault boot never shows the bundled pack first. On timeout it boots the default pack and the bridge applies the selection when the Vault re-sends it. Use `inVault()`, `firstVaultContext()` (`~/integrations/vault`) or `getBootSelection()` to ask what boot applied.
 - Inside a Vault the start screen is skipped and `start_screen_skipped` reports `skip_source: 'vault'`. Precedence is `vault` > `config` > `dev_mode` > `url_param` (`src/game/screens/skipStartScreen.ts`).
 
@@ -66,19 +66,19 @@ The controller calls `completeActivePack()` at a pack's last win. The exit is th
 
 ## Saved progress and a new pack
 
-`src/game/setup/progress.ts` saves where the run is, so a reload resumes the same level. It is built on `createVersionedStore` from `src/core/utils/storage.ts`. The run itself stays in ECS; the store only copies the resume point out and hands it back to the `startRun` transaction.
+`src/game/setup/progress.save.ts` saves where the run is, so a reload resumes the same level. It is built on `createVersionedStore` from `src/core/utils/storage.ts`. The run itself stays in ECS; the store only copies the resume point out and hands it back to the `startRun` transaction.
 
 The save holds the pack id next to the level. When a different pack becomes active, `onActivePackChange` clears the save, and `resumeLevel(pack)` ignores a save from another pack. Winning the pack's last level clears it too. Volume and music are saved by core; do not copy them.
 
 To save more, add the field to `RunProgress` and `PROGRESS_DEFAULTS`, repair it in `sanitizeProgress`, bump `PROGRESS_VERSION`, and add `migrations[<new version>]` for the old shape. Read and write the store from the controller or a screen, never inside a transaction or system.
 
-A game with its own save (a colony, unlocks, coins) registers it in `src/game/setup/saves.ts` instead of calling `createVersionedStore`:
+A game with its own save (a colony, unlocks, coins) puts it in a file named `<name>.save.ts` anywhere under `src/game/` and registers it with `registerSave` from `src/game/setup/saves.ts` instead of calling `createVersionedStore`:
 
 ```ts
 const store = registerSave<ColonySave>({ name: 'colony', version: 1, defaults, validate });
 ```
 
-`registerSave` stores it under `saveKey(name)`, which is `<gameSlug>:<name>` with the slug from `wolf-game-kit.json`, so a fork with its own slug never loads its parent's saves. Reset Progress calls `clearSaves()`, which clears every registered store; do not edit `app.tsx` for a new store. Build the store at module scope and import its module from `app.tsx`, as `progress.ts` is, so boot hydrates it. A store moving from an older key lists that key in `adoptFrom: ['<old key>']`; its save is moved to the new key once, when the new key is empty. `getSave(name)` returns a registered store.
+`registerSave` stores it under `saveKey(name)`, which is `<gameSlug>:<name>` with the slug from `wolf-game-kit.json`, so a fork with its own slug never loads its parent's saves. Reset Progress calls `clearSaves()`, which clears every registered store. `app.tsx` loads every `*.save.ts` file before boot, so boot hydrates the store and its first `load()` returns the real save; do not edit `app.tsx` for a new store. Build the store at module scope in that file, as `progress.save.ts` does. A `registerSave` in a file with another name runs too late: its first read is the defaults, and dev logs a warning naming the save. A store moving from an older key lists that key in `adoptFrom: ['<old key>']`; its save is moved to the new key once, when the new key is empty. `getSave(name)` returns a registered store.
 
 Next to the store, say what `?unlock=all` means for it with `onUnlockAll(name, fn)` from `src/game/setup/unlock.ts` (every chapter open, every level reachable). The hook writes through the store, so the game reads the real save with no dev branch. The loader runs the hooks once the content has settled, in dev and QA builds only. `progress.ts` registers the template's: it resumes the active pack on its last level.
 

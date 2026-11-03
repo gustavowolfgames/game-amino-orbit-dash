@@ -113,6 +113,9 @@ export function LoadingScreen() {
           () => Howler.ctx?.state === 'running',
         );
         await required('the renderer', () => assets.initGpu());
+        // A missing file is skipped and reported, not a stuck loader (render/textures.ts).
+        // Imported lazily: it brings Pixi, which stays out of the entry chunk.
+        (await import('~/game/mygame/render/textures')).skipMissingArt();
         await required('the game UI', () => assets.loadCore());
         // The play screen's background, so the game draws its first frame right at the handoff.
         await required('the game art', () =>

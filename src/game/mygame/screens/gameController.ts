@@ -60,7 +60,7 @@ import { carinaJuiceOn } from '~/game/setup/carina';
 import { whenContentSettled } from '~/game/setup/content';
 import { opensResults } from '~/game/setup/devLinks';
 import { createRunAnalytics } from '~/game/setup/edition-analytics';
-import { resumeLevel, saveProgress } from '~/game/setup/progress';
+import { resumeLevel, saveProgress } from '~/game/setup/progress.save';
 import { GAME_DEFAULTS, type GameTuning } from '~/game/tuning';
 import { setLiveStart } from '../agent/agentPlugin';
 import type { EngineHandle } from '../engine';
