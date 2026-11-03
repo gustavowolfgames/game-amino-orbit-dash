@@ -15,12 +15,15 @@
  *   • The fixed-step sim (`startFixedStepLoop` → `stepWorld`, no systems yet)
  *     plus a per-frame `render` where the views project ECS (`../render/`).
  *   • Feedback: `render` drains the sim's events (`drainEvents`) once a frame
- *     and runs them through the cue table (`./cues.ts`): sound through
- *     `./gameAudio.ts`, the screen-reader line through `ariaText`.
+ *     and runs them through the cue table (`./feedback.ts`, built on `./cues.ts`):
+ *     sound through `./gameAudio.ts`, the screen-reader line through `ariaText`.
  *   • Content: each run plays one level of the active Content Pack (`levelAt`,
  *     src/game/content). Winning moves straight on to the pack's next level;
  *     winning its last level reports the edition complete and shows results.
- *     Losing shows results with Retry.
+ *     Losing shows results with Retry (`./endOfPlay.ts`). A run restarted during
+ *     the end pause cancels that hand-off.
+ *   • Agent: while this screen is up, the live world's agent `start` runs `startRun`
+ *     (`setLiveStart`, once any new Vault edition has loaded); destroy withdraws it.
  *   • The sim and input stop while the settings menu is open (`settingsOpen`,
  *     set by `GameSettingsMenu`, the one menu on every screen) or the game is
  *     paused (core pause state).
@@ -36,20 +39,20 @@
 
 import { DESIGN_CANVAS } from '@wolfgames/components/core';
 import { DesignLayer, trackHostBox } from '@wolfgames/components/pixi';
-import gsap from 'gsap';
 import { Application, type Container, Sprite, type Texture } from 'pixi.js';
 import { createSignal } from 'solid-js';
 import { exposePixiApp } from '~/core/dev/pixiDevtools';
 import { setActiveInspectorActions } from '~/core/systems/ecs';
 import { pauseState } from '~/core/systems/pause';
 import { getTheme } from '~/game/brand';
-import { getActivePack, isLastLevel, levelAt } from '~/game/content';
+import { getActivePack, levelAt } from '~/game/content';
 import type {
   GameController,
   GameControllerDeps,
   SetupGame,
 } from '~/game/mygame-contract';
 import { settingsOpen } from '~/game/settingsOpen';
+import { whenContentSettled } from '~/game/setup/content';
 import { createRunAnalytics } from '~/game/setup/edition-analytics';
 import {
   recordLevelWon,
@@ -57,6 +60,7 @@ import {
   saveProgress,
 } from '~/game/setup/progress.save';
 import { completeActivePack } from '~/game/setup/served-session';
+import { setLiveStart } from '../agent/agentPlugin';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindSwapInput, type SwapInput } from '../input/swap';
@@ -64,23 +68,15 @@ import { BoardView } from '../render/BoardView';
 import { GameHud } from '../render/GameHud';
 import { loadGameTextures } from '../render/textures';
 import { drainEvents } from '../sim/events';
-import type { GameDatabase, GameEvent, GamePhase } from '../sim/plugin';
+import type { GameDatabase } from '../sim/plugin';
 import { COLOR_NAMES } from '../sim/rules/board';
 import { stepWorld } from '../sim/schedule';
 import { applySwap } from '../sim/turn';
 import { getGameWorld } from '../world';
-import { createCues } from './cues';
+import { createEndOfPlay } from './endOfPlay';
+import { createFeedback, SOUNDS } from './feedback';
 import { type AudioSettings, createGameAudio } from './gameAudio';
-
-/** Delay (s) before handing off to results, so the last frame reads. */
-const END_PAUSE = 0.9;
-
-/** The audio channels this game plays (aliases in src/game/asset-manifest.ts). */
-const SOUNDS = {
-  sfx: ['sfx-pop', 'sfx-clear'],
-  music: ['audio-music'],
-} as const;
-type Sfx = (typeof SOUNDS.sfx)[number];
+import { createSettledStart } from './settledStart';
 
 /** Deps optionally carry `goto` (GameScreen injects it) for the results hop. */
 type Deps = GameControllerDeps & { goto?: (screen: string) => void };
@@ -113,9 +109,6 @@ export const setupGame: SetupGame = (
   let hud: GameHud | null = null;
   let board: BoardView | null = null;
 
-  /** Guard so a terminal phase only triggers one transition. */
-  let handledPhase: GamePhase | null = null;
-
   // ── Audio + feedback ───────────────────────────────────────────────────────
   // The gear menu's volume and music toggle apply through `settings`; a missing
   // engine or channel is a no-op (./gameAudio.ts).
@@ -123,30 +116,8 @@ export const setupGame: SetupGame = (
     ...SOUNDS,
     settings: deps.audio as AudioSettings | undefined,
   });
-  /** What each sim event sounds like and says (./cues.ts). */
-  const cues = createCues<GameEvent, Sfx>(
-    {
-      // One pop per move: a move's cascade steps share one sim instant.
-      scored: {
-        sfx: 'sfx-pop',
-        gapMs: 60,
-        aria: (e) =>
-          e.chain > 1 ? `Chain ×${e.chain}, ${e.score} points.` : null,
-      },
-      rejected: { aria: 'No match. Swap undone.' },
-      reshuffled: { aria: 'No moves left. New board.' },
-      phase: {
-        sfx: (e) => (e.phase === 'won' ? 'sfx-clear' : null),
-        aria: (e) =>
-          e.phase === 'won'
-            ? 'Level complete.'
-            : e.phase === 'lost'
-              ? 'Out of moves.'
-              : null,
-      },
-    },
-    { play: audio.play, say: setAriaText },
-  );
+  /** What each sim event sounds like and says (./feedback.ts). */
+  const cues = createFeedback({ play: audio.play, say: setAriaText });
 
   // ── Per-frame render (projection of ECS) ───────────────────────────────────
   // The views reconcile against ECS here, then the frame's events play.
@@ -156,36 +127,21 @@ export const setupGame: SetupGame = (
     hud?.update(db, dtSec);
     cues(drainEvents(db), db.resources.elapsedMs);
     // Let the last move finish animating before the level ends.
-    if (!board?.busy) handlePhase(db.resources.phase);
+    if (!board?.busy) endOfPlay.handlePhase(db.resources.phase);
   };
 
-  const handlePhase = (phase: GamePhase) => {
-    if (phase === 'playing' || phase === 'idle' || phase === handledPhase) {
-      return;
-    }
-    handledPhase = phase;
-    const won = phase === 'won';
-    const advance = won && !!db && !isLastLevel(db.resources.level);
-    if (won && db) {
-      const last = isLastLevel(db.resources.level);
-      runAnalytics.levelWon(db.resources.level, db.resources.score);
-      if (last) completeActivePack(); // the Vault served mode decides what a finished pack means
-      recordLevelWon(db.resources.packId, db.resources.level, last); // reload resumes the next level
-      hud?.announce(
-        `LEVEL ${db.resources.level + 1} CLEAR!`,
-        DESIGN_CANVAS.height / 2,
-      );
-    } else {
-      if (db) runAnalytics.levelFailed(db.resources.level, 'out_of_moves');
-      hud?.announce('OUT OF MOVES', DESIGN_CANVAS.height / 2);
-    }
-    gsap.delayedCall(END_PAUSE * (advance ? 1.6 : 1), () => {
-      if (destroyed) return;
-      // Between levels play straight on; the last win and a loss go to results.
-      if (advance) startRun();
-      else deps.goto?.('results');
-    });
-  };
+  /** Banner, analytics and progress at a level's end, then the next level or results
+   *  (./endOfPlay.ts). A run restarted during the pause cancels the hand-off. */
+  const endOfPlay = createEndOfPlay({
+    world: () => db,
+    analytics: runAnalytics,
+    announce: (text, y) => hud?.announce(text, y),
+    next: () => startRun(),
+    toResults: () => deps.goto?.('results'),
+  });
+
+  /** Runs started on this screen, so a deferred start can tell another one beat it. */
+  let runsStarted = 0;
 
   /**
    * Start (or restart) a run on the right level of the active pack: the next one after a win,
@@ -194,7 +150,7 @@ export const setupGame: SetupGame = (
    */
   const startRun = () => {
     if (!db) return;
-    handledPhase = null;
+    endOfPlay.reset();
     const pack = getActivePack();
     const prev = db.resources;
     // Read before the transaction: `prev` is the live resource object.
@@ -215,12 +171,21 @@ export const setupGame: SetupGame = (
       packId: pack.id,
       entry,
     });
+    runsStarted++;
     saveProgress(pack.id, index);
     runAnalytics.levelStarted(index, entry);
     setAriaText(
       `Level ${index + 1} of ${pack.levels.length}. Clear ${goal} ${goalColor} in ${moves} moves.`,
     );
   };
+
+  /** An agent's `start`: the next run, once any new Vault edition has loaded (./settledStart.ts). */
+  const startWhenSettled = createSettledStart({
+    settled: whenContentSettled,
+    runsStarted: () => runsStarted,
+    alive: () => !destroyed,
+    start: startRun,
+  });
 
   /** Input is live only on a settled board in a live run with nothing over the game. */
   const accepting = () =>
@@ -314,6 +279,8 @@ export const setupGame: SetupGame = (
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
+          // An agent's `start` takes the same level flow as the player's.
+          setLiveStart(db, startWhenSettled);
           audio.music('audio-music'); // audio unlocked on the start-screen tap; respects the toggle
 
           engine = createTickerEngine();
@@ -351,6 +318,8 @@ export const setupGame: SetupGame = (
 
     destroy() {
       destroyed = true;
+      if (db) setLiveStart(db, null); // no agent restarts under another screen
+      endOfPlay.destroy();
       audio.stopAll();
       stopSim?.();
       stopRender?.();

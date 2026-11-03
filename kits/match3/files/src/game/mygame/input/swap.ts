@@ -100,7 +100,7 @@ export function bindSwapInput(
     if (!accepting()) return;
     if (intent.type === 'action') {
       select(selected ? null : cursor);
-    } else {
+    } else if (intent.type === 'move') {
       const [dc, dr] = STEP[intent.dir];
       // A picked tile (by key or by tap) swaps that way; otherwise the cursor moves.
       const from = selected ?? cursor;

@@ -7,6 +7,11 @@
  * plugin below registers it as `db.services.agent` on top of the game world.
  * Actions call the same transactions the player's input does, so an agent
  * plays by the same rules. `./README.md` shows how to add one of each.
+ *
+ * `start` replays the level from its first board in a headless world (tests, a CLI).
+ * The running game's world (`../world.ts`) offers it only while the game screen has
+ * installed its own restart (`setLiveStart`), so an agent's restart takes the same
+ * level flow as the player's: seed, saved progress, analytics.
  */
 
 import type { Schema } from '@adobe/data/schema';
@@ -34,8 +39,28 @@ const tubeSchema = {
   },
 } as const satisfies Schema;
 
+type Start = () => void | Promise<void>;
+
+/** Each world's `start` setter, filled in when its agent service is built. */
+const liveStarts = new WeakMap<GameDatabase, (start: Start | null) => void>();
+
+/**
+ * Replace what the agent's `start` does on this world; `null` withdraws `start`.
+ * The game controller installs its `startRun` while the game screen is up.
+ */
+export function setLiveStart(db: GameDatabase, start: Start | null): void {
+  liveStarts.get(db)?.(start);
+}
+
 export function createGameAgentService(db: GameDatabase): AgenticService {
   const r = db.observe.resources;
+  // Headless default: the current level from its first board, from any phase.
+  let start: Start | null = () => db.transactions.replayLevel();
+  const [canStart, setCanStart] = Observe.createState(true);
+  liveStarts.set(db, (next) => {
+    start = next;
+    setCanStart(next !== null);
+  });
   const playing = Observe.withMap(r.phase, (p) => p === 'playing');
   return createAgentService({
     role:
@@ -89,11 +114,13 @@ export function createGameAgentService(db: GameDatabase): AgenticService {
         when: playing,
         run: () => db.transactions.undo(),
       },
-      // Offered in every phase: a fresh world is `idle` and a solved one `won`.
+      // Offered in every phase (a fresh world is `idle` and a solved one `won`), while
+      // there is a start: the running game withdraws it off the game screen.
       start: {
         description:
-          'Start the current level from its first board (from any phase: also the retry after a win or when stuck)',
-        run: () => db.transactions.replayLevel(),
+          'Start the current level from its first board (from any phase: also the retry when stuck; in the running game, the next level after a win)',
+        when: canStart,
+        run: () => start?.(),
       },
     },
   });

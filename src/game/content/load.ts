@@ -48,9 +48,15 @@ export async function loadActivePack(
     const client = await dynamicClient(gameKit);
     assembled = assemblePack(await client.getPack(packKey));
   } catch (err) {
-    // No pack under the default key is every ordinary boot with nothing published — not worth
-    // a line. No pack under a key someone typed or a Vault sent is.
-    if (!isPackNotFound(err) || packKey !== DEFAULT_PACK_KEY) {
+    // No pack under the default key is every ordinary boot with nothing published — the expected
+    // case, so a dev-only info line at most. No pack under a key someone typed or a Vault sent
+    // is worth a warning, and so is any real failure (network, a 5xx).
+    if (isPackNotFound(err) && packKey === DEFAULT_PACK_KEY) {
+      if (import.meta.env.DEV)
+        console.info(
+          `[content] nothing published under pack "${packKey}" — playing the bundled pack.`,
+        );
+    } else {
       console.warn(
         `[content] pack "${packKey}" unavailable — ${fallback}.`,
         err,
