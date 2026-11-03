@@ -31,7 +31,7 @@ let storage: MemoryStorage;
 /** Fresh modules per boot: the store, its priming, and the active pack all start over. */
 async function boot() {
   vi.resetModules();
-  const progress = await import('~/game/setup/progress');
+  const progress = await import('~/game/setup/progress.save');
   const content = await import('~/game/content');
   const { whenStoresReady } = await import('~/core/utils/storage');
   await whenStoresReady();
@@ -73,7 +73,7 @@ beforeEach(async () => {
   storage = new MemoryStorage();
   vi.stubGlobal('window', {});
   vi.stubGlobal('localStorage', storage);
-  KEY = (await import('~/game/setup/progress')).PROGRESS_KEY;
+  KEY = (await import('~/game/setup/progress.save')).PROGRESS_KEY;
 });
 
 afterEach(() => {
@@ -195,7 +195,7 @@ describe('progress store', () => {
 describe('progress rules (pure)', () => {
   it('sanitizeProgress repairs or resets', async () => {
     const { sanitizeProgress, PROGRESS_DEFAULTS } = await import(
-      '~/game/setup/progress'
+      '~/game/setup/progress.save'
     );
     expect(sanitizeProgress(null)).toEqual(PROGRESS_DEFAULTS);
     expect(sanitizeProgress([])).toEqual(PROGRESS_DEFAULTS);

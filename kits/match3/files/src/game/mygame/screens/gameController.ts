@@ -54,7 +54,12 @@ import type {
 import { settingsOpen } from '~/game/settingsOpen';
 import { whenContentSettled } from '~/game/setup/content';
 import { createRunAnalytics } from '~/game/setup/edition-analytics';
-import { resumeLevel, saveProgress } from '~/game/setup/progress';
+import {
+  recordLevelWon,
+  resumeLevel,
+  saveProgress,
+} from '~/game/setup/progress.save';
+import { completeActivePack } from '~/game/setup/served-session';
 import { setLiveStart } from '../agent/agentPlugin';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';

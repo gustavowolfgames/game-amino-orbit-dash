@@ -38,16 +38,20 @@ import { EmbedHook } from '~/game/EmbedHook';
 import { GameSettingsMenu } from '~/game/screens/components/GameSettingsMenu';
 import { registerEditionSuperProperties } from '~/game/setup/edition-analytics';
 import { createLoadingTracker } from '~/game/setup/loading-tracker';
-import { clearProgress } from '~/game/setup/progress'; // module-scope store: boot hydrates it
+import { clearSaves } from '~/game/setup/saves';
 import { createSessionTracker } from '~/game/setup/session-tracker';
 import { VaultContentBridge } from '~/game/setup/vault-content';
 import { AttractGate, EmbedProvider } from '~/integrations/embed';
 
+// Every save registers at module scope in a `*.save.ts` file; loading them here, before boot's
+// whenStoresReady(), hydrates each one before the first screen (see setup/saves.ts).
+import.meta.glob('/src/game/**/*.save.ts', { eager: true });
+
 const environment = parseEnvironment(import.meta.env.VITE_APP_ENV);
 
-/** Reset progress and reload the page */
+/** Reset progress (every store registered in saves.ts) and reload the page */
 const handleResetProgress = () => {
-  clearProgress();
+  clearSaves();
   window.location.reload();
 };
 

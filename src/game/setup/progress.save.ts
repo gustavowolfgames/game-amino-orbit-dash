@@ -5,8 +5,8 @@
  * only copies the resume point out so a reload lands on the same level, and hands it back to
  * the `startRun` transaction on the next run. Rules:
  *
- *   • Versioned on `createVersionedStore` (src/core/utils/storage.ts): `version`, a migration
- *     per shape change, and a `validate` that resets unusable data. A save from a newer build
+ *   • Registered in `saves.ts` (a versioned store under `${gameSlug}:progress`, cleared by Reset
+ *     Progress): `version`, a migration per shape change, and a `validate` that resets unusable data. A save from a newer build
  *     (future version) reads as defaults — the core guards that.
  *   • Sanitised on read: a usable record with a bad field (negative, fractional, `null` level) is
  *     repaired, not thrown away; a level past the pack's end clamps to its last level.
@@ -19,18 +19,17 @@
  * A new game keeps this shape and swaps the fields (see .agents/recipes/dynamic-data.md, "Saved progress").
  */
 
-import { createVersionedStore } from '~/core/utils/storage';
 import {
   type ActivePack,
   BUNDLED_PACK,
   onActivePackChange,
 } from '~/game/content';
-import wolfGameKit from '../../../wolf-game-kit.json';
+import { registerSave, saveKey } from './saves';
 
 export const PROGRESS_VERSION = 2;
 
 /** SDK app id — the envelope lives under `${PROGRESS_KEY}_save_data`. One per game slug. */
-export const PROGRESS_KEY = `${wolfGameKit.gameSlug}:progress`;
+export const PROGRESS_KEY = saveKey('progress');
 
 export interface RunProgress {
   version: number;
@@ -89,8 +88,8 @@ export function resumeLevelFrom(
   return Math.min(data.level, Math.max(0, pack.levels.length - 1));
 }
 
-const store = createVersionedStore<RunProgress>({
-  key: PROGRESS_KEY,
+const store = registerSave<RunProgress>({
+  name: 'progress',
   version: PROGRESS_VERSION,
   defaults: PROGRESS_DEFAULTS,
   migrations: { 2: migrateProgressV2 },

@@ -25,7 +25,7 @@ import { isLastLevel } from '~/game/content';
 import type { GameIntent } from '~/game/mygame-contract';
 import { settingsOpen } from '~/game/settingsOpen';
 import type { RunAnalytics } from '~/game/setup/edition-analytics';
-import { recordLevelWon } from '~/game/setup/progress';
+import { recordLevelWon } from '~/game/setup/progress.save';
 import { completeActivePack } from '~/game/setup/served-session';
 import {
   createEndScreen,
