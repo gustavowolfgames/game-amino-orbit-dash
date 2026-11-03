@@ -13,8 +13,13 @@ Feedback has three parts, all DOM-free:
 | `../sim/events.ts` | The sim `emit`s events; `drainEvents(db)` takes them once a frame. |
 | `gameAudio.ts` | `createGameAudio(engine, { sfx, music, settings })`: typed `play(id)`, `music(id \| null)`, `stopAll()`. Applies the gear menu's volume and music toggle. Never throws; logs a failing or unloaded channel once in dev. |
 | `cues.ts` | `createCues<GameEvent, Sfx>(table, { play, say })`: per event type, a sound (`sfx`, `volume`, `gapMs` throttle on sim time), a screen-reader line (`aria`) and a `run` hook for the HUD or a view. |
+| `feedback.ts` | Ball sort's own table: `createFeedback({ play, say })` returns the cue runner for every `GameEvent`, and `SOUNDS` lists the channels. |
 
-The wiring, cut down from the ball sort controller:
+The end of a level is `endOfPlay.ts` (on the template's `runEnd.ts`): analytics
+with the move count, saved progress, then the next level or results after a beat.
+A run that starts again during that beat (an agent's `start`) cancels the hop.
+
+The wiring, cut down from `feedback.ts` and the ball sort controller:
 
 ```ts
 // check: feedback.ts

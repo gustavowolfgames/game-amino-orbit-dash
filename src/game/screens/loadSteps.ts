@@ -6,6 +6,8 @@
  *   required   what the next screen cannot start without (the renderer, its art, its code):
  *              retried a few times (a dropped request), then it throws, and the loader does
  *              not hand off. Handing off without it leaves a screen that cannot start.
+ *              One missing art file does not fail its bundle: it is skipped and reported
+ *              (skipMissingArt in mygame/render/textures.ts).
  */
 
 import gsap from 'gsap';

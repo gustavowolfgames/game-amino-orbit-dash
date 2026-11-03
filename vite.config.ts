@@ -40,6 +40,27 @@ function qrcodePlugin(): Plugin {
   };
 }
 
+// Phones load the dev server over plain http://<lan-ip>, which is not a secure
+// context, so browsers leave `crypto.randomUUID` undefined. Core's error
+// reporter and the components analytics call it at startup, and the game dies
+// before it renders. Polyfill it from `getRandomValues` (available in insecure
+// contexts) before any module runs. Dev server only; builds are untouched.
+function insecureContextPolyfillPlugin(): Plugin {
+  return {
+    name: 'insecure-context-polyfill',
+    apply: 'serve',
+    transformIndexHtml() {
+      return [
+        {
+          tag: 'script',
+          injectTo: 'head-prepend',
+          children: `(function(){var c=globalThis.crypto;if(!c||typeof c.randomUUID==='function'||typeof c.getRandomValues!=='function')return;c.randomUUID=function(){var b=c.getRandomValues(new Uint8Array(16));b[6]=(b[6]&15)|64;b[8]=(b[8]&63)|128;var h=Array.from(b,function(x){return x.toString(16).padStart(2,'0')}).join('');return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20)};})();`,
+        },
+      ];
+    },
+  };
+}
+
 // -----------------------------------------------------------------------------
 // @wolfgames/components consumption mode
 //
@@ -107,7 +128,13 @@ export default defineConfig(({ command, mode }) => {
   }
 
   return {
-    plugins: [solid(), tailwindcss(), qrcodePlugin(), aminoGamePlugin()],
+    plugins: [
+      solid(),
+      tailwindcss(),
+      insecureContextPolyfillPlugin(),
+      qrcodePlugin(),
+      aminoGamePlugin(),
+    ],
     resolve: {
       alias: [
         // Retarget package resolution so dev iterations don't need bun install.

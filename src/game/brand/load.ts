@@ -73,7 +73,14 @@ export async function loadBrand(
     );
     return null;
   }
-  if (raw == null) return null;
+  if (raw == null) {
+    // Nothing published (the SDK answers a 404 entry with null): the expected case for a new game.
+    if (import.meta.env.DEV)
+      console.info(
+        `[brand] no "${THEME_ENTRY}" sheet published — wearing the build's brand.`,
+      );
+    return null;
+  }
 
   const override = validateOverride(raw);
   if (!override) {

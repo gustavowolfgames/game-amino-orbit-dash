@@ -10,6 +10,12 @@
  * Keyed by instance, not a module-level memo, so distinct GameKITs never share and an entry dies
  * with its kit. A rejection drops the entry, so the next caller retries instead of inheriting a
  * cached failure.
+ *
+ * The same race applies to `getPack`: the SDK caches a pack (or a 404) only once its fetch has
+ * settled, and the level loader and the brand both ask for the boot pack in the same tick. So the
+ * client handed out here shares one in-flight `getPack` per key: one request, not two, and with
+ * nothing published one "Failed to load resource: 404" line in the console, not two. The browser
+ * logs that line for any 4xx fetch and the CDN has no "does it exist" call, so one is the floor.
  */
 
 import { GetDynamicDataClientCommand } from '@wolfgames/client';
@@ -55,13 +61,36 @@ const INTERCEPTED: (keyof typeof registry)[] = ['blocks', 'levels', 'brand'];
 
 const clients = new WeakMap<object, Promise<EntryClient>>();
 
+/**
+ * Wrap the SDK client so concurrent `getPack(key)` calls share one request. Once it settles, the
+ * SDK's own caches (the pack, or a 30 s "not found") answer later calls, so this only holds the
+ * in-flight promise.
+ */
+export function shareInFlightPacks(client: EntryClient): EntryClient {
+  const inFlight = new Map<string, Promise<PackBundle>>();
+  return {
+    getPack(packKey) {
+      let pending = inFlight.get(packKey);
+      if (!pending) {
+        pending = client
+          .getPack(packKey)
+          .finally(() => inFlight.delete(packKey));
+        inFlight.set(packKey, pending);
+      }
+      return pending;
+    },
+    getEntry: (key, entryKey, options) =>
+      client.getEntry(key, entryKey, options),
+  };
+}
+
 export function dynamicClient(gameKit: KitLike): Promise<EntryClient> {
   const key = gameKit as object;
   let pending = clients.get(key);
   if (!pending) {
     pending = gameKit
       .execute(new GetDynamicDataClientCommand(registry, null, INTERCEPTED))
-      .promise.then((client) => client as EntryClient)
+      .promise.then((client) => shareInFlightPacks(client as EntryClient))
       .catch((err) => {
         clients.delete(key);
         throw err;
