@@ -12,7 +12,6 @@ const seams = vi.hoisted(() => ({
   inVault: true,
   awaitFirstVaultContext: vi.fn(),
   loadActivePack: vi.fn(),
-  loadCatalog: vi.fn(),
   loadBrand: vi.fn(),
 }));
 
@@ -24,7 +23,6 @@ vi.mock('~/integrations/vault', () => ({
 vi.mock('~/game/content', async (importOriginal) => ({
   ...(await importOriginal<typeof import('~/game/content')>()),
   loadActivePack: seams.loadActivePack,
-  loadCatalog: seams.loadCatalog,
 }));
 
 vi.mock('~/game/brand', () => ({ loadBrand: seams.loadBrand }));
@@ -47,7 +45,6 @@ beforeEach(() => {
   seams.inVault = true;
   seams.awaitFirstVaultContext.mockReset();
   seams.loadActivePack.mockReset().mockResolvedValue(null);
-  seams.loadCatalog.mockReset().mockResolvedValue([]);
   seams.loadBrand.mockReset().mockResolvedValue(undefined);
 });
 
@@ -68,8 +65,17 @@ describe('loadBootContent', () => {
     expect(seams.loadActivePack).toHaveBeenCalledTimes(1);
     expect(seams.loadActivePack).toHaveBeenCalledWith(kit, 'ed-1', 'ed-1');
     expect(seams.loadBrand).toHaveBeenCalledWith(kit, 'ed-1');
-    expect(seams.loadCatalog).toHaveBeenCalled();
     expect(m.getBootSelection()).toBe('ed-1');
+  });
+
+  it('the unlocked_editions signal boots the default pack, not a pack of that name', async () => {
+    seams.awaitFirstVaultContext.mockResolvedValue(
+      contextFor({ type: 'content', contentId: 'unlocked_editions' }),
+    );
+    const m = await load();
+    await m.loadBootContent(kit);
+    expect(seams.loadActivePack).toHaveBeenCalledWith(kit, 'default', null);
+    expect(m.getBootSelection()).toBeNull();
   });
 
   it('does not fetch any pack before the first context arrives', async () => {
@@ -113,6 +119,5 @@ describe('loadBootContent', () => {
     await m.loadBootContent(kit);
     expect(seams.awaitFirstVaultContext).not.toHaveBeenCalled();
     expect(seams.loadActivePack).toHaveBeenCalledWith(kit, 'default', null);
-    expect(seams.loadCatalog).not.toHaveBeenCalled();
   });
 });

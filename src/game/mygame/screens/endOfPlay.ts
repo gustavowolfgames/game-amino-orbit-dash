@@ -7,7 +7,7 @@
  *   • The pack's last level goes through the Vault's served session (`completeActivePack`):
  *     when the Vault takes over, the game shows nothing of its own.
  *   • Otherwise, after a beat, the end card (`../render/endScreen.ts`) comes up over the board:
- *     Next level / Try again / Play again (or Next edition in the Vault's unlocked walk), and
+ *     Next level / Try again / Play again, and
  *     Main menu. Its primary action waits for any new edition to load, then starts the next run.
  *
  * Input reaches it as intents (`input`): Enter / Space / Escape from `useGameKeyboard`, and the
@@ -80,8 +80,8 @@ export function createEndOfPlay(deps: EndOfPlayDeps): EndOfPlay {
   /** The card the current end will show; null when the Vault takes over. */
   let outcome: EndOutcome | null = null;
 
-  /** Next / Try again / Play again. A finished pack in the Vault's unlocked walk has started
-   *  loading the next edition; the controller waits for it (bounded) so the run starts there. */
+  /** Next / Try again / Play again. The controller waits (bounded) for any pending pack load, so
+   *  the run starts on the pack in force. */
   const playOn = () => {
     card.hide();
     void deps.playOn();
@@ -115,7 +115,6 @@ export function createEndOfPlay(deps: EndOfPlayDeps): EndOfPlay {
       outcome = {
         won,
         packDone: last,
-        nextEdition: next === 'next-edition',
         level,
         score,
       };

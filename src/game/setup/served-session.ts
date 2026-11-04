@@ -1,19 +1,16 @@
 /**
  * The served session — the one owner of the Vault served mode, pack sequencing and the exit.
  *
- *   select(content)   a Vault selection → `resolveServedMode` → load the mode's first pack
- *   packCompleted()   the active pack's last level was won → report, advance, or exit
+ *   select(content)   a Vault selection → `resolveServedMode` → load its pack
+ *   packCompleted()   the active pack's last level was won → report, or keep the player here
  *
- * What a completed pack does, by mode:
+ * The game never reads a schedule: the Vault names the pack and the game loads it. What a
+ * completed pack does, by mode:
  *
- *   default   `reportGameCompleted()` — the authored run is done (as before).
+ *   default   `reportGameCompleted()` — the authored run is done. The Vault's `unlocked_editions`
+ *             signal is this mode too.
  *   daily     `reportContentCompleted(contentId)` — the edition is done and the Vault takes the
  *             player back (a completion report tears the Vault iframe down). Sent once.
- *   unlocked  advance the cursor to the next open edition and load it (`seedActivePack` fires
- *             `onActivePackChange`, and the next run starts on its level 1). No per-edition
- *             report: any completion would end the session mid-walk (amino-word-game
- *             `platform/unlocked.ts`). After the last edition, `reportGameCompleted()` once, as
- *             game-amino-memory-match does for its unlocked run.
  *
  * `play_ended` is NOT the exit: it means "the player left", never completion (host-bridge.ts).
  *
@@ -22,13 +19,8 @@
  * `completeActivePack()` reports nothing.
  */
 
-import type {
-  ScheduledContentMetadata,
-  VaultGameContext,
-} from '@wolfgames/client';
+import type { VaultGameContext } from '@wolfgames/client';
 import {
-  createEditionCursor,
-  type EditionCursor,
   resolveServedMode,
   type ServedModeName,
 } from '~/game/content/served-mode';
@@ -38,26 +30,23 @@ export interface ServedSessionDeps {
   load(packKey: string | null): void;
   /** The pack in play's Vault `contentId` (`getActivePack().contentId`). */
   activeContentId(): string | null;
-  /** The Daily Editions schedule loaded at boot. */
-  catalog(): readonly ScheduledContentMetadata[];
-  now(): Date;
   reportContentCompleted(contentId: string): void;
   reportGameCompleted(): void;
 }
 
 /**
  * Where the end of a pack leads: the Vault takes over (a completion report went out, and the
- * Vault shows its own end screen), the next edition of an unlocked walk starts, or the game
- * keeps the player on this pack (outside a Vault, or a report that doesn't apply).
+ * Vault shows its own end screen), or the game keeps the player on this pack (outside a Vault,
+ * or a report that doesn't apply).
  */
-export type PackEnd = 'vault' | 'next-edition' | 'replay';
+export type PackEnd = 'vault' | 'replay';
 
 export interface ServedSession {
   /** The mode in force. */
   mode(): ServedModeName;
   /** Obey a Vault selection. Identical re-sends are ignored. */
   select(content: VaultGameContext['content']): void;
-  /** The active pack's last level was won: report, advance or neither (`PackEnd`). */
+  /** The active pack's last level was won: report or neither (`PackEnd`). */
   packCompleted(): PackEnd;
 }
 
@@ -65,7 +54,8 @@ export function createServedSession(deps: ServedSessionDeps): ServedSession {
   let mode: ServedModeName = 'default';
   /** The raw `contentId` last selected; null = default (nothing selected). */
   let selected: string | null = null;
-  let cursor: EditionCursor | null = null;
+  /** The first selection always runs: boot may have loaded a pack the session never chose. */
+  let seen = false;
   /** The session's terminal report went out (daily exit / unlocked end). */
   let ended = false;
 
@@ -74,20 +64,20 @@ export function createServedSession(deps: ServedSessionDeps): ServedSession {
 
     select(content) {
       const id = content.type === 'content' ? content.contentId : null;
-      if (id === selected) return; // a re-send, or `default` with nothing selected
+      if (seen && id === selected) return; // a re-send
+      seen = true;
       selected = id;
       const was = mode;
-      const served = resolveServedMode({ content }, deps.catalog(), deps.now());
+      const served = resolveServedMode({ content });
       mode = served.mode;
       ended = false;
-      cursor =
-        served.mode === 'unlocked' ? createEditionCursor(served.packs) : null;
-      if (served.mode === 'default') {
-        // A deselection drops the edition; a default with nothing loaded leaves the boot content.
-        if (was !== 'default') deps.load(null);
+      if (served.pack === null) {
+        // Drop any edition in play, including one boot loaded before the session saw a selection.
+        if (was !== 'default' || deps.activeContentId() !== null)
+          deps.load(null);
         return;
       }
-      deps.load(cursor ? cursor.current() : served.packs[0]);
+      deps.load(served.pack);
     },
 
     packCompleted() {
@@ -106,16 +96,6 @@ export function createServedSession(deps: ServedSessionDeps): ServedSession {
           ended = true;
           deps.reportContentCompleted(selected);
           return 'vault';
-        case 'unlocked': {
-          const next = cursor?.advance() ?? null;
-          if (next !== null) {
-            deps.load(next);
-            return 'next-edition';
-          }
-          ended = true;
-          deps.reportGameCompleted();
-          return 'vault';
-        }
       }
     },
   };

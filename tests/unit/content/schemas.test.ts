@@ -10,7 +10,6 @@ import { type } from 'arktype';
 import { describe, expect, it } from 'vitest';
 import { ContentPackDef, decomposePack } from '~/game/content';
 import { BrandDef } from '../../../schemas/brand/schema';
-import { CatalogDef } from '../../../schemas/catalog/schema';
 import { registry } from '../../../schemas/registry';
 
 const SCHEMAS = path.resolve(import.meta.dirname, '../../../schemas');
@@ -28,13 +27,8 @@ const examples = (schema: string) =>
   jsonFiles(path.join(SCHEMAS, schema, 'examples'));
 
 describe('registry', () => {
-  it('registers content, brand and schedule as separate schemas', () => {
-    expect(Object.keys(registry).sort()).toEqual([
-      'blocks',
-      'brand',
-      'catalog',
-      'levels',
-    ]);
+  it('registers content and brand as separate schemas', () => {
+    expect(Object.keys(registry).sort()).toEqual(['blocks', 'brand', 'levels']);
     for (const [key, entry] of Object.entries(registry)) {
       expect(entry.schema.key).toBe(key);
       expect(Number.isInteger(entry.schema.version)).toBe(true);
@@ -64,12 +58,4 @@ describe('examples', () => {
     const out = BrandDef(raw);
     expect(out instanceof type.errors ? out.summary : 'ok').toBe('ok');
   });
-
-  it.each(examples('catalog'))(
-    'catalog %s maps pack keys to dates',
-    (_, raw) => {
-      const out = CatalogDef(raw);
-      expect(out instanceof type.errors ? out.summary : 'ok').toBe('ok');
-    },
-  );
 });

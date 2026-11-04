@@ -17,11 +17,10 @@ one does not imply the other.
 - **Hosted by Vault** — `inVault()` is true (the game was launched with the
   Vault's `wolfHost`/`wolfSurface` params). Host-driven, decided by the launch
   URL. `<VaultHostBridge />` always runs here and no-ops everywhere else.
-- **Daily mode** — the game handles `content` selections (and can answer the
-  manager's `content_catalog` request, below).
-  This is **game-content-driven**: your game's own call about whether it has
-  dated content to offer. There is no host-side or URL `daily` signal. A game
-  can be Vault-hosted with no Daily Editions, or offer content without one.
+- **Daily mode** — the game handles `content` selections. The game never reads
+  a schedule: the Vault names the pack and the game loads it. There is no
+  host-side or URL `daily` signal. A game can be Vault-hosted with no Daily
+  Editions, or offer content without one.
 
 ## The wire contract (0.1.36)
 
@@ -113,19 +112,12 @@ context changes) alongside content maps both from its one `onContext` handler.
 Daily Editions are **opt-in and game-specific**, built from these SDK
 primitives:
 
-- **`defineGameData('content_catalog', provider)`** (from `@wolfgames/client`) —
-  answers the Game Manager when it asks for this game's schedule,
-  `{ items: readonly { contentId, availableFrom }[] }`. It runs only on that
-  request, never on a player launch. The game never sends the schedule unasked:
-  the Vault's own config is the only list of editions it plays.
 - **`onContext`** (via `<VaultHostBridge onContext={...} />`) — receives each
   resolved `VaultGameContext`. Map `content` onto your game's content:
   `{ type: 'default' }` → your normal/authored run; `{ type: 'content', contentId }`
   → resolve `contentId` and start it. Identical re-sends are ignored by the SDK.
-  **Only `contentId` comes back on the wire** — the `availableFrom` date and any
-  other metadata in your schedule do *not* round-trip. The Vault treats
-  `contentId` as opaque; resolve the date/thumbnail/etc. from your own authored
-  catalog by that id.
+  **Only `contentId` comes back on the wire.** The Vault treats it as opaque and
+  it is the pack key. The game holds no schedule, date or thumbnail.
 - **`reportContentCompleted(contentId)`** — call at your game's completion
   boundary for that content. Deduped per `gameSessionId + contentId`, so the
   same content can complete again under a new session.
@@ -170,21 +162,13 @@ Each is genuinely game-specific and must be handled in your consumer:
 ### Consumer sketch (adapt to your content model)
 
 ```tsx
-import { defineGameData } from '@wolfgames/client';
 import { createSignal } from 'solid-js';
 import { useScreen } from '~/core';
 import {
   VaultHostBridge,
   reportContentCompleted,
-  type ScheduledContentMetadata,
   type VaultGameContext,
 } from '~/integrations/vault';
-
-const CATALOG: readonly ScheduledContentMetadata[] = [
-  { contentId: 'my-pack-2026-09-01', availableFrom: '2026-09-01' },
-];
-
-defineGameData('content_catalog', () => ({ items: CATALOG }));
 
 export function VaultContentBridge() {
   const { current } = useScreen();

@@ -4,7 +4,7 @@
  * `<VaultHostBridge>` holds `startVaultRuntime` (and with it `ready`) until the first
  * non-`loading` screen, but boot needs the selection *during* `loading` — otherwise a Vault
  * launch plays the bundled pack first and swaps later. This module listens passively
- * (`onHostMessage('context')`: no `ready`, no `content_catalog`, nothing sent), so the
+ * (`onHostMessage('context')`: no `ready`, nothing sent), so the
  * protocol order is untouched: the Vault still re-sends `context` on `ready`, and the
  * bridge's `onContext` still sees it.
  *

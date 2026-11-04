@@ -16,10 +16,10 @@ Each event is an arktype schema in `src/game/setup/events.ts` and a typed `track
 
 `src/game/setup/edition-analytics.ts` owns these; keep them when you replace the sample.
 
-- `edition_started` — a run of the active Content Pack begins (its first level starts; a pack that loops round starts again). Props: `{ edition_id: string, edition_date: string | null }`.
+- `edition_started` — a run of the active Content Pack begins (its first level starts; a pack that loops round starts again). Props: `{ edition_id: string }`.
 - `edition_completed` — the pack's last level is won, next to `reportContentCompleted`. Same props.
-- `edition_id` is the pack key (`getActivePack().id`). `edition_date` is the pack's `YYYY-MM-DD` in the Daily Editions catalog (`getEditions()`, loaded at boot inside a Vault), looked up by the Vault `contentId`, then the pack key. It is `null` for an unscheduled pack: the bundled default, the published default, a `?wolfPack=` override outside a Vault.
-- Both are PostHog **super properties**. `registerEditionSuperProperties` (mounted once in `src/app.tsx`) registers them at mount and on every `onActivePackChange`, so each pack of an unlocked loop overwrites the last. `register` is a no-op until PostHog has loaded, so it registers again on `service.whenReady()`; events queued before that lack them, which is why the edition events carry both as props.
+- `edition_id` is the pack key (`getActivePack().id`). The game knows no dates: the Vault names the pack for the day, so there is no `edition_date`.
+- `edition_id` is also a PostHog **super property**. `registerEditionSuperProperties` (mounted once in `src/app.tsx`) registers it at mount and on every `onActivePackChange`, so each new pack overwrites the last. `register` is a no-op until PostHog has loaded, so it registers again on `service.whenReady()`; events queued before that lack it, which is why the edition events carry it as a prop.
 
 ### Level events (wired)
 

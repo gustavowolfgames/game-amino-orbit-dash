@@ -1,14 +1,13 @@
 /**
  * Daily Editions consumer — maps the Vault's selection onto Content Packs through the served
- * session (`./served-session.ts`): default, one daily edition, or the unlocked walk.
+ * session (`./served-session.ts`): the default pack, or the one edition the Vault names.
  *
- * The Vault's `contentId` IS a pack key (the manager's harvest reads `catalog/<slug>`, see
- * .agents/recipes/dynamic-data.md), so loading a pack is just `loadContent(kit, packKey)`. Handles the
- * consumer hazards in `src/integrations/vault/README.md`:
+ * The game never reads a schedule. The Vault's `contentId` IS a pack key, so loading a pack is
+ * just `loadContent(kit, packKey)`. Handles the consumer hazards in `src/integrations/vault/README.md`:
  *
  *   1. Completion is game-owned: the game controller calls `completeActivePack()` when the pack's
- *      last level is won, and the served mode decides what that means (report, next edition, or
- *      exit to the Vault).
+ *      last level is won, and the served mode decides what that means (report to the Vault, or
+ *      replay).
  *   2. A new selection mid-play never yanks the board: loading only re-seeds the pack, and the
  *      controller reads it at the next run's start.
  *   3. Nothing activates during `loading`: the bridge starts the runtime only after it.
@@ -18,14 +17,9 @@
  * The first selection is normally applied during `loading` by the boot's first-context gate
  * (`loadBootContent`); this bridge starts from it, so the Vault's re-send on `ready` is a no-op.
  *
- * It also answers the manager's Daily Editions harvest: when the manager asks for
- * `content_catalog`, the schedule (`catalog/<slug>`) loaded at boot is the answer. The game never
- * sends it unasked; the Vault's own config is the only list of editions it plays.
- *
  * Inert outside a Vault (the bridge renders nothing). Mount inside `<ScreenProvider>`.
  */
 
-import { defineGameData } from '@wolfgames/client';
 import { useConfigState, useSignal } from '@wolfgames/components/solid';
 import { onCleanup } from 'solid-js';
 import { resetBrand } from '~/game/brand';
@@ -37,7 +31,7 @@ import {
   type VaultGameContext,
   VaultHostBridge,
 } from '~/integrations/vault';
-import { getBootSelection, getEditions, loadContent } from './content';
+import { getBootSelection, loadContent } from './content';
 import { createServedSession, installServedSession } from './served-session';
 
 export function VaultContentBridge() {
@@ -58,8 +52,6 @@ export function VaultContentBridge() {
       void loadContent(gameKit(), packKey);
     },
     activeContentId: () => getActivePack().contentId,
-    catalog: getEditions,
-    now: () => new Date(),
     reportContentCompleted: (contentId) => {
       reportContentCompleted(contentId);
     },
@@ -70,10 +62,8 @@ export function VaultContentBridge() {
   // Installed only inside a Vault: standalone, `completeActivePack()` reports nothing.
   if (inVault()) {
     installServedSession(session);
-    defineGameData('content_catalog', () => ({ items: getEditions() }));
     onCleanup(() => {
       installServedSession(null);
-      defineGameData('content_catalog', undefined);
     });
   }
 

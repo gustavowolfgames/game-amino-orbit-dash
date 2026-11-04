@@ -14,21 +14,14 @@
  * A frozen build (`VITE_IS_FROZEN`, served with no CDN behind it) skips the network entirely.
  */
 
-import type { ScheduledContentMetadata } from '@wolfgames/client';
 import { loadBrand } from '~/game/brand';
 import {
   type KitLike,
   loadActivePack,
-  loadCatalog,
   resolvePackKey,
+  UNLOCKED_EDITIONS_CONTENT_ID,
 } from '~/game/content';
 import { awaitFirstVaultContext, inVault } from '~/integrations/vault';
-import wolfGameKit from '../../../wolf-game-kit.json';
-
-/** The registered Nucleo slug. template-amino dropped `config/identity.ts` in its identity
- *  rework (#97, ENG-4222); its scaffold now reads the slug from the config service, which
- *  this plain module cannot reach, so it reads the same value from wolf-game-kit.json. */
-const GAME_SLUG = wolfGameKit.gameSlug;
 
 /** How long boot (or Play) waits on Dynamic Data before going with what it has. */
 export const CONTENT_BUDGET_MS = 4000;
@@ -44,17 +37,8 @@ export const VAULT_CONTEXT_WAIT_MS = 3000;
 const isFrozen = () => import.meta.env.VITE_IS_FROZEN === 'true';
 
 let settled: Promise<void> = Promise.resolve();
-let editions: ScheduledContentMetadata[] = [];
 let bootSelection: string | null = null;
 let warnedNoContext = false;
-
-/**
- * The Daily Editions schedule loaded at boot, the answer to the manager's `content_catalog`
- * request. The request arrives on `ready`, after loading, so the list is settled by then.
- */
-export function getEditions(): readonly ScheduledContentMetadata[] {
-  return editions;
-}
 
 /**
  * The Vault `contentId` the boot applied, or null (outside a Vault, a `default` context, or the
@@ -65,22 +49,15 @@ export function getBootSelection(): string | null {
   return bootSelection;
 }
 
-/** Pack + brand (+ the edition schedule), raced against `CONTENT_BUDGET_MS`. */
+/** Pack + brand, raced against `CONTENT_BUDGET_MS`. */
 function fetchContent(
   gameKit: KitLike,
   selection: string | null,
-  withSchedule: boolean,
 ): Promise<void> {
   const packKey = resolvePackKey(selection);
-  const schedule = withSchedule
-    ? loadCatalog(gameKit, GAME_SLUG).then((list) => {
-        editions = list;
-      })
-    : null;
   const work = Promise.all([
     loadActivePack(gameKit, packKey, selection),
     loadBrand(gameKit, packKey),
-    schedule,
   ]).then(() => undefined);
   return Promise.race([
     work,
@@ -89,15 +66,14 @@ function fetchContent(
 }
 
 /**
- * Fetch and apply the pack and brand for `selection` (a Vault `contentId`), bounded. The call
- * with no selection inside a Vault also loads the edition schedule the manager harvests.
+ * Fetch and apply the pack and brand for `selection` (a Vault `contentId`), bounded.
  */
 export function loadContent(
   gameKit: KitLike | null | undefined,
   selection: string | null = null,
 ): Promise<void> {
   if (!gameKit || isFrozen()) return Promise.resolve();
-  settled = fetchContent(gameKit, selection, selection === null && inVault());
+  settled = fetchContent(gameKit, selection);
   return settled;
 }
 
@@ -119,9 +95,11 @@ export function loadBootContent(
         `[vault] no host context within ${VAULT_CONTEXT_WAIT_MS}ms — booting the default pack; the selection applies when it arrives.`,
       );
     }
-    bootSelection =
+    // `unlocked_editions` is a Vault signal, not a pack: it boots the default pack.
+    const asked =
       context?.content.type === 'content' ? context.content.contentId : null;
-    return fetchContent(gameKit, bootSelection, true);
+    bootSelection = asked === UNLOCKED_EDITIONS_CONTENT_ID ? null : asked;
+    return fetchContent(gameKit, bootSelection);
   });
   return settled;
 }

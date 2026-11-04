@@ -1,23 +1,20 @@
 /**
  * Edition + level analytics — which Content Pack is in play, and when a run of it starts and ends.
  *
- *   registerEditionSuperProperties(service)  app mount: `edition_id` / `edition_date` as PostHog
- *                                            super properties, re-registered on every pack change
+ *   registerEditionSuperProperties(service)  app mount: `edition_id` as a PostHog super property,
+ *                                            re-registered on every pack change
  *   createRunAnalytics(service)              game controller: `level_start` / `level_restart` /
  *                                            `level_complete`, plus `edition_started` (first level
  *                                            of a run) and `edition_completed` (last level won)
  *
  * An edition IS the active Content Pack (`~/game/content`): `edition_id` is its pack key,
- * `edition_date` its `YYYY-MM-DD` in the Daily Editions catalog (`catalog/<slug>`, loaded at boot
- * inside a Vault — `getEditions()`), looked up by the Vault `contentId` that selected it, else by
- * the pack key. Null when the pack is not scheduled: the bundled default, the published default,
- * a `?wolfPack=` override outside a Vault (the catalog is only fetched inside one).
+ * The game knows no dates: the Vault names the pack for the day.
  *
- * Super properties are driven by `onActivePackChange`, never by screen code, so each pack of an
- * unlocked loop re-registers its own (PostHog `register` overwrites — nothing is appended).
+ * Super properties are driven by `onActivePackChange`, never by screen code, so each new pack
+ * re-registers its own (PostHog `register` overwrites — nothing is appended).
  * `register` is a silent no-op until the PostHog SDK has loaded (it loads lazily), so the latest
  * values are registered again once it is ready. Events queued before that flush without them,
- * which is why the edition events also carry both fields as their own props.
+ * which is why the edition events also carry the field as their own prop.
  */
 
 import type { BaseAnalyticsService } from '@wolfgames/components/core';
@@ -27,7 +24,6 @@ import {
   isLastLevel,
   onActivePackChange,
 } from '~/game/content';
-import { getEditions } from './content';
 import {
   editionCompletedSchema,
   editionStartedSchema,
@@ -40,34 +36,11 @@ import {
 /** The edition fields: event props on edition_started/completed, super properties on the rest. */
 export interface EditionProps {
   edition_id: string;
-  edition_date: string | null;
-}
-
-/** The schedule entries the date is read from (`{ contentId, availableFrom }`). */
-type Schedule = readonly {
-  readonly contentId: string;
-  readonly availableFrom: string;
-}[];
-
-/** The catalog date of `pack`, by its Vault `contentId`, else its pack key; null when unscheduled. */
-export function editionDateFor(
-  pack: ActivePack,
-  schedule: Schedule = getEditions(),
-): string | null {
-  const keys = [pack.contentId, pack.id].filter((k): k is string => !!k);
-  for (const key of keys) {
-    const hit = schedule.find((e) => e.contentId === key);
-    if (hit) return hit.availableFrom;
-  }
-  return null;
 }
 
 /** The edition fields for `pack` (the pack in play by default). */
-export function editionProps(
-  pack: ActivePack = getActivePack(),
-  schedule?: Schedule,
-): EditionProps {
-  return { edition_id: pack.id, edition_date: editionDateFor(pack, schedule) };
+export function editionProps(pack: ActivePack = getActivePack()): EditionProps {
+  return { edition_id: pack.id };
 }
 
 /**

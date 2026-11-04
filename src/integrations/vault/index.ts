@@ -1,7 +1,4 @@
-export type {
-  ScheduledContentMetadata,
-  VaultGameContext,
-} from '@wolfgames/client';
+export type { VaultGameContext } from '@wolfgames/client';
 // SDK content/lifecycle primitives a game-specific consumer needs, alongside
 // the <VaultHostBridge> onContext prop.
 export {

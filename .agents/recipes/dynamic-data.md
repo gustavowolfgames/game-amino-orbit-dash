@@ -6,14 +6,13 @@ Open this recipe when you add levels, questions, cards, or anything that should 
 
 ## The model
 
-A game's levels and its look are data the Games Manager publishes, not code. One build serves the default game, dated daily editions, and any number of partner reskins.
+A game's levels and its look are data the Games Manager publishes, not code. One build serves the default game, any number of editions, and any number of partner reskins.
 
 ```
 build (ships with)                         Games Manager (publish, no redeploy)
 ──────────────────                         ────────────────────────────────────
 src/game/content/packs/default.json  ◀──── blocks + levels entries → Content Pack "<key>"
 src/game/brand/defaults.ts (Wolf)    ◀──── brand entry "theme"  (or one inside a Content Pack)
-                                     ◀──── catalog/<slug>        (pack key → YYYY-MM-DD, dailies)
 ```
 
 | Schema (`schemas/`) | Holds | Read by |
@@ -21,7 +20,6 @@ src/game/brand/defaults.ts (Wolf)    ◀──── brand entry "theme"  (or on
 | `blocks` | `{ id, name, order, levels: ["<level key>", …] }`: a run of levels. Blocks play by `order`, levels in list order. | `src/game/content/assemble.ts` |
 | `levels` | One level, keyed `<block id>-<n>`, in the game's own shape | `parseLevel` in `src/game/content/level.ts` |
 | `brand` | A partner sheet: grounds, accents, roles, fonts, link | `src/game/brand/load.ts` |
-| `catalog` | `{ "<pack key>": "YYYY-MM-DD" }`: the Daily Editions schedule | the manager's harvest (Vault only) |
 
 There is no `pack` schema. A Content Pack only points at entries, so the order lives on `blocks`, which lets one level sit at a different position in two editions. Values shared by a run of levels (a name, a theme) go on the block, not on every level. Content and brand are separate: any edition can wear any partner's brand (`.agents/recipes/reskin.md`).
 
@@ -54,13 +52,13 @@ Reuse these; do not build a second copy.
 
 ## Daily editions and served modes
 
-Date the packs in the `catalog/<slug>` entry, for example `{ "edition-2026-10-08": "2026-10-08" }` (`schemas/catalog/examples/aminoecspure.json`). The manager's harvest boots the game hidden, and `src/game/setup/vault-content.tsx` answers the catalog as `content_catalog`. The Vault's selection picks a served mode (`resolveServedMode` in `src/game/content/served-mode.ts`, driven by `src/game/setup/served-session.ts`):
+The game knows nothing about scheduling. Editions are scheduled as GamePacks in the Game Manager, and the Vault hands the game one pack key on the day. The game loads the pack it is told to load; it never reads a date and never answers a schedule request. The Vault's selection picks a served mode (`resolveServedMode` in `src/game/content/served-mode.ts`, driven by `src/game/setup/served-session.ts`):
 
 | Vault `content` | Mode | Plays | When the pack's last level is won |
 |---|---|---|---|
 | `{ type: 'default' }` | default | the deployment's own pack | `reportGameCompleted()` |
 | `{ contentId: '<pack key>' }` | daily | that edition, from level 1 | `reportContentCompleted(contentId)` once; the Vault takes the player back |
-| `{ contentId: 'unlocked_editions' }` | unlocked | every edition with `availableFrom <= today` (UTC), oldest first | load the next edition; after the last, `reportGameCompleted()` once |
+| `{ contentId: 'unlocked_editions' }` | default | the deployment's own pack (the signal is the Vault's, not a pack) | `reportGameCompleted()` |
 
 The controller calls `completeActivePack()` at a pack's last win. The exit is the completion report, never `play_ended` (that means "the player left").
 

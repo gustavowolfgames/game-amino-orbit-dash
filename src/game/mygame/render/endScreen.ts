@@ -83,8 +83,6 @@ export interface EndOutcome {
   won: boolean;
   /** The pack's last level was won. */
   packDone: boolean;
-  /** …and play moves on to the next edition (the Vault's unlocked walk), not the same pack. */
-  nextEdition?: boolean;
   /** 0-based level index. */
   level: number;
   score: number;
@@ -132,11 +130,7 @@ export function endCopy(o: EndOutcome): {
   return {
     headlineLine1: o.packDone ? 'ALL LEVELS' : `LEVEL ${o.level + 1}`,
     headlineLine2: 'COMPLETE!',
-    primaryLabel: !o.packDone
-      ? 'NEXT LEVEL'
-      : o.nextEdition
-        ? 'NEXT EDITION'
-        : 'PLAY AGAIN',
+    primaryLabel: o.packDone ? 'PLAY AGAIN' : 'NEXT LEVEL',
     starsEarned: 3,
   };
 }

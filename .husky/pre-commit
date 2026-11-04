@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+export PATH="$HOME/.bun/bin:$PATH"
 # Pre-commit: three guards that need no setup beyond `bun install`.
 
 # Block real asset-gen keys. Tooling reads ASSET_GEN_API_KEY from the
@@ -25,3 +26,5 @@ fi
 # Rules: .agents/recipes/assets.md (Names).
 bun run check:assets || exit 1
 bun run check:manifest || exit 1
+
+nucleo game commit-hooks run

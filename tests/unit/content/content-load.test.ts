@@ -16,17 +16,11 @@ import {
   LEVEL_DEFAULTS,
   levelAt,
   loadActivePack,
-  loadCatalog,
   packLevels,
   resolvePackKey,
   seedActivePack,
-  toEditions,
 } from '~/game/content';
 import type { PackBundle } from '~/game/content/dynamic-client';
-import wolfGameKit from '../../../wolf-game-kit.json';
-
-/** The registered slug (template-amino dropped `config/identity.ts`; see src/game/setup/content.ts). */
-const GAME_SLUG = wolfGameKit.gameSlug;
 
 /** A GameKIT whose Dynamic Data client serves `getPack` from the given function. */
 function fakeKit(getPack: (key: string) => Promise<PackBundle>): KitLike {
@@ -185,33 +179,6 @@ describe('loadActivePack — never breaks the boot', () => {
     const kit = fakeKit(async () => bundleOf('words', ['CRANE', 'SLATE']));
     expect(await loadActivePack(kit, 'words')).toBeNull();
     expect(getActivePack().source).toBe('bundled');
-  });
-});
-
-describe('catalog (Daily Editions harvest)', () => {
-  it('answers the schedule oldest first, in the wire shape', () => {
-    expect(
-      toEditions({ b: '2026-10-09', a: '2026-10-08', c: '2026-10-08' }),
-    ).toEqual([
-      { contentId: 'a', availableFrom: '2026-10-08' },
-      { contentId: 'c', availableFrom: '2026-10-08' },
-      { contentId: 'b', availableFrom: '2026-10-09' },
-    ]);
-  });
-
-  it('answers no editions for a malformed entry or no GameSDK', async () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-    expect(toEditions({ a: 'tomorrow' })).toBeNull();
-    expect(await loadCatalog(null, GAME_SLUG)).toEqual([]);
-    const kit: KitLike = {
-      execute: () => ({
-        promise: Promise.resolve({
-          getPack: async () => ({}),
-          getEntry: async () => ({ a: 'x' }),
-        }),
-      }),
-    };
-    expect(await loadCatalog(kit, GAME_SLUG)).toEqual([]);
   });
 });
 

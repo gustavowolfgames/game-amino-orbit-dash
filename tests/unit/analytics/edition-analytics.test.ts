@@ -6,7 +6,7 @@
 
 import type { BaseAnalyticsService } from '@wolfgames/components/core';
 import { type } from 'arktype';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   type ActivePack,
   getActivePack,
@@ -15,19 +15,10 @@ import {
 } from '~/game/content';
 import {
   createRunAnalytics,
-  editionDateFor,
   editionProps,
   levelId,
   registerEditionSuperProperties,
 } from '~/game/setup/edition-analytics';
-
-// The real schedule module pulls in the Vault bridge (Solid client-only UI); the test owns it.
-const schedule = vi.hoisted(() => ({
-  entries: [] as { contentId: string; availableFrom: string }[],
-}));
-vi.mock('~/game/setup/content', () => ({
-  getEditions: () => schedule.entries,
-}));
 
 interface Sent {
   event: string;
@@ -71,29 +62,14 @@ const packOf = (
   contentId,
 });
 
-const SCHEDULE = [
-  { contentId: 'edition-a', availableFrom: '2026-10-14' },
-  { contentId: 'pack-b', availableFrom: '2026-10-15' },
-];
-
 afterEach(() => {
   seedActivePack(null);
-  schedule.entries = [];
 });
 
-describe('editionDateFor / editionProps', () => {
-  it('reads the date by Vault contentId, then by pack key, else null', () => {
-    expect(editionDateFor(packOf('pack-a', 1, 'edition-a'), SCHEDULE)).toBe(
-      '2026-10-14',
-    );
-    expect(editionDateFor(packOf('pack-b', 1), SCHEDULE)).toBe('2026-10-15');
-    expect(editionDateFor(packOf('pack-c', 1), SCHEDULE)).toBeNull();
-  });
-
-  it('the bundled default is its pack key with no date', () => {
-    expect(editionProps(getActivePack(), SCHEDULE)).toEqual({
+describe('editionProps', () => {
+  it('the bundled default is its pack key', () => {
+    expect(editionProps(getActivePack())).toEqual({
       edition_id: getActivePack().id,
-      edition_date: null,
     });
   });
 });
@@ -107,13 +83,13 @@ describe('registerEditionSuperProperties', () => {
     const { service, registered } = fakeService(ready);
     const stop = registerEditionSuperProperties(service);
     const bundledId = getActivePack().id;
-    expect(registered).toEqual([{ edition_id: bundledId, edition_date: null }]);
+    expect(registered).toEqual([{ edition_id: bundledId }]);
 
     seedActivePack(packOf('pack-1', 2));
     seedActivePack(packOf('pack-2', 2));
     expect(registered.slice(1)).toEqual([
-      { edition_id: 'pack-1', edition_date: null },
-      { edition_id: 'pack-2', edition_date: null },
+      { edition_id: 'pack-1' },
+      { edition_id: 'pack-2' },
     ]);
 
     // PostHog drops `register` before it has loaded; the latest pack is re-sent when it has.
@@ -121,25 +97,12 @@ describe('registerEditionSuperProperties', () => {
     await ready;
     expect(registered.at(-1)).toEqual({
       edition_id: 'pack-2',
-      edition_date: null,
     });
     const count = registered.length;
 
     stop();
     seedActivePack(packOf('pack-3', 2));
     expect(registered).toHaveLength(count);
-  });
-
-  it('a Vault edition registers its catalog date', () => {
-    schedule.entries = SCHEDULE;
-    const { service, registered } = fakeService();
-    const stop = registerEditionSuperProperties(service);
-    seedActivePack(packOf('pack-a', 1, 'edition-a'));
-    expect(registered.at(-1)).toEqual({
-      edition_id: 'pack-a',
-      edition_date: '2026-10-14',
-    });
-    stop();
   });
 });
 
@@ -153,7 +116,6 @@ describe('createRunAnalytics', () => {
   });
 
   it('sends edition_started on level 1 and edition_completed on the last level won', () => {
-    schedule.entries = [{ contentId: 'pack-x', availableFrom: '2026-10-15' }];
     seedActivePack(packOf('pack-x', 2));
     const { service, sent } = fakeService();
     let t = 1_000;
@@ -177,7 +139,7 @@ describe('createRunAnalytics', () => {
       },
       {
         event: 'edition_started',
-        props: { edition_id: 'pack-x', edition_date: '2026-10-15' },
+        props: { edition_id: 'pack-x' },
       },
       {
         event: 'level_complete',
@@ -203,7 +165,7 @@ describe('createRunAnalytics', () => {
       },
       {
         event: 'edition_completed',
-        props: { edition_id: 'pack-x', edition_date: '2026-10-15' },
+        props: { edition_id: 'pack-x' },
       },
     ]);
   });

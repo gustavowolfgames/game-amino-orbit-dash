@@ -65,8 +65,12 @@ test.describe('keyboard on the game screen', () => {
     expect(await gear.evaluate(userSelect)).toBe('none');
     expect(await page.locator('body').evaluate(userSelect)).toBe('none');
 
-    await page.evaluate(() => document.getSelection()?.selectAllChildren(document.body));
-    expect(await page.evaluate(() => document.getSelection()?.toString().trim())).toBe('');
+    await page.evaluate(() =>
+      document.getSelection()?.selectAllChildren(document.body),
+    );
+    expect(
+      await page.evaluate(() => document.getSelection()?.toString().trim()),
+    ).toBe('');
   });
 
   test('a gear reached with Tab still opens settings with Space', async ({

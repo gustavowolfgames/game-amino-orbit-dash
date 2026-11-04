@@ -115,7 +115,9 @@ test('Tab shows the focused card button, and Enter presses it', async ({
   expect(
     await menu.evaluate((el) => {
       const r = el.getBoundingClientRect();
-      return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === el;
+      return (
+        document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === el
+      );
     }),
   ).toBe(true);
   await page.keyboard.press('Enter');

@@ -63,7 +63,7 @@ function SessionTrackerBridge() {
   return null;
 }
 
-/** Registers edition_id / edition_date as super properties, re-registered on every pack change */
+/** Registers edition_id as a super property, re-registered on every pack change */
 function EditionAnalyticsBridge() {
   onCleanup(registerEditionSuperProperties(useAnalyticsService()));
   return null;

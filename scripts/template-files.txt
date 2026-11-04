@@ -12,7 +12,6 @@ src/game/brand/theme.ts
 src/game/config.ts
 src/game/content/active-pack.ts
 src/game/content/assemble.ts
-src/game/content/catalog.ts
 src/game/content/content-pack.ts
 src/game/content/dynamic-client.ts
 src/game/content/index.ts
