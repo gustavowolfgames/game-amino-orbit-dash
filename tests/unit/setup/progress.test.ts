@@ -209,3 +209,33 @@ describe('progress rules (pure)', () => {
     });
   });
 });
+
+describe('?unlock=all (src/game/setup/unlock.ts)', () => {
+  it('the progress hook resumes the active pack on its last level, through the save registry', async () => {
+    const { getActivePack, resumeLevel } = await boot();
+    const { unlockAll } = await import('~/game/setup/unlock');
+    const { getSave } = await import('~/game/setup/saves');
+    const active = getActivePack();
+    expect(unlockAll()).toContain('progress');
+    expect(getSave('progress')?.load()).toMatchObject({
+      packId: active.id,
+      level: active.levels.length - 1,
+    });
+    expect(resumeLevel(active)).toBe(active.levels.length - 1);
+  });
+
+  it('runs at boot only when the URL asks, in a dev/QA build', async () => {
+    const { getActivePack, resumeLevel } = await boot();
+    const { unlockAllAtBoot } = await import('~/game/setup/unlock');
+    expect(unlockAllAtBoot('?unlock=all', false)).toEqual([]);
+    expect(unlockAllAtBoot('?unlock=some', true)).toEqual([]);
+    expect(resumeLevel(getActivePack())).toBe(0);
+    expect(unlockAllAtBoot('?unlock=all', true)).toEqual(['progress']);
+  });
+
+  it('a one-level pack unlocks to level 0', async () => {
+    const { unlockAllLevels, loadProgress } = await boot();
+    unlockAllLevels(pack('solo', 1));
+    expect(loadProgress()).toMatchObject({ packId: 'solo', level: 0 });
+  });
+});

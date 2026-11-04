@@ -8,6 +8,7 @@ import { useScreen } from '~/core/systems/screens';
 import { Logo } from '~/core/ui/Logo';
 // Game-specific controller — swap this import for a different game
 import { setupGame } from '~/game/mygame/screens/gameController';
+import { BRAND_LOGO } from '~/game/safeZones';
 import { gameArt } from '~/game/screens/components/titleFrame';
 import { useGameData } from '~/game/screens/useGameData';
 import { useGameKeyboard } from '~/game/screens/useGameKeyboard';
@@ -141,7 +142,10 @@ export default function GameScreen() {
 
         {/* Wolf Games logo at bottom center; off while the game's end card has its buttons there */}
         <Show when={!controller.endScreenOpen?.()}>
-          <div class="absolute bottom-8 left-1/2 -translate-x-1/2">
+          <div
+            class="absolute left-1/2 -translate-x-1/2"
+            style={{ bottom: `${BRAND_LOGO.bottom}px` }}
+          >
             <Logo />
           </div>
         </Show>

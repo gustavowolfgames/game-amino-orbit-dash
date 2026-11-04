@@ -38,6 +38,7 @@ import { LoaderBar } from '@wolfgames/components/modules/prefabs/screen-content-
 import gsap from 'gsap';
 import { createEffect, createSignal, onCleanup, onMount, Show } from 'solid-js';
 import { GAME_FONT_FAMILY } from '~/game/config';
+import { BRAND_LOGO } from '~/game/safeZones';
 // Single source of truth for the sting markup is the design sandbox at repo-root
 // `intro-sting/wolf-sting.svg` (previewable via intro-sting/preview.html). On promotion
 // into ContentLoader the SVG moves into that module folder. [ENG-4657]
@@ -77,12 +78,11 @@ const REVEAL = {
   sharpDur: 0.7,
 };
 /**
- * Where the title screen draws the WolfGames logo (StartScreen: `bottom-8`, centred) and its
- * size (`logo-wide-small` in public/assets/atlas-branding-wolf.json), in design px: the logo
- * sits inside the CSS-scaled design root, so on screen it is these × that scale. Keep in step
- * with both.
+ * Where the title screen draws the WolfGames logo (bottom centre) and its size, in design px
+ * (`BRAND_LOGO`, src/game/safeZones.ts, which StartScreen also reads): the logo sits inside the
+ * CSS-scaled design root, so on screen it is these × that scale.
  */
-const WOLF_LOGO = { bottom: 32, width: 121, height: 19 };
+const WOLF_LOGO = BRAND_LOGO;
 /**
  * Reveal mode's loader bar: comes in under the WolfGames lockup as soon as the sting settles,
  * as wide as the lockup and always just under it. It fills with the real progress, but never

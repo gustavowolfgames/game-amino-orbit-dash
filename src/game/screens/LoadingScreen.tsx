@@ -11,7 +11,9 @@ import { useScreen } from '~/core/systems/screens';
 import { GAME_TITLE, gameConfig } from '~/game/config';
 import { loadAudioInBackground } from '~/game/setup/audioLoad';
 import { loadBootContent } from '~/game/setup/content';
+import { devLinksOn } from '~/game/setup/devLinks';
 import { useGameTracking } from '~/game/setup/tracking';
+import { unlockAllAtBoot } from '~/game/setup/unlock';
 import type { GameTuning } from '~/game/tuning';
 import { inVault } from '~/integrations/vault';
 import { IntroSting } from './components/IntroSting';
@@ -46,13 +48,14 @@ export function LoadingScreen() {
   const themeBundles = bundlesByPrefix('theme-');
   const coreBundles = bundlesByPrefix('core-');
 
-  // In the Vault (or when config, dev mode or `?screen=game` asks), loading hands straight to
-  // the game. Precedence: ./skipStartScreen.ts.
+  // In the Vault (or when config, dev mode or `?screen=game` / dev `?screen=results` asks),
+  // loading hands straight to the game. Precedence: ./skipStartScreen.ts.
   const skipSource = resolveSkipSource({
     inVault: inVault(),
     configSkip: gameConfig.skipStartScreen === true,
     devModeSkip: tuning.game.devMode?.skipStartScreen === true,
     search: window.location.search,
+    devLinks: devLinksOn(),
   });
   const skipToGame = skipSource !== null;
   // The loader reveals into the next screen's own art (blurred, dark → colour → sharp): the
@@ -129,6 +132,8 @@ export function LoadingScreen() {
         await optional('the theme', () => assets.loadTheme());
       }
       await content;
+      // Dev/QA `?unlock=all`: each save's hook, now that the pack in play is known.
+      unlockAllAtBoot();
       await required('the next screen', async () => nextScreen.preload?.());
       setAssetsReady(true);
     } catch (err) {

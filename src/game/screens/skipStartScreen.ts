@@ -7,7 +7,8 @@
  *   vault      `inVault()` — the Vault shows its own title surface around the game
  *   config     `gameConfig.skipStartScreen`
  *   dev_mode   Tweakpane `devMode.skipStartScreen`
- *   url_param  `?screen=game`
+ *   url_param  `?screen=game`, or `?screen=results` in a dev/QA build (src/game/setup/devLinks.ts:
+ *              the game screen opens with its end card up)
  *
  * Ported from game-amino-sort's `skipStartScreen.ts`; its `vault_override` and `preview` sources
  * belong to features this template does not ship (a DEV `?vault=` stand-in, Stack Builder preview).
@@ -25,6 +26,8 @@ export interface SkipSignals {
   devModeSkip: boolean;
   /** `window.location.search`; `?screen=game` skips. */
   search: string;
+  /** `devLinksOn()`: `?screen=results` skips too. */
+  devLinks?: boolean;
 }
 
 /** The first active source in precedence order, or null to show the start screen. */
@@ -32,13 +35,14 @@ export function resolveSkipSource(signals: SkipSignals): SkipSource | null {
   if (signals.inVault) return 'vault';
   if (signals.configSkip) return 'config';
   if (signals.devModeSkip) return 'dev_mode';
-  if (new URLSearchParams(signals.search).get('screen') === 'game')
+  const screen = new URLSearchParams(signals.search).get('screen');
+  if (screen === 'game' || (screen === 'results' && signals.devLinks))
     return 'url_param';
   return null;
 }
 
 /**
- * Whether the loader plays the WolfGames intro. The developer shortcuts (`?screen=game`, the
+ * Whether the loader plays the WolfGames intro. The developer shortcuts (`?screen=`, the
  * Tweakpane toggle) go straight to the game as soon as it has loaded; players get the intro,
  * revealing into the title or, with the title skipped (the Vault, a game's config), the game.
  */

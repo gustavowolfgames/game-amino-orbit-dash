@@ -28,6 +28,7 @@ import { ScreenFlash } from '@wolfgames/components/modules/primitives/screen-fla
 import gsap from 'gsap';
 import { Assets, BufferImageSource, type Container, Texture } from 'pixi.js';
 import type { PixiLoader } from '~/core/systems/assets';
+import { killTree } from './tweens';
 
 /** The atlas the card's art comes from (a `core-*` bundle: Pixi, in-game UI). */
 export const RESULTS_ATLAS = 'core-results';
@@ -191,7 +192,7 @@ export function createEndScreen(
     (
       card as unknown as { timeline?: gsap.core.Timeline | null }
     ).timeline?.kill();
-    gsap.killTweensOf(card);
+    killTree(card); // its children (stars, buttons) tween too, not just the card
     card.destroy({ children: true });
     card = null;
   };
@@ -273,8 +274,9 @@ export function createEndScreen(
       showers?.kill();
       showers = null;
       dropCard();
-      gsap.killTweensOf(flash);
+      killTree(flash);
       flash.destroy();
+      killTree(confetti);
       confetti.destroy({ children: true });
     },
   };

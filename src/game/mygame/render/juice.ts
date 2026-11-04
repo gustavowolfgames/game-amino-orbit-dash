@@ -22,6 +22,7 @@ import { ScreenFlash } from '@wolfgames/components/modules/primitives/screen-fla
 import { ScreenShake } from '@wolfgames/components/modules/primitives/screen-shake';
 import gsap from 'gsap';
 import { Container } from 'pixi.js';
+import { killTree } from './tweens';
 
 /** Wide enough to cover any letterbox around the 390×844 design canvas. */
 const FLASH_SIZE = 2400;
@@ -207,7 +208,10 @@ export function createJuice(): Juice {
       tweens.clear();
       shaker.destroy();
       // The app's teardown may have destroyed the layer with the stage already.
-      if (!layer.destroyed) layer.destroy({ children: true });
+      if (!layer.destroyed) {
+        killTree(layer); // the modules' own tweens (fly-text, pixel-burst, flash)
+        layer.destroy({ children: true });
+      }
       flies.length = 0;
       sparkles.length = 0;
     },

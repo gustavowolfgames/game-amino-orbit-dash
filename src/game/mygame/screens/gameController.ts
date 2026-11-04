@@ -36,7 +36,6 @@
  *            renderer teardown → setActiveInspectorActions([])
  */
 
-import type { HudDisplay } from '@wolfgames/components/modules/primitives/hud-display';
 import { DesignLayer, trackHostBox } from '@wolfgames/components/pixi';
 import {
   Application,
@@ -59,6 +58,7 @@ import type {
 import { settingsOpen } from '~/game/settingsOpen';
 import { carinaJuiceOn } from '~/game/setup/carina';
 import { whenContentSettled } from '~/game/setup/content';
+import { opensResults } from '~/game/setup/devLinks';
 import { createRunAnalytics } from '~/game/setup/edition-analytics';
 import { resumeLevel, saveProgress } from '~/game/setup/progress.save';
 import { GAME_DEFAULTS, type GameTuning } from '~/game/tuning';
@@ -66,9 +66,10 @@ import { setLiveStart } from '../agent/agentPlugin';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
-import { createHud } from '../render/hud';
+import { createHud, type Hud } from '../render/hud';
 import { createJuice, type Juice } from '../render/juice';
 import { loadGameTextures } from '../render/textures';
+import { killTree } from '../render/tweens';
 import { drainEvents } from '../sim/events';
 import type { GameDatabase } from '../sim/plugin';
 import { stepWorld } from '../sim/schedule';
@@ -102,13 +103,15 @@ export const setupGame: SetupGame = (
   let unbindInput: (() => void) | null = null;
   let stopResize: (() => void) | null = null;
   let destroyed = false;
+  /** `?screen=results` asked for the end card; render() opens it after the first frame. */
+  let previewPending = false;
   let initPromise: Promise<void> | null = null;
 
   /** Design-space root on DESIGN_CANVAS: the game's views go in here. */
   let root: DesignLayer | null = null;
   /** Full-bleed background (screen space). */
   let fieldBg: Sprite | null = null;
-  let hud: HudDisplay | null = null;
+  let hud: Hud | null = null;
   let endOfPlay: EndOfPlay | null = null;
   /** Feedback verbs (sparks, flash, pop); played from the cue table's `run` hooks. */
   let juice: Juice | null = null;
@@ -147,6 +150,12 @@ export const setupGame: SetupGame = (
       score: db.resources.score,
     });
     cues(drainEvents(db), db.resources.elapsedMs);
+    // Dev/QA `?screen=results`: the card opens after the run's first frame of cues, so a
+    // line the start announces (a scene title, a level intro) cannot replace the card's.
+    if (previewPending) {
+      previewPending = false;
+      endOfPlay?.preview();
+    }
     endOfPlay?.tick(dtSec);
     endOfPlay?.handlePhase(db.resources.phase);
   };
@@ -307,6 +316,7 @@ export const setupGame: SetupGame = (
 
           // 3. Start the run, then drive the fixed-step sim + per-frame render.
           startRun();
+          previewPending = opensResults(); // dev/QA `?screen=results`, opened by render()
           // An agent's `start` takes the same level flow as the card's Next.
           setLiveStart(world, startWhenSettled);
           audio.music('audio-music'); // plays once loaded and unlocked (./gameAudio.ts); respects the toggle
@@ -356,6 +366,8 @@ export const setupGame: SetupGame = (
       const teardown = () => {
         releasePixiApp?.();
         releasePixiApp = null;
+        // Pops, shakes and card entrances can still be running: stop them before anything goes.
+        if (app) killTree(app.stage);
         endOfPlay?.destroy();
         endOfPlay = null;
         juice?.destroy();

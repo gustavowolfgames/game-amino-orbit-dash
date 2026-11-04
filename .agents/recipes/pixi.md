@@ -12,6 +12,10 @@ Textures come from `.agents/recipes/assets.md`. Rules stay in `.agents/recipes/e
 
 A catalog component still wins for a HUD or menu. Check `.agents/recipes/components.md` before you draw a button.
 
+Before you destroy a container whose children may still be tweening (a popped HUD, a shaken root, a card mid-entrance), call `killTree(container)` from `src/game/mygame/render/tweens.ts`. It kills the GSAP tweens on the container, its `scale` and `position`, and every descendant; `gsap.killTweensOf(container)` alone misses all of those. The controller's teardown runs it on the whole stage.
+
+The settings gear (top right) and the WolfGames logo (bottom centre) sit over every screen. Their rects in design px are `SAFE_ZONES` in `src/game/safeZones.ts`. Keep buttons, HUD entries and other controls out of them (`clearOfSafeZones(rect)`); the template HUD (`src/game/mygame/render/hud.ts`) shrinks its row to end short of the gear.
+
 ## Verify
 
 The new pixels use `pixi.js` imports from the skill. `bun run check:agent` passes. A screen change also runs `bun run test:e2e`.

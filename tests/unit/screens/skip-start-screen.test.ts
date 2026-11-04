@@ -27,6 +27,16 @@ describe('resolveSkipSource', () => {
     ['?screen=game', { search: '?screen=game' }, 'url_param'],
     ['another ?screen= value does not skip', { search: '?screen=start' }, null],
     [
+      '?screen=results in a dev/QA build',
+      { search: '?screen=results', devLinks: true },
+      'url_param',
+    ],
+    [
+      '?screen=results is ignored in a player build',
+      { search: '?screen=results', devLinks: false },
+      null,
+    ],
+    [
       'the Vault outranks every other source',
       {
         inVault: true,

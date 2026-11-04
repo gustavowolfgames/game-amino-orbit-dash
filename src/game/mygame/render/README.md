@@ -78,5 +78,5 @@ gone. Read entities with a plain reader next to the plugin (`readPieces(db)`,
 (`.agents/recipes/assets.md`).
 
 Colours and fonts come from `getTheme()`, so a partner brand recolours the game.
-Animate with GSAP, kill tweens before `destroy`, create nothing per frame that
+Animate with GSAP, kill tweens before `destroy` (`killTree` in `tweens.ts` for a whole tree), create nothing per frame that
 you could create once, and set `eventMode = 'none'` on views that take no input.

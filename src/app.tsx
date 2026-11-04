@@ -35,6 +35,7 @@ import { createExampleWorld } from '~/core/systems/ecs/ExamplePlugin';
 import '~/game/setup/flags'; // registers flag config at module load
 import { useAssetCoordinator } from '~/core/systems/assets';
 import { EmbedHook } from '~/game/EmbedHook';
+import { GEAR_INSET } from '~/game/safeZones';
 import { GameSettingsMenu } from '~/game/screens/components/GameSettingsMenu';
 import { registerEditionSuperProperties } from '~/game/setup/edition-analytics';
 import { createLoadingTracker } from '~/game/setup/loading-tracker';
@@ -154,7 +155,9 @@ export default function App() {
                                 in design coordinates.
 
                                 The one settings menu, on every screen; the game
-                                stops while it is open (settingsOpen). */}
+                                stops while it is open (settingsOpen). Its corner
+                                is a safe zone game views keep clear of
+                                (src/game/safeZones.ts). */}
                             <DesignBleed zIndex={9999}>
                               {/* `pointer-events: auto` per control: the bleed
                                   layer spans the whole frame and deliberately
@@ -163,8 +166,8 @@ export default function App() {
                               <div
                                 style={{
                                   position: 'absolute',
-                                  top: '8px',
-                                  right: '8px',
+                                  top: `${GEAR_INSET}px`,
+                                  right: `${GEAR_INSET}px`,
                                   'pointer-events': 'auto',
                                 }}
                               >
