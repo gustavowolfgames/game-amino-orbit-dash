@@ -55,7 +55,7 @@
     "@tweakpane/core": "^2.0.5",
     "@types/howler": "^2.2.13",
     "@wolfgames/game-dev": "^0.1.1",
-    "happy-dom": "^15",
+    "happy-dom": "^21.0.4",
     "husky": "^9.1.7",
     "knip": "^6.33.0",
     "qrcode-terminal": "^0.12.0",
@@ -63,7 +63,7 @@
     "typescript": "^5.9.3",
     "vite": "^6.4.3",
     "vite-plugin-solid": "^2.11.14",
-    "vitest": "^2.1.9"
+    "vitest": "^4.1.12"
   },
   "amino": {
     "version": "1.0.0"
