@@ -71,6 +71,8 @@ export async function loadGameTextures(
 ): Promise<GameTextures> {
   skipMissingArt();
   await coordinator.loadScene('game');
+  // The first frame's backdrop is `bg-game`, the still GameScreen shows until Pixi draws, so
+  // the handoff is seamless. Draw a different backdrop first and re-point that alias (ENG-5476).
   return { field: texture(coordinator, 'bg-game') };
 }
 

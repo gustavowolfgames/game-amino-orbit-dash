@@ -34,6 +34,10 @@ Register bundles in `src/game/asset-manifest.ts`, with lockfile keys as the `src
 
 Do not land code that references an asset that does not exist yet. A placeholder needs the user's approval, and each one is flagged for replacement.
 
+### The game screen's still
+
+`bg-game` is the still the game screen shows before Pixi draws its first frame, and the frame the loader's reveal ends on when it skips the title. Point it at the backdrop your first frame draws: `{ alias: 'bg-game', src: 'bg-space.webp' }` when the scene opens on `bg-space`. Left on the template's grey placeholder, players see a grey flash between the loader (or Play) and the game. Set it when you give the game its own background, in the same change. `check:assets` fails a placeholder `bg-game` once the game publishes a background of its own. With no `bg-game` alias at all, the still is the brand ground colour.
+
 ### Names
 
 `bun run check:assets` and `bun run check:manifest` enforce these, and print a fix with `--suggest`. When this page and the scripts disagree, the scripts win.

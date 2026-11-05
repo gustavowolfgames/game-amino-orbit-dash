@@ -10,16 +10,21 @@
  *    vfx/, proxy/, favicon*. Bundling only — `assets:verify` weighs what the CDN serves.
  * 3. No hardcoded CDN hosts — src/** must not contain media.<env>.wolf.games URLs.
  *    URLs resolve through CdnManifestProvider; no source file may know CDN hosts.
+ * 4. No grey flash — once the game has published its own backgrounds, `bg-game` must
+ *    not still be the template's grey placeholder. It is the still the game screen shows
+ *    until Pixi's first frame, so it must be the backdrop that frame draws (ENG-5476).
  *
  * Usage:
  *   bun run scripts/check-asset-naming.ts           # validate, exit 1 if invalid
  *   bun run scripts/check-asset-naming.ts --suggest # print suggested renames
  */
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { createHash } from 'node:crypto';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = join(import.meta.dir, '..');
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const ASSETS_DIR = join(ROOT, 'public', 'assets');
 const ASSETS_SRC_DIR = join(ROOT, 'assets', 'src');
 const SRC_DIR = join(ROOT, 'src');
@@ -77,6 +82,17 @@ const MEDIA_EXTENSIONS =
 // file may know a CDN host.
 const CDN_HOST_RE = /media\.(?:[a-z0-9-]+\.)?wolf\.games/;
 const TEXT_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|json|css|html|md)$/i;
+
+// ---- Grey-flash check (bg-game) ----
+const LOCKFILE = join(ROOT, 'assets', 'asset-manifest.cdn.json');
+/** Content hash (first 12 hex of sha256, as in the lockfile's names) of the template's grey `bg-game`. */
+export const TEMPLATE_BG_GAME_HASH = 'd59a87c36ccd';
+/** The template's own placeholder backgrounds: publishing one of these is not "the game's own art". */
+const TEMPLATE_BG_HASHES = new Set([TEMPLATE_BG_GAME_HASH, 'e7af92bfb29e']);
+const BG_IMAGE_RE = /(^|\/)bg-[^/]+\.(webp|png|jpe?g|avif)$/i;
+/** `bg-game-d59a87c36ccd.webp` → `d59a87c36ccd`. */
+const hashOf = (cdnName: string) =>
+  cdnName.match(/-([0-9a-f]{12})\.[^.]+$/)?.[1];
 
 function isPackedBasename(basename: string): boolean {
   return PACKED_PATTERNS.some((re) => re.test(basename));
@@ -201,7 +217,62 @@ function checkHardcodedCdnHosts(): {
   return hits;
 }
 
-function main(): void {
+/**
+ * Why `bg-game` would flash the template's grey before the game's first frame, or null when
+ * it won't. `bgGameSrc` is the manifest's `bg-game` src (undefined with no alias: the game
+ * screen then shows the brand ground), `lockFiles` the lockfile's `files` map, and
+ * `localHash` the content hash of the `public/assets/` copy when the src is bundled.
+ * Only fires once the game has published a background of its own, so the template
+ * itself, and a game that has not reached its art yet, pass.
+ */
+export function bgGamePlaceholderProblem(
+  bgGameSrc: string | undefined,
+  lockFiles: Record<string, string>,
+  localHash?: string,
+): string | null {
+  if (!bgGameSrc) return null;
+  const published = lockFiles[bgGameSrc];
+  const hash = published ? hashOf(published) : localHash;
+  if (hash !== TEMPLATE_BG_GAME_HASH) return null;
+  const ownBackgrounds = Object.entries(lockFiles)
+    .filter(
+      ([key, name]) =>
+        BG_IMAGE_RE.test(key) && !TEMPLATE_BG_HASHES.has(hashOf(name) ?? ''),
+    )
+    .map(([key]) => key);
+  if (ownBackgrounds.length === 0) return null;
+  return (
+    `bg-game (src '${bgGameSrc}') is still the template's grey placeholder, but the game ` +
+    `publishes its own backgrounds (${ownBackgrounds.join(', ')}).\n` +
+    'The game screen shows bg-game as a still until Pixi draws its first frame, so players see a\n' +
+    "grey flash. In src/game/asset-manifest.ts point the 'bg-game' alias at the backdrop your\n" +
+    "first frame draws, e.g. { alias: 'bg-game', src: '" +
+    ownBackgrounds[0] +
+    "' }.\nSee .agents/recipes/assets.md (The game screen's still)."
+  );
+}
+
+/** Reads the manifest, lockfile and bundled copy, then runs bgGamePlaceholderProblem. */
+async function checkBgGamePlaceholder(): Promise<string | null> {
+  const { manifest } = await import('../src/game/asset-manifest');
+  const src = manifest.bundles
+    .flatMap((b) => b.assets)
+    .find((a) => a.alias === 'bg-game')?.src;
+  const lockFiles: Record<string, string> = existsSync(LOCKFILE)
+    ? (JSON.parse(readFileSync(LOCKFILE, 'utf8')).files ?? {})
+    : {};
+  const local = src ? join(ASSETS_DIR, src) : undefined;
+  const localHash =
+    local && existsSync(local)
+      ? createHash('sha256')
+          .update(readFileSync(local))
+          .digest('hex')
+          .slice(0, 12)
+      : undefined;
+  return bgGamePlaceholderProblem(src, lockFiles, localHash);
+}
+
+async function main(): Promise<void> {
   const suggest = process.argv.includes('--suggest');
   if (!statSync(ASSETS_DIR, { throwIfNoEntry: false })?.isDirectory()) {
     console.error('Assets directory not found:', ASSETS_DIR);
@@ -275,13 +346,22 @@ function main(): void {
     );
   }
 
+  // ---- 4. No grey flash: bg-game is not the template placeholder ----
+  const greyFlash = await checkBgGamePlaceholder();
+  if (greyFlash) {
+    failed = true;
+    console.error(
+      `check:assets — Grey flash before the first frame:\n\n  ${greyFlash.replace(/\n/g, '\n  ')}\n`,
+    );
+  }
+
   if (!failed) {
     console.log(
-      'check:assets — All asset checks passed (naming, size budget, no hardcoded CDN hosts).',
+      'check:assets — All asset checks passed (naming, size budget, no hardcoded CDN hosts, bg-game).',
     );
     process.exit(0);
   }
   process.exit(1);
 }
 
-main();
+if (import.meta.main) await main();
