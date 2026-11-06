@@ -13,8 +13,9 @@ Install: `bun run add-kit ballsort`. Then change it into the game you were
 asked for. Don't rebuild what is already here.
 
 The kit sets the slug to `mygame` (`wolf-game-kit.json`, `.env.example`) and
-empties the asset lockfile, as `.agents/recipes/new-game.md` step 1 says; set
-the real Nucleo slug in both when you have it. Until the game publishes its own
+empties the asset lockfile, as `.agents/recipes/new-game.md` step 1 says. When
+you have the real Nucleo slug, commit the kit and run
+`bun run init-game <slug> "<Title>"`. Until the game publishes its own
 Dynamic Data, the bundled pack (`src/game/content/packs/default.json`) plays and
 the pack / brand fetches under `mygame` 404 in the console.
 
