@@ -26,7 +26,9 @@ export default function GameScreen() {
   // Frame-sized mount outside the DOM design transform — see components.md §9.2b.
   const rendererHost = useRendererHost();
   // A still of the game's first frame until Pixi has drawn: with the title skipped (the
-  // Vault, `?screen=game`), the loader's reveal ends on this background.
+  // Vault, `?screen=game`), the loader's reveal ends on this background. It is `bg-game`, so
+  // that alias must be the backdrop the first frame draws (ENG-5476); under it, the brand
+  // ground, so a game without one, or one whose file fails to load, never shows grey.
   const [pixiReady, setPixiReady] = createSignal(false);
   const background = gameArt(useManifest().manifest()).background;
 
@@ -104,12 +106,22 @@ export default function GameScreen() {
           {(host) => (
             <Portal mount={host()}>
               <Show when={!pixiReady()}>
-                <img
-                  src={background}
-                  alt=""
-                  aria-hidden="true"
-                  class="absolute inset-0 h-full w-full object-cover pointer-events-none"
-                />
+                <div
+                  class="absolute inset-0 pointer-events-none"
+                  data-game-still
+                  style={{ background: 'var(--brand-ground)' }}
+                >
+                  <Show when={background}>
+                    {(src) => (
+                      <img
+                        src={src()}
+                        alt=""
+                        aria-hidden="true"
+                        class="absolute inset-0 h-full w-full object-cover"
+                      />
+                    )}
+                  </Show>
+                </div>
               </Show>
               <div
                 ref={containerRef}

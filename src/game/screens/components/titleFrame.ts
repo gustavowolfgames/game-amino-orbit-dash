@@ -42,15 +42,15 @@ export function titleArt(manifest: ManifestLike): {
 }
 
 /**
- * The play screen's background as a URL, for when the loader hands straight to the game (the
- * Vault, `?screen=game`): the manifest's `bg-game`, the file the game controller draws
- * cover-fitted with no overscan, so a plain `object-fit: cover` matches its first frame.
+ * The play screen's background as a URL: the still the game screen shows until Pixi draws, and
+ * where the loader's reveal ends when it hands straight to the game (the Vault, `?screen=game`).
+ * It is the manifest's `bg-game`, which must be the backdrop the game's first frame draws
+ * cover-fitted with no overscan, so a plain `object-fit: cover` matches that frame (ENG-5476).
+ * A game with no `bg-game` alias gets `undefined`, and the screens show the brand ground
+ * instead: never the template's grey placeholder in `public/assets/`.
  */
-export function gameArt(manifest: ManifestLike): { background: string } {
-  return {
-    background:
-      aliasUrl(manifest, 'bg-game') ?? `${LOCAL_ASSET_PATH}/bg-game.webp`,
-  };
+export function gameArt(manifest: ManifestLike): { background?: string } {
+  return { background: aliasUrl(manifest, 'bg-game') ?? undefined };
 }
 
 /**
