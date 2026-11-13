@@ -45,6 +45,9 @@ const config: KnipConfig = {
     // Types-only: tweakpane's .d.ts files import from @tweakpane/core; without it
     // `bun run typecheck` fails. Nothing imports it by name.
     '@tweakpane/core',
+    // Opt-in 3D: installed so a game can `import '@pixi/3d'` (before `app.init`) without
+    // a dependency bump. The 2D starter does not import it (.agents/recipes/pixi.md).
+    '@pixi/3d',
   ],
   // Both come from @wolfgames/dev, installed per machine (not a template dependency);
   // the scripts that call them skip when they are missing (see `prebuild`).
