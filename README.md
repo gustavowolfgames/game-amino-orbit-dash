@@ -197,7 +197,7 @@ come from [`@wolfgames/components`](https://github.com/wolfgames/game-components
 | Category | Technology |
 |----------|------------|
 | UI | SolidJS |
-| Graphics | PixiJS 8 |
+| Graphics | PixiJS 8, `@pixi/3d` for 3D |
 | Audio | Howler.js |
 | Animation | GSAP |
 | Build | Vite |

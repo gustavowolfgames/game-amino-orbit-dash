@@ -14,6 +14,8 @@ A catalog component still wins for a HUD or menu. Check `.agents/recipes/compone
 
 Before you destroy a container whose children may still be tweening (a popped HUD, a shaken root, a card mid-entrance), call `killTree(container)` from `src/game/mygame/render/tweens.ts`. It kills the GSAP tweens on the container, its `scale` and `position`, and every descendant; `gsap.killTweensOf(container)` alone misses all of those. The controller's teardown runs it on the whole stage.
 
+For 3D, use `@pixi/3d` (installed, beta, pre-1.0). Import it before the `app.init` that starts the renderer, or a `View3D` on that renderer draws nothing. Add a `View3D` to the stage and put models and lights on `view.root`. Camera controls come from `@pixi/3d/extras`. Guides: https://pixijs.com/3d.
+
 The settings gear (top right) and the WolfGames logo (bottom centre) sit over every screen. Their rects in design px are `SAFE_ZONES` in `src/game/safeZones.ts`. Keep buttons, HUD entries and other controls out of them (`clearOfSafeZones(rect)`); the template HUD (`src/game/mygame/render/hud.ts`) shrinks its row to end short of the gear.
 
 ## Verify
