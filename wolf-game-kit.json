@@ -3,7 +3,7 @@
   "projectId": "game-amino-orbit-dash",
   "gameSlug": "game-amino-orbit-dash",
   "gameName": "Orbit Dash",
-  "environment": "Production",
+  "environment": "Staging",
   "assetsDir": "assets",
   "schemasDir": "schemas"
 }

@@ -2,7 +2,7 @@
 
 ## Identity and sources
 
-- Game: **Orbit Dash**; Nucleo slug and repository: `game-amino-orbit-dash`.
+- Game: **Orbit Dash**; Nucleo slug and repository: `game-amino-orbit-dash`. Non-productized development targets **Staging**.
 - Scaffold: `wolfgames/template-amino` at `69eac025c4fcb37a21f362d450583400fa1cec96` (clean clone).
 - Feel reference: `wolfgames/carina` at `25e5d8a49214a09ea6dd125ba9a42cbf4a521b30`.
 - The Wolf asset MCP is unavailable in this session. The first playable version uses intentional geometric Pixi art, the catalog HUD and effects, and the template's bundled local audio. No game release or production promotion is part of this work.
