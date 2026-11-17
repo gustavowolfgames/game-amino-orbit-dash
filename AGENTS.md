@@ -4,6 +4,10 @@ This file is loaded for you. Open a recipe when the task reaches it, not all of 
 
 This game is SolidJS and Pixi 8. Gameplay state lives in the `@adobe/data` ECS world behind `getGameWorld()` in `src/game/mygame/world.ts`. Wolf packages are `@wolfgames/components` and `@wolfgames/client`. wolf-game-kit publishes assets. `bun install` must not write rules or agent files.
 
+## Environment
+
+Orbit Dash is not productized. Use **Staging** for Nucleo, game-manager, assets, and local project configuration. Do not connect to or operate on Production for this game; any cleanup of its earlier Production registration belongs to a release-trained engineer.
+
 ## Always
 
 These hold for every change, whether or not you open a recipe.
