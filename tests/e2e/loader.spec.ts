@@ -76,7 +76,7 @@ test.describe('loader: a failed load', () => {
     expect(warnings).toHaveLength(1);
   });
 
-  test('missing title art is skipped: the title comes up and Play starts the game', async ({
+  test('geometric title art stays playable when bg-title is unavailable', async ({
     page,
   }) => {
     const warnings = missingArtWarnings(page);
@@ -92,8 +92,8 @@ test.describe('loader: a failed load', () => {
     await expect(page.locator('#app canvas').first()).toBeAttached({
       timeout: 15_000,
     });
-    // The title loads its own art once mounted, so the warning can trail the handoff.
-    await expect.poll(() => warnings.length, { timeout: 10_000 }).toBe(1);
+    // Orbit Dash generates title art in Pixi and does not request bg-title.
+    expect(warnings).toHaveLength(0);
     // The title works: Space is the Play button.
     await page.keyboard.press('Space');
     await expect(page.locator('[data-screen="game"]')).toBeAttached({

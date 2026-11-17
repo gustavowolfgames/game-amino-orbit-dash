@@ -32,11 +32,10 @@ describe('event queue', () => {
     stepWorld(db, DT);
     db.transactions.tap({ x: 5, y: 6 });
 
-    expect(drainEvents(db)).toEqual([
-      { type: 'scored', x: 1, y: 2, score: 1 },
-      { type: 'scored', x: 3, y: 4, score: 2 },
-      { type: 'scored', x: 5, y: 6, score: 3 },
-      { type: 'phase', phase: 'won' },
+    expect(drainEvents(db).map((e) => e.type)).toEqual([
+      'switched',
+      'switched',
+      'switched',
     ]);
     expect(db.resources.events).toEqual([]);
     expect(drainEvents(db)).toEqual([]);
@@ -44,19 +43,14 @@ describe('event queue', () => {
 
   it('is bounded: past MAX_EVENTS the oldest go and are counted', () => {
     const db = createGameWorld();
-    db.transactions.startRun({ seed: 1 }); // goal 0: taps never win
+    db.transactions.startRun({ seed: 1 }); // lane switches never score
     const extra = 5;
     for (let i = 0; i < MAX_EVENTS + extra; i++) {
       db.transactions.tap({ x: i, y: 0 });
     }
     const events = drainEvents(db);
     expect(events).toHaveLength(MAX_EVENTS);
-    expect(events[0]).toEqual({
-      type: 'scored',
-      x: extra,
-      y: 0,
-      score: extra + 1,
-    });
+    expect(events[0]).toMatchObject({ type: 'switched', lane: 0 });
     expect(db.resources.eventsDropped).toBe(extra);
   });
 

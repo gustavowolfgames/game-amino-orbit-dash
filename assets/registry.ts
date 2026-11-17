@@ -4,18 +4,7 @@ import type { AssetSeed } from '@wolfgames/client';
 /** The committed lockfile, baked in as the synchronous boot seed. */
 export const assetSeed = {
   version: 1,
-  files: {
-    'bg-game.webp': 'bg-game-d59a87c36ccd.webp',
-    'bg-title.webp': 'bg-title-e7af92bfb29e.webp',
-    'music-ambience.json': 'music-ambience-db5e4126eace.json',
-    'music-ambience.mp3': 'music-ambience-2242caee2eaa.mp3',
-    'sfx-clear.json': 'sfx-clear-c623207b3382.json',
-    'sfx-clear.mp3': 'sfx-clear-cede336d2694.mp3',
-    'sfx-pop.json': 'sfx-pop-c634c80a6a4a.json',
-    'sfx-pop.mp3': 'sfx-pop-276dcf12bbf6.mp3',
-    'ui-button_play.webp': 'ui-button_play-805dceaebf36.webp',
-    'ui-title.webp': 'ui-title-17ea650b5c8b.webp',
-  },
+  files: {},
 } as const satisfies AssetSeed;
 
 /** Lockfile-derived asset names — `assets.url()` typos fail typecheck. */

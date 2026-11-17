@@ -6,9 +6,8 @@
  *   SpriteLogoTitle    — logo slot with optional ambient motion
  *   SpriteButton       — interactive Play button with hover/press GSAP
  *
- * Art is the NEUTRAL template placeholder set (title wordmark, round play
- * button, title background), the `scene-title` bundle loaded in
- * render/textures.ts. Publishing your game's art under the same names swaps it.
+ * Orbit Dash generates its geometric title art in Pixi and passes those textures
+ * to the shared background, logo, and button primitives.
  *
  * The loader (IntroSting, reveal mode) ends on this screen's first frame: the
  * background and logo are already up when it mounts, and only the play button
@@ -40,7 +39,7 @@ import {
   TITLE_LOGO,
 } from '../../screens/components/titleFrame';
 import { createPixiBackdrop } from '../../screens/PixiBackdrop';
-import { loadStartTextures } from '../render/textures';
+import { createTitleArt, type TitleArt } from '../render/titleArt';
 
 /* Layout is design px on the library standard canvas (DESIGN_CANVAS, 390×844).
    Converted from the old local 430×932 canvas by the ENG-3804 rule: absolute
@@ -64,6 +63,7 @@ export const setupStartScreen: SetupStartScreen = (
   let playBtn: SpriteButton | null = null;
   let btnHolder: Container | null = null;
   let root: DesignLayer | null = null;
+  let titleArt: TitleArt | null = null;
   let cleanupResize: (() => void) | null = null;
   /** The play button's action, once init has built it (keyboard start goes through it too). */
   let playNow: (() => void) | null = null;
@@ -82,8 +82,7 @@ export const setupStartScreen: SetupStartScreen = (
         if (loading) return;
         loading = true;
         // Unlock inside the tap itself: iOS Safari only lets a gesture's own handler resume
-        // audio. The music is the game screen's to start, once its file has loaded
-        // (src/game/setup/audioLoad.ts); Play never waits for audio.
+        // audio. Pickup/clear sounds load in the background; Play never waits.
         deps.unlockAudio();
         loadAudioInBackground(deps.loadAudio);
         const tl = gsap.timeline({
@@ -120,11 +119,6 @@ export const setupStartScreen: SetupStartScreen = (
         try {
           await deps.initGpu();
           const gpuLoader = deps.coordinator.getLoader<PixiLoader>('gpu')!;
-          const {
-            title: logoTex,
-            play: btnTex,
-            splash: bgTex,
-          } = await loadStartTextures(deps.coordinator);
 
           app = new Application();
           await app.init({
@@ -135,6 +129,7 @@ export const setupStartScreen: SetupStartScreen = (
           });
           if (!app) return;
           releasePixiApp = exposePixiApp(app);
+          titleArt = createTitleArt(app, getTheme());
 
           createPixiBackdrop({
             app,
@@ -148,7 +143,7 @@ export const setupStartScreen: SetupStartScreen = (
             height: app.screen.height,
             layers: [
               {
-                texture: bgTex,
+                texture: titleArt.background,
                 depth: 0.2,
                 // Phase −π/2: the zoom starts at zero, so the first frame is the one the
                 // loader's reveal ends on (screens/components/titleFrame.ts: TITLE_BG).
@@ -189,7 +184,7 @@ export const setupStartScreen: SetupStartScreen = (
           // size the loader's reveal ends on, so the logo doesn't snap smaller at the handoff.
           const logoMotion = MOTION_PRESETS[sc.logoMotion];
           logo = new SpriteLogoTitle({
-            source: { type: 'sprite', texture: logoTex },
+            source: { type: 'sprite', texture: titleArt.logo },
             width: LOGO_WIDTH,
             motion: logoMotion.breathe
               ? {
@@ -205,7 +200,7 @@ export const setupStartScreen: SetupStartScreen = (
 
           // ── SpriteButton ───────────────────────────────────────────────────
           playBtn = new SpriteButton(gpuLoader, {
-            texture: btnTex,
+            texture: titleArt.play,
             // Complete round-disc art with a baked-in triangle — render whole, no
             // 9-slice stretch and no text label overlay.
             use9Slice: false,
@@ -280,6 +275,8 @@ export const setupStartScreen: SetupStartScreen = (
       bg = null;
       root?.destroy({ children: true });
       root = null;
+      titleArt?.destroy();
+      titleArt = null;
 
       releasePixiApp?.();
       releasePixiApp = null;

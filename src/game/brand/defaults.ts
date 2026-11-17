@@ -12,7 +12,7 @@
 import type { BrandOverride } from '../../../schemas/brand/schema';
 
 export const BUILD_SHEET = {
-  displayName: 'Wolf Games',
+  displayName: 'Orbit Dash',
   theme: 'dark',
   light: {
     base: '#F4F1E8',
@@ -22,17 +22,17 @@ export const BUILD_SHEET = {
     inactive2: '#DCDCDC',
   },
   dark: {
-    base: '#141821',
-    secondary: '#1C2230',
-    textLine: '#F4F1E8',
-    inactive: '#5A6070',
-    inactive2: '#2A3040',
+    base: '#0B1B2D',
+    secondary: '#142A40',
+    textLine: '#F5FEFF',
+    inactive: '#6C90A3',
+    inactive2: '#23425A',
   },
-  primaryAccent: '#F6C453',
-  secondaryAccent: '#5AA9E6',
-  tertiaryAccent: '#E86A92',
+  primaryAccent: '#FFC857',
+  secondaryAccent: '#68D7DB',
+  tertiaryAccent: '#FF4E8A',
   /** The game's piece palette. A partner sheet's `extraColors: null` clears it → pieces take its accents. */
-  extraColors: ['#5AA9E6', '#7FC8A9', '#F6C453', '#E86A92', '#B08BD8'],
+  extraColors: ['#68D7DB', '#80B8FF', '#FFC857', '#FF4E8A', '#B08BD8'],
   roles: {},
   link: 'https://wolf.games',
 } as const satisfies BrandOverride;

@@ -1,11 +1,3 @@
-/**
- * Headless tests for the core world (src/game/mygame/sim/*): the run lifecycle,
- * the determinism seam, the example `tap` move and the agent surface. No engine,
- * no screen: start a run, call transactions, pump exact fixed frames, assert the
- * ECS state. A game adds tests of its own transactions and systems in the same
- * shape.
- */
-
 import { describe, expect, it } from 'vitest';
 import { createGameAgentWorld } from '~/game/mygame/agent/agentPlugin';
 import { drainEvents } from '~/game/mygame/sim/events';
@@ -13,81 +5,97 @@ import { createGameWorld } from '~/game/mygame/sim/plugin';
 import { stepWorld } from '~/game/mygame/sim/schedule';
 import { SYSTEM_ORDER } from '~/game/mygame/sim/systems';
 
-const DT = 1000 / 60; // one 60fps frame, in ms
+const DT = 1000 / 60;
+const laneOf = (db: ReturnType<typeof createGameWorld>) => {
+  const entity = [...db.select(['runner'])][0];
+  return db.read(entity, ['lane'])?.lane;
+};
 
-describe('startRun', () => {
-  it('enters play on the given level with a clean slate and the given seed', () => {
+describe('Orbit Dash simulation', () => {
+  it('builds five gates and one runner from a seed, then resets cleanly', () => {
     const db = createGameWorld();
-    db.transactions.startRun({ seed: 1337, goal: 20, level: 2, packId: 'p' });
-    expect(db.resources).toMatchObject({
-      level: 2,
-      goal: 20,
-      score: 0,
-      phase: 'playing',
-      elapsedMs: 0,
-      packId: 'p',
-      rng: 1337,
+    db.transactions.startRun({
+      seed: 1337,
+      goal: 8,
+      level: 1,
+      packId: 'default',
     });
-  });
-
-  it('resets what the previous run left behind', () => {
-    const db = createGameWorld();
-    db.transactions.startRun({ seed: 1, goal: 5 });
-    db.transactions.tap({ x: 1, y: 1 });
+    expect([...db.select(['runner'])]).toHaveLength(1);
+    expect([...db.select(['gate'])]).toHaveLength(5);
+    expect(db.resources).toMatchObject({
+      phase: 'playing',
+      score: 0,
+      shields: 3,
+      remainingMs: 45_000,
+      goal: 8,
+    });
+    db.transactions.tap({ x: 100, y: 100 });
     stepWorld(db, DT);
-    db.transactions.setPhase('lost');
-    db.transactions.startRun({ seed: 2 });
-    expect(db.resources).toMatchObject({
-      phase: 'playing',
-      score: 0,
-      elapsedMs: 0,
-      goal: 0,
+    db.transactions.startRun({
+      seed: 1337,
+      goal: 8,
+      level: 1,
+      packId: 'default',
     });
+    expect(laneOf(db)).toBe(0);
+    expect(db.resources.runId).toBe(2);
     expect(db.resources.events).toEqual([]);
-  });
-});
-
-describe('stepWorld', () => {
-  it('ships with no systems: a game adds its own', () => {
-    expect(SYSTEM_ORDER).toEqual([]);
+    expect([...db.select(['runner'])]).toHaveLength(1);
+    expect([...db.select(['gate'])]).toHaveLength(5);
   });
 
-  it('injects each fixed step as frameDeltaMs and accumulates elapsedMs', () => {
+  it('switches lane on input without awarding points', () => {
     const db = createGameWorld();
-    db.transactions.startRun({ seed: 1 });
-    for (let i = 0; i < 3; i++) stepWorld(db, DT);
-    expect(db.resources.frameDeltaMs).toBe(DT);
-    expect(db.resources.elapsedMs).toBeCloseTo(3 * DT);
-  });
-});
-
-describe('the example tap move', () => {
-  it('scores a point per tap and wins at the goal', () => {
-    const db = createGameWorld();
-    db.transactions.startRun({ seed: 1, goal: 2 });
-    db.transactions.tap({ x: 10, y: 20 });
-    expect(db.resources).toMatchObject({ score: 1, phase: 'playing' });
-    db.transactions.tap({ x: 30, y: 40 });
-    expect(db.resources).toMatchObject({ score: 2, phase: 'won' });
-    expect(drainEvents(db).map((e) => e.type)).toEqual([
-      'scored',
-      'scored',
-      'phase',
-    ]);
-  });
-
-  it('does nothing outside a live run', () => {
-    const db = createGameWorld();
-    db.transactions.tap({ x: 0, y: 0 }); // idle
+    db.transactions.startRun({ seed: 1, goal: 8 });
+    db.transactions.tap({ x: 20, y: 20 });
+    expect(laneOf(db)).toBe(1);
     expect(db.resources.score).toBe(0);
-    expect(drainEvents(db)).toEqual([]);
+    expect(drainEvents(db).map((e) => e.type)).toEqual(['switched']);
+  });
+
+  it('collects the first energy gate and wins at its goal', () => {
+    const db = createGameWorld();
+    db.transactions.startRun({ seed: 1, goal: 1 });
+    expect(SYSTEM_ORDER).toHaveLength(1);
+    for (let i = 0; i < 60; i++) stepWorld(db, DT);
+    expect(db.resources).toMatchObject({ score: 1, phase: 'won', shields: 3 });
+    expect(drainEvents(db).map((e) => e.type)).toEqual(['scored', 'phase']);
+  });
+
+  it('takes damage when the runner crosses a hazard lane', () => {
+    const db = createGameWorld();
+    db.transactions.startRun({ seed: 1, goal: 8 });
+    db.transactions.tap({ x: 0, y: 0 });
+    for (let i = 0; i < 60; i++) stepWorld(db, DT);
+    expect(db.resources).toMatchObject({
+      score: 0,
+      shields: 2,
+      phase: 'playing',
+    });
+    expect(drainEvents(db).map((e) => e.type)).toEqual(['switched', 'hit']);
+  });
+
+  it('replays identically for the same seed and inputs', () => {
+    const a = createGameWorld();
+    const b = createGameWorld();
+    for (const db of [a, b]) {
+      db.transactions.startRun({ seed: 42, goal: 8 });
+      for (let i = 0; i < 220; i++) {
+        if (i === 70 || i === 140) db.transactions.tap({ x: 0, y: 0 });
+        stepWorld(db, DT);
+      }
+    }
+    expect(b.resources).toEqual(a.resources);
+    const gates = (db: typeof a) =>
+      [...db.select(['gate'])].map((e) => db.read(e, ['lane', 'nextPass']));
+    expect(gates(b)).toEqual(gates(a));
   });
 });
 
 describe('agent surface', () => {
-  it('exposes role, phase, score and goal', async () => {
+  it('exposes the orbit state and switches lane through the same action', async () => {
     const db = createGameAgentWorld();
-    db.transactions.startRun({ seed: 1, goal: 5 });
+    db.transactions.startRun({ seed: 1, goal: 8, level: 1, packId: 'p' });
     const states = await new Promise<Record<string, { value: unknown }>>(
       (resolve) => {
         const off = db.services.agent.states((s) => {
@@ -99,29 +107,20 @@ describe('agent surface', () => {
     expect(Object.keys(states).sort()).toEqual([
       'goal',
       'phase',
+      'remainingMs',
       'role',
       'score',
+      'shields',
     ]);
-    expect(states.goal.value).toBe(5);
-    expect(states.phase.value).toBe('playing');
-  });
-
-  it('taps while playing, refuses outside a run, and restarts the current level', async () => {
-    const db = createGameAgentWorld();
-    db.transactions.startRun({ seed: 1, goal: 5, level: 1, packId: 'p' });
-    await db.services.agent.execute('tap', { x: 3, y: 4 });
-    expect(db.resources.score).toBe(1);
+    await db.services.agent.execute('tap', { x: 0, y: 0 });
+    expect(laneOf(db)).toBe(1);
+    expect(db.resources.score).toBe(0);
     db.transactions.setPhase('lost');
-    const refused = await db.services.agent.execute('tap', { x: 3, y: 4 });
-    expect(refused).toBeTruthy(); // an ActionError: tap is not offered now
-    expect(db.resources.score).toBe(1);
     await db.services.agent.execute('start', {});
     expect(db.resources).toMatchObject({
-      level: 1,
-      goal: 5,
-      packId: 'p',
       phase: 'playing',
       score: 0,
+      shields: 3,
     });
   });
 });

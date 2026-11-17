@@ -1,59 +1,9 @@
-# screens: the controller and its feedback
+# Orbit Dash screens and feedback
 
-`gameController.ts` is the bridge between `GameScreen` and the game: it builds
-the Pixi app, starts the run and the fixed-step loop, and each frame updates
-the views and plays the sim's events. `startView.tsx` is the title screen's
-Pixi scene. Keep the controller thin (`.agents/recipes/game-controller.md`).
+`gameController.ts` connects the fixed-step ECS world to Pixi. It projects the runner, gates, score, shields, and timer each frame, then drains simulation events through `feedback.ts`. The simulation pauses during settings, the pause menu, and the result card.
 
-Feedback has three parts, all DOM-free:
+`startView.tsx` builds geometric title textures and passes them to Wolf's `DynamicBackground`, `SpriteLogoTitle`, and `SpriteButton` modules. The title and play screen share the template's navigation and accessibility surfaces.
 
-| File | Job |
-|------|-----|
-| `../sim/events.ts` | The sim `emit`s events; `drainEvents(db)` takes them once a frame. |
-| `gameAudio.ts` | `createGameAudio(engine, { sfx, music, settings })`: typed `play(id)`, `music(id \| null)`, `stopAll()`. Applies the gear menu's volume and music toggle. Never throws; logs a failing or unloaded channel once in dev. |
-| `cues.ts` | `createCues<GameEvent, Sfx>(table, { play, say })`: per event type, a sound (`sfx`, `volume`, `gapMs` throttle on sim time), a screen-reader line (`aria`) and a `run` hook for the HUD or a view. |
-| `feedback.ts` | The template's own table: `createFeedback(deps)` returns the cue runner, and its `run` hooks play the juice kit (`../render/juice.ts`) on `scored` and on `phase: won`. Game feel is `.agents/recipes/feel.md`. |
+`feedback.ts` maps `switched`, `scored`, `hit`, and `phase` events to the local pop/clear sound effects, screen reader announcements, and Carina-inspired Pixi effects. `gameAudio.ts` and `cues.ts` are reusable helpers. The game has no music channel until a track is published for its own slug.
 
-The whole wiring, minus the juice (`feedback.ts` adds it):
-
-```ts
-// check: feedback.ts
-import { createSignal } from 'solid-js';
-import { drainEvents } from '../sim/events';
-import type { GameDatabase, GameEvent } from '../sim/plugin';
-import { createCues } from './cues';
-import { type AudioEngine, createGameAudio } from './gameAudio';
-
-const SOUNDS = { sfx: ['sfx-pop', 'sfx-clear'], music: ['audio-music'] } as const;
-type Sfx = (typeof SOUNDS.sfx)[number];
-
-export function wireFeedback(engine: () => AudioEngine | undefined) {
-  const [ariaText, setAriaText] = createSignal('');
-  const audio = createGameAudio(engine, SOUNDS); // + settings: deps.audio
-  const cues = createCues<GameEvent, Sfx>(
-    {
-      scored: { sfx: 'sfx-pop', gapMs: 60 },
-      phase: {
-        sfx: (e) => (e.phase === 'won' ? 'sfx-clear' : null),
-        aria: (e) => (e.phase === 'won' ? 'Level complete.' : null),
-      },
-    },
-    { play: audio.play, say: setAriaText },
-  );
-  audio.music('audio-music'); // once the scene is up
-  /** Call from the per-frame render. */
-  const frame = (db: GameDatabase) =>
-    cues(drainEvents(db), db.resources.elapsedMs);
-  return { ariaText, frame, stop: audio.stopAll }; // stop in destroy()
-}
-```
-
-- Channel names are the `audio-*` aliases in `src/game/asset-manifest.ts`; a
-  name not in `sfx` / `music` does not compile.
-- Start music with `audio.music(id)`, never by playing the music channel: the
-  gear menu's toggle only applies through it. Call it when the scene is up, even
-  if audio is still loading: the track starts once its file has loaded and the
-  first tap has unlocked audio (`../../setup/audioLoad.ts`).
-- A new kind of feedback is a new event in the sim plus a row in the table, not
-  a counter the controller remembers from last frame.
-- The table is plain data: a new game replaces the rows, not the helpers.
+Gameplay rules belong in `../sim/`, visual geometry in `../render/`, and feel tuning in `../../tuning/`. Keep this controller as integration code.

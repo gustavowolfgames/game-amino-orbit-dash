@@ -64,8 +64,8 @@ export const manifest: Manifest = {
     },
 
     // ── Start screen + gameplay art (GPU) ───────────────────────────────────
-    // Loaded by src/game/mygame/render/textures.ts. The title screen's DOM
-    // stills (titleFrame.titleArt) read the bg-title and ui-title URLs from here.
+    // The gameplay background is loaded by render/textures.ts. The title's DOM
+    // still reads the bg-title and ui-title URLs; Pixi art is geometric.
     {
       name: 'scene-title',
       assets: [
@@ -95,9 +95,5 @@ export const manifest: Manifest = {
     },
     // Looping ambience — the 'loop' sprite ([0, dur, true]) loops seamlessly;
     // gameController plays play('audio-music', 'loop') on init, stops on destroy.
-    {
-      name: 'audio-music',
-      assets: [{ alias: 'audio-music', src: 'music-ambience.json' }],
-    },
   ],
 };

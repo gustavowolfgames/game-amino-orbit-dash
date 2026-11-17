@@ -32,9 +32,9 @@ test('?screen=results opens the game with the end card up, and its button plays 
   page.on('pageerror', (e) => errors.push(e.message));
 
   await page.goto('/?screen=results');
-  // Level 1 of the bundled pack, won at its goal of 10, without a tap.
+  // Level 1 of the bundled pack, previewed at its goal of 8.
   await expect(ariaLine(page)).toHaveText(
-    'Level complete. Score 10. Enter: next level. Escape: main menu.',
+    'Level complete. Score 8. Enter: next level. Escape: main menu.',
     { timeout: 20_000 },
   );
   await expect(page.locator('[data-screen="game"]')).toHaveCount(1);

@@ -62,8 +62,8 @@ export function createGameAgentService(db: GameDatabase): AgenticService {
   });
   return createAgentService({
     role:
-      'You are playing a game built on this template. Read `phase`, `score` and `goal`. ' +
-      'Call `tap` ({ x, y }) with a design-space point to score, and `start` to start the next run.',
+      'You are playing Orbit Dash. The pulse moves clockwise; each gate has a safe energy lane and a hazard lane. ' +
+      'Call `tap` ({ x, y }) to switch between inner and outer lanes, collect energy to reach `goal`, and keep shields above zero. Use `start` for the next run.',
     states: {
       phase: {
         schema: phaseSchema,
@@ -80,10 +80,20 @@ export function createGameAgentService(db: GameDatabase): AgenticService {
         description: "The level's target (0 = none)",
         value: r.goal,
       },
+      shields: {
+        schema: { type: 'integer' },
+        description: 'Shields remaining (zero ends the run)',
+        value: r.shields,
+      },
+      remainingMs: {
+        schema: { type: 'number' },
+        description: 'Milliseconds left in the run',
+        value: r.remainingMs,
+      },
     },
     actions: {
       tap: {
-        description: 'Tap at design-space (x, y)',
+        description: 'Switch the pulse to the other orbit lane',
         input: pointSchema,
         when: Observe.withMap(r.phase, (p) => p === 'playing'),
         run: (p) => db.transactions.tap(p),

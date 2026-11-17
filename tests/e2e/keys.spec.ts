@@ -10,14 +10,8 @@ const pausedOverlay = (page: Page) =>
   page.getByRole('heading', { name: 'PAUSED' });
 
 async function startGame(page: Page) {
-  await page.goto('/');
-  await expect(page.locator('#app')).toBeVisible({ timeout: 15_000 });
-  // Space on the title starts the game, the same as Play. The title may still be
-  // loading when the first press lands, so keep pressing until the game mounts.
-  await expect(async () => {
-    await page.keyboard.press('Space');
-    await expect(gameScreen(page)).toBeAttached({ timeout: 1_000 });
-  }).toPass({ timeout: 45_000 });
+  await page.goto('/?screen=game');
+  await expect(gameScreen(page)).toBeAttached({ timeout: 20_000 });
 }
 
 test.describe('keyboard on the game screen', () => {

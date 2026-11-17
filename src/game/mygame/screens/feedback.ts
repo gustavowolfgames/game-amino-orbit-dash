@@ -20,7 +20,7 @@ import { createCues } from './cues';
 /** The audio channels this game plays (aliases in src/game/asset-manifest.ts). */
 export const SOUNDS = {
   sfx: ['sfx-pop', 'sfx-clear'],
-  music: ['audio-music'],
+  music: [],
 } as const;
 export type Sfx = (typeof SOUNDS.sfx)[number];
 
@@ -31,6 +31,7 @@ export interface FeedbackDeps {
   juice: () => Juice | null;
   /** The HUD (punched on a score) and the design root (shaken on the win). */
   hud: () => Container | null;
+  runner: () => Container | null;
   root: () => Container | null;
   /** The theme in force (a Vault edition can bring another). */
   theme: () => GameTheme;
@@ -44,9 +45,23 @@ export interface FeedbackDeps {
 export function createFeedback(d: FeedbackDeps) {
   return createCues<GameEvent, Sfx>(
     {
+      switched: {
+        aria: (e) => (e.lane === 0 ? 'Inner lane.' : 'Outer lane.'),
+        run: (e) => {
+          const j = d.juice();
+          if (!j || !d.on()) return;
+          const t = d.tuning();
+          const color = d.theme().pieces[1] ?? hex(d.theme().accent);
+          // Instant strike, then a short recovery (Carina: patterns/no-wind-up-on-player-input).
+          j.burst(e.x, e.y, [color, WHITE], t.switchSparks);
+          const runner = d.runner();
+          if (runner) j.pop(runner, t.switchPopPeak, t.switchRecoverSec);
+        },
+      },
       scored: {
         sfx: 'sfx-pop',
         gapMs: 60, // one pop per 60 ms of sim time (Carina: patterns/merge-same-sound-same-frame)
+        aria: (e) => `Orb ${e.score} collected.`,
         run: (e) => {
           const j = d.juice();
           if (!j || !d.on()) return;
@@ -64,6 +79,26 @@ export function createFeedback(d: FeedbackDeps) {
           });
           const hud = d.hud();
           if (hud) j.pop(hud, t.hudPopPeak, t.hudPopSec);
+        },
+      },
+      hit: {
+        aria: (e) => `Shield lost. ${e.shields} remaining.`,
+        run: (e) => {
+          const j = d.juice();
+          if (!j || !d.on()) return;
+          const t = d.tuning();
+          const color = d.theme().pieces[3] ?? hex(d.theme().accent);
+          // The impact is strongest immediately (Carina: patterns/take-hit-first-frame-strongest).
+          j.flash(color, t.hitFlashAlpha);
+          j.burst(e.x, e.y, [color, WHITE], t.hitSparks);
+          const root = d.root();
+          if (root) j.shake(root, 'light');
+          j.fly(e.x, e.y, '-1', {
+            fill: `#${color.toString(16).padStart(6, '0')}`,
+            fontFamily: d.theme().fonts.numeric,
+            peak: t.flyPeak,
+            endScale: t.flyEndScale,
+          });
         },
       },
       phase: {

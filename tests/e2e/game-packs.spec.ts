@@ -118,7 +118,7 @@ test.describe('game packs', () => {
   }) => {
     await serveDynamicData(page, {});
     expect(await playingLine(page, '')).toMatch(/^Level 1 of 3\./);
-    expect(await brandGround(page)).toBe('#141821');
+    expect(await brandGround(page)).toBe('#0B1B2D');
   });
 
   test('?wolfPack= plays that pack and wears the brand it carries', async ({

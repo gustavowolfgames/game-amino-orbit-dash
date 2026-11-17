@@ -1,5 +1,5 @@
 {
-  "name": "template-amino-ecs-pure",
+  "name": "game-amino-orbit-dash",
   "type": "module",
   "scripts": {
     "dev": "vite",

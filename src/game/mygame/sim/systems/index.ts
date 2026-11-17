@@ -15,4 +15,6 @@
 import type { GameDatabase } from '../plugin';
 
 /** Per-frame systems, in execution order. */
-export const SYSTEM_ORDER: ReadonlyArray<(db: GameDatabase) => void> = [];
+export const SYSTEM_ORDER: ReadonlyArray<(db: GameDatabase) => void> = [
+  (db) => db.transactions.advanceOrbit(),
+];

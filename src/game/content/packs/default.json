@@ -7,15 +7,15 @@
       "levels": [
         {
           "seed": 1,
-          "goal": 10
+          "goal": 8
         },
         {
           "seed": 2,
-          "goal": 20
+          "goal": 12
         },
         {
           "seed": 3,
-          "goal": 30
+          "goal": 16
         }
       ]
     }

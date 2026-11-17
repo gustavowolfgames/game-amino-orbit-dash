@@ -1,40 +1,6 @@
-/**
- * Game Controller — the frame a game plugs into (Pixi).
- *
- * This is the template core, not a game. It owns the renderer lifecycle and the
- * wiring every game needs, and draws only the background and the HUD:
- *
- *   • Pixi app + a `DesignLayer` on `DESIGN_CANVAS` (390×844, the canvas the
- *     title screen uses), fitted by `trackHostBox`, with a cover-fit background
- *     in screen space.
- *   • Input (`../input/pointer.ts`): a tap calls the example `tap` transaction.
- *   • The fixed-step sim (`startFixedStepLoop` → `stepWorld` → `SYSTEM_ORDER`)
- *     plus a per-frame `render` where the game projects ECS into its views
- *     (`../render/`).
- *   • Feedback: `render` drains the sim's events (`drainEvents`) once a frame
- *     and runs them through the cue table (`./feedback.ts`, built on `./cues.ts`):
- *     sound through `./gameAudio.ts`, the screen-reader line through `ariaText`,
- *     and the Carina juice kit (`../render/juice.ts`; `?carina=0` turns it off).
- *   • Content: each run plays one level of the active Content Pack (`levelAt`,
- *     src/game/content). Winning moves to the pack's next level; winning its last
- *     level reports the edition complete to the Vault.
- *   • The sim and input stop while the settings menu is open (`settingsOpen`,
- *     set by `GameSettingsMenu`, the one menu on every screen) or the game is
- *     paused (space bar, core pause state).
- *   • A terminal phase (`won` / `lost`) never leaves this screen: `./endOfPlay.ts`
- *     records it, celebrates a win and brings up the win / lose card over the board
- *     (`../render/endScreen.ts`), unless a new run starts first (`./runEnd.ts`).
- *     A pack the Vault takes over shows no card.
- *
- * Keep this file thin (`bun run check:agent` caps it): game views, rules and
- * input live in their own folders. A turn-based game drops the frame loop and
- * resolves turns on input instead.
- *
- * Lifecycle (world owned by world.ts, never disposed here):
- *   init:    getGameWorld() → build Pixi → startRun → start the fixed-step loop
- *   destroy: destroyed flag → stop loop → engine.destroy → end of play →
- *            renderer teardown → setActiveInspectorActions([])
- */
+/** Orbit Dash's thin bridge: ECS → Pixi arena/HUD → event cues.
+ * The world is app scoped; the fixed-step engine and all view/input bindings
+ * are stopped before the Pixi application is destroyed. */
 
 import { DesignLayer, trackHostBox } from '@wolfgames/components/pixi';
 import {
@@ -66,6 +32,7 @@ import { setLiveStart } from '../agent/agentPlugin';
 import type { EngineHandle } from '../engine';
 import { createTickerEngine, startFixedStepLoop } from '../engine';
 import { bindTapInput } from '../input/pointer';
+import { type Arena, createArena } from '../render/arena';
 import { createHud, type Hud } from '../render/hud';
 import { createJuice, type Juice } from '../render/juice';
 import { loadGameTextures } from '../render/textures';
@@ -112,6 +79,7 @@ export const setupGame: SetupGame = (
   /** Full-bleed background (screen space). */
   let fieldBg: Sprite | null = null;
   let hud: Hud | null = null;
+  let arena: Arena | null = null;
   let endOfPlay: EndOfPlay | null = null;
   /** Feedback verbs (sparks, flash, pop); played from the cue table's `run` hooks. */
   let juice: Juice | null = null;
@@ -132,6 +100,7 @@ export const setupGame: SetupGame = (
   const cues = createFeedback({
     juice: () => juice,
     hud: () => hud,
+    runner: () => arena?.player ?? null,
     root: () => root,
     theme: () => theme,
     tuning: feel,
@@ -145,9 +114,12 @@ export const setupGame: SetupGame = (
   const render = (dtSec: number) => {
     if (!db || destroyed) return;
     juice?.tick(dtSec);
+    arena?.update(db);
     hud?.setValues({
       level: `${db.resources.level + 1}/${getActivePack().levels.length}`,
       score: db.resources.score,
+      shields: db.resources.shields,
+      seconds: Math.ceil(db.resources.remainingMs / 1000),
     });
     cues(drainEvents(db), db.resources.elapsedMs);
     // Dev/QA `?screen=results`: the card opens after the run's first frame of cues, so a
@@ -165,7 +137,13 @@ export const setupGame: SetupGame = (
     if (getTheme() === theme) return;
     theme = getTheme();
     if (app) app.renderer.background.color = theme.ground;
-    if (root) buildHud(root);
+    if (fieldBg) fieldBg.tint = new Color(theme.surface).toNumber();
+    if (root) {
+      arena?.destroy();
+      arena = createArena(theme);
+      root.addChildAt(arena.layer, 1);
+      buildHud(root);
+    }
   };
 
   /** Runs started on this screen, so a deferred start can tell another one beat it. */
@@ -232,8 +210,11 @@ export const setupGame: SetupGame = (
     fieldBg = new Sprite(field);
     fieldBg.anchor.set(0.5);
     fieldBg.eventMode = 'none';
+    fieldBg.tint = new Color(theme.surface).toNumber();
     stage.addChild(fieldBg);
     stage.addChild(root);
+    arena = createArena(theme);
+    root.addChild(arena.layer);
     buildHud(root);
 
     juice = createJuice();
@@ -319,11 +300,14 @@ export const setupGame: SetupGame = (
           previewPending = opensResults(); // dev/QA `?screen=results`, opened by render()
           // An agent's `start` takes the same level flow as the card's Next.
           setLiveStart(world, startWhenSettled);
-          audio.music('audio-music'); // plays once loaded and unlocked (./gameAudio.ts); respects the toggle
 
           engine = createTickerEngine();
           stopSim = startFixedStepLoop(engine, (dt) => {
-            if (db && !destroyed && !(pauseState.paused() || settingsOpen()))
+            if (
+              db &&
+              !destroyed &&
+              !(pauseState.paused() || settingsOpen() || endOfPlay?.open)
+            )
               stepWorld(db, dt);
           });
           stopRender = engine.onFrame((dtMs) => render(dtMs / 1000));
@@ -372,6 +356,8 @@ export const setupGame: SetupGame = (
         endOfPlay = null;
         juice?.destroy();
         juice = null;
+        arena?.destroy();
+        arena = null;
         app?.destroy(true, { children: true });
         app = null;
         hud?.destroy();
@@ -387,7 +373,15 @@ export const setupGame: SetupGame = (
     },
 
     /** Keyboard (useGameKeyboard): the end card's buttons. The template's board takes none. */
-    input: (intent) => endOfPlay?.input(intent),
+    input: (intent) => {
+      if (
+        intent.type === 'action' &&
+        !endOfPlay?.open &&
+        db?.resources.phase === 'playing'
+      ) {
+        db.transactions.tap({ x: 0, y: 0 });
+      } else endOfPlay?.input(intent);
+    },
 
     ariaText,
     endScreenOpen,

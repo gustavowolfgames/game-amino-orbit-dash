@@ -36,6 +36,11 @@ export interface JuiceConfig {
   carina: boolean;
   /** Sparks per tap (Carina: patterns/effects-budget-drop-the-least-noticed, 50–80 live cap). */
   tapSparks: number;
+  switchSparks: number;
+  switchPopPeak: number;
+  switchRecoverSec: number;
+  hitSparks: number;
+  hitFlashAlpha: number;
   /** "+1" scale on its first frame, settling to `flyEndScale` (Carina: patterns/take-hit-first-frame-strongest). */
   flyPeak: number;
   flyEndScale: number;
@@ -80,6 +85,11 @@ export const GAME_DEFAULTS: GameTuning = {
   juice: {
     carina: true,
     tapSparks: 14,
+    switchSparks: 7,
+    switchPopPeak: 1.18,
+    switchRecoverSec: 0.12,
+    hitSparks: 18,
+    hitFlashAlpha: 0.28,
     flyPeak: 1.9,
     flyEndScale: 0.9,
     hudPopPeak: 1.22,

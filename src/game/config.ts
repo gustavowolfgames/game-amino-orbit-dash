@@ -20,7 +20,7 @@ export const GAME_FONT_FAMILY = 'Baloo, system-ui, sans-serif';
 
 /** Game title shown by the intro-sting loader once the WolfGames lockup settles
  *  into its publisher footer. Replace with your game's name. */
-export const GAME_TITLE = 'My Game';
+export const GAME_TITLE = 'Orbit Dash';
 
 // ============================================================================
 // DATA TYPES

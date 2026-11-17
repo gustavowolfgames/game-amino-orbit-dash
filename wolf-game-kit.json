@@ -1,8 +1,8 @@
 {
   "$comment": "Game identity + environment for wolf-dev tooling. projectId must equal the game's Nucleo gameSlug. assetsDir opts into CDN-first assets (wolf-dev assets publish/verify). schemasDir registers schemas/registry.ts on deploy (Game Packs / Dynamic Data, .agents/recipes/dynamic-data.md).",
-  "projectId": "aminoecspure",
-  "gameSlug": "aminoecspure",
-  "gameName": "Your Game",
+  "projectId": "game-amino-orbit-dash",
+  "gameSlug": "game-amino-orbit-dash",
+  "gameName": "Orbit Dash",
   "environment": "Production",
   "assetsDir": "assets",
   "schemasDir": "schemas"

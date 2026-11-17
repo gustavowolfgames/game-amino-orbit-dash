@@ -37,6 +37,8 @@ export function hudScaleFor(naturalWidth: number): number {
 export interface HudValues {
   level: string;
   score: number;
+  shields: number;
+  seconds: number;
 }
 
 export class Hud extends Container {
@@ -49,9 +51,11 @@ export class Hud extends Container {
     this.display = new HudDisplay({
       entries: [
         { key: 'level', label: 'LEVEL ', value: '' },
-        { key: 'score', label: 'SCORE ', value: 0 },
+        { key: 'score', label: 'ORB ', value: 0 },
+        { key: 'shields', label: 'SHIELD ', value: 3 },
+        { key: 'seconds', label: 'TIME ', value: 45 },
       ],
-      direction: 'horizontal',
+      direction: 'vertical',
       fill: theme.text,
       fontFamily: theme.fonts.numeric,
       stroke: '', // no outline: the theme colour reads on the theme ground
@@ -63,11 +67,13 @@ export class Hud extends Container {
   }
 
   setValues(values: HudValues): void {
-    const key = `${values.level}|${values.score}`;
+    const key = `${values.level}|${values.score}|${values.shields}|${values.seconds}`;
     if (key === this.drawn) return;
     this.drawn = key;
     this.display.setValue('level', values.level);
     this.display.setValue('score', values.score);
+    this.display.setValue('shields', values.shields);
+    this.display.setValue('seconds', values.seconds);
     const natural = this.display.width / this.display.scale.x;
     this.display.scale.set(hudScaleFor(natural));
   }
